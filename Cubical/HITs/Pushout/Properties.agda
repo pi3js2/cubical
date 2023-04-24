@@ -365,7 +365,8 @@ record 3x3-span : Type₁ where
 
 open Iso
 private
-  module PushoutIso {ℓ : Level} {A₁ B₁ C₁ A₂ B₂ C₂ : Type ℓ}
+  module PushoutIso {ℓ ℓ' ℓ'' : Level}
+           {A₁ A₂ : Type ℓ} {B₁ B₂ : Type ℓ'} {C₁ C₂ : Type ℓ''}
            (A≃ : A₁ ≃ A₂) (B≃ : B₁ ≃ B₂) (C≃ : C₁ ≃ C₂)
            (f₁ : A₁ → B₁) (g₁ : A₁ → C₁)
            (f₂ : A₂ → B₂) (g₂ : A₂ → C₂)
@@ -393,7 +394,8 @@ private
                    ∙ cong (invEq C≃) (cong g₂ (secEq A≃ a))) i)) i
 
 
-  abbrType₁ : {ℓ : Level} {A₁ B₁ C₁ A₂ B₂ C₂ : Type ℓ}
+  abbrType₁ : {ℓ ℓ' ℓ'' : Level}
+           {A₁ A₂ : Type ℓ} {B₁ B₂ : Type ℓ'} {C₁ C₂ : Type ℓ''}
        (A≃ : A₁ ≃ A₂) (B≃ : B₁ ≃ B₂) (C≃ : C₁ ≃ C₂)
     → (f₁ : A₁ → B₁) (g₁ : A₁ → C₁)
        (f₂ : A₂ → B₂) (g₂ : A₂ → C₂)
@@ -406,10 +408,11 @@ private
     × ((x : _) → PushoutIso.G A≃ B≃ C≃ f₁ g₁ f₂ g₂ id1 id2
                    (PushoutIso.F A≃ B≃ C≃ f₁ g₁ f₂ g₂ id1 id2 x) ≡ x)
 
-  abbrType : {ℓ : Level} {A₁ B₁ C₁ A₂ B₂ C₂ : Type ℓ}
+  abbrType : {ℓ ℓ' ℓ'' : Level}
+           {A₁ A₂ : Type ℓ} {B₁ B₂ : Type ℓ'} {C₁ C₂ : Type ℓ''}
              (A≃ : A₁ ≃ A₂) (B≃ : B₁ ≃ B₂) (C≃ : C₁ ≃ C₂)
           → Type _
-  abbrType {A₁ = A₁} {B₁ = B₁} {C₁ = C₁} {A₂ = A₂} {B₂ = B₂} {C₂ = C₂}
+  abbrType {A₁ = A₁} {A₂ = A₂} {B₁ = B₁} {B₂ = B₂} {C₁ = C₁} {C₂ = C₂}
     A≃ B≃ C≃ =
     (f₁ : A₁ → B₁) (g₁ : A₁ → C₁)
     (f₂ : A₂ → B₂) (g₂ : A₂ → C₂)
@@ -417,10 +420,11 @@ private
     (id2 : (fst C≃) ∘ g₁ ≡ g₂ ∘ (fst A≃))
     → abbrType₁ A≃ B≃ C≃ f₁ g₁ f₂ g₂ id1 id2
 
-  F-G-cancel : {ℓ : Level} {A₁ B₁ C₁ A₂ B₂ C₂ : Type ℓ}
+  F-G-cancel : {ℓ ℓ' ℓ'' : Level}
+           {A₁ A₂ : Type ℓ} {B₁ B₂ : Type ℓ'} {C₁ C₂ : Type ℓ''}
                (A≃ : A₁ ≃ A₂) (B≃ : B₁ ≃ B₂) (C≃ : C₁ ≃ C₂)
              → abbrType A≃ B≃ C≃
-  F-G-cancel {A₁ = A₁} {B₁ = B₁} {C₁ = C₁} {A₂ = A₂} {B₂ = B₂} {C₂ = C₂} =
+  F-G-cancel {A₁ = A₁} {A₂ = A₂} {B₁ = B₁} {B₂ = B₂} {C₁ = C₁}{C₂ = C₂} =
     EquivJ (λ A₁ A≃ → (B≃ : B₁ ≃ B₂) (C≃ : C₁ ≃ C₂) →
       abbrType A≃ B≃ C≃)
       (EquivJ (λ B₁ B≃ → (C≃ : C₁ ≃ C₂) →
@@ -478,7 +482,8 @@ private
           ∙∙ sym (rUnit (push a))
 
 
-module _ {ℓ : Level} {A₁ B₁ C₁ A₂ B₂ C₂ : Type ℓ}
+module _ {ℓ ℓ' ℓ'' : Level}
+  {A₁ A₂ : Type ℓ} {B₁ B₂ : Type ℓ'} {C₁ C₂ : Type ℓ''}
   (f₁ : A₁ → B₁) (g₁ : A₁ → C₁)
   (f₂ : A₂ → B₂) (g₂ : A₂ → C₂)
   (A≃ : A₁ ≃ A₂) (B≃ : B₁ ≃ B₂) (C≃ : C₁ ≃ C₂)
