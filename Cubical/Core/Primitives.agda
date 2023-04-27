@@ -8,7 +8,7 @@ module Cubical.Core.Primitives where
 
 open import Agda.Builtin.Cubical.Path public
 open import Agda.Builtin.Cubical.Sub public
-renaming (primSubOut to outS)
+  renaming (primSubOut to outS)
 open import Agda.Primitive.Cubical public
   renaming ( primIMin       to _∧_  -- I → I → I
            ; primIMax       to _∨_  -- I → I → I

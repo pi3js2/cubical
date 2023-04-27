@@ -1,4 +1,4 @@
-{-# OPTIONS --safe --experimental-lossy-unification #-}
+{-# OPTIONS --safe --lossy-unification #-}
 
 {-
 This file contains
@@ -323,7 +323,7 @@ module _ {ℓ : Level} (X Y : RP∞) (A : fst X → fst Y → Type ℓ) where
   THEF (ab* x y xy bn) =
     inr (CasesRP Y y (inr (CasesRP X x xy (bn y)))
                      (inl ((¬' x) , bn (not* Y y))))
-  THEF (ar* x (inl y , m) b x₁ i) = pst* i
+  THEF (ar* x (inl y , m) b x₁ i) = ? -- pst* i
     where
     pst* : Path TP (inl (y , inr m)) (inr
          (CasesRP Y y (inr (CasesRP X x (m x) (b y)))
