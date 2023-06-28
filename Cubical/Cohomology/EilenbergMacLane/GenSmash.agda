@@ -480,6 +480,25 @@ snd ((X , e) +∞ (Y , e')) =
   (isoToPath (iso invEquiv invEquiv (λ e → Σ≡Prop isPropIsEquiv refl)
     λ e → Σ≡Prop isPropIsEquiv refl))
 
+elimBool≃ : ∀ {ℓ} {B : Bool ≃ Bool → Type ℓ}
+  → B (idEquiv Bool) → B notEquiv  → (x : _) → B x
+elimBool≃ {B = B} b1 b2 x = subst B (Iso.leftInv Bool≃Charac x)
+  (t (Iso.fun Bool≃Charac x))
+  where
+  t : (x : Bool) → B (Iso.inv Bool≃Charac x)
+  t false = b2
+  t true = b1
+
+
+
++∞-comm0 : +∞-comm Bool* Bool* ≡ refl
++∞-comm0 = ΣSquareSet (λ _ → isProp→isSet squash₁)
+  (cong ua (Σ≡Prop (λ _ → isPropIsEquiv _)
+    (funExt (elimBool≃ (Σ≡Prop (λ _ → isPropIsEquiv _) refl)
+                       (Σ≡Prop (λ _ → isPropIsEquiv _) refl))))
+   ∙ uaIdEquiv)
+
+
 +∞rId : (X : RP∞) → (X +∞ Bool*) ≡ X
 +∞rId X = Σ≡Prop (λ _ → squash₁)
   (ua (c (fst X) (snd X) , isEq-c _ _))
@@ -524,76 +543,297 @@ rCancel∞ X = Σ≡Prop (λ _ → squash₁)
 lId∞ : (X : RP∞) → (Bool* +∞ X) ≡ X
 lId∞ X = +∞-comm Bool* X ∙ +∞rId X
 
-→P : (X Y : RP∞) → fst X → fst Y → fst (X +∞ Y)
-→P X Y x y = isoToEquiv
-  (iso (tom X x Y y)
-       (tom Y y X x)
-       (bs Y y X x)
-       (bs X x Y y))
+lId≡rId : lId∞ Bool* ≡ +∞rId Bool*
+lId≡rId = cong (_∙ +∞rId Bool*) +∞-comm0 ∙ sym (lUnit _)
+
+bst : Ω (RP∞ , Bool*) .fst ≃ Bool
+bst = compEquiv (isoToEquiv (invIso (fstP-RP∞ Bool* Bool*)))
+                (compEquiv univalence
+                (isoToEquiv Bool≃Charac))
+
+liftBool : ∀ {ℓ} → Iso Bool (Lift {j = ℓ} Bool)
+Iso.fun liftBool = lift
+Iso.inv liftBool = lower
+Iso.rightInv liftBool x = refl
+Iso.leftInv liftBool x = refl
+
+bst' : Ω (RP∞ , Bool*) ≡ (Lift Bool , lift true)
+bst' = ua∙ (compEquiv bst (isoToEquiv liftBool)) refl
+
+isAssocHSp : ∀ {ℓ} → (A : Pointed ℓ) (_+A_ : fst A → fst A → fst A) → Type ℓ
+isAssocHSp A _+A_ = (Σ[ rid ∈ ((x : _) → x +A pt A ≡ x) ]
+                    Σ[ lid ∈ ((x : _) → (pt A) +A x ≡ x) ]
+                    (lid (pt A) ≡ rid (pt A)))
+                  × ((x y z : fst A) → (x +A (y +A z)) ≡ ((x +A y) +A z))
+
+open import Cubical.HITs.EilenbergMacLane1 as EM1
+open import Cubical.Algebra.Group.Instances.IntMod
+open import Cubical.Functions.Embedding
+open import Cubical.Data.Fin.Base
+open import Cubical.Data.Fin.Arithmetic
+
+isAssocHSpEM1 : isAssocHSp (EM∙ ℤ/2 1) _+ₖ_
+fst isAssocHSpEM1 = rUnitₖ 1 , lUnitₖ 1 , refl
+snd isAssocHSpEM1 = assocₖ 1
+
+Bool→ℤ/2 : Bool → ℤ/2 .fst
+Bool→ℤ/2 true = fzero
+Bool→ℤ/2 false = fone
+
+
+map-one : RP∞ → EM ℤ/2 1
+map-one = uncurry λ X → PT.elim→Gpd _ (λ _ → hLevelEM ℤ/2 1)
+  (λ _ → embase)
+  (hel X)
+  (helcoh X)
   where
-  tom : (X : RP∞) (x : fst X) (Y : RP∞) (y : fst Y)
-    → fst X → fst Y
-  tom X x Y y = CasesRP X x y (not* Y y)
+  hel : (X : Type) (x y : X ≃ Bool) → embase ≡ embase
+  hel X x y = emloop (Bool→ℤ/2 (Iso.fun Bool≃Charac (compEquiv (invEquiv x) y)))
 
-  bs : (X : RP∞) (x : fst X) (Y : RP∞) (y : fst Y)
-    → (t : fst X)
-    → tom Y y X x (tom X x Y y t) ≡ t
-  bs = J2-elem _ .fst (J2-elem _ .fst
-    λ { false → refl
-      ; true → refl})
+  helcoh : (X : Type) (x y z : X ≃ Bool) → Square (hel X x y) (hel X x z) refl (hel X y z)
+  helcoh X =
+    EquivJ (λ X x → (y z : X ≃ Bool)
+      → Square (hel X x y) (hel X x z) refl (hel X y z))
+      λ t z → (l t)
+            ◁ (flipSquare (flipSquare (mylem (Iso.fun Bool≃Charac t) (Iso.fun Bool≃Charac z))
+            ▷ λ i → hel Bool (Iso.leftInv Bool≃Charac t i) (Iso.leftInv Bool≃Charac z i))
+            ▷ sym (l z))
+      where
+      ps : (x : Bool)
+        → Iso.fun Bool≃Charac (compEquiv (invEquiv (idEquiv Bool))
+                               (Iso.inv Bool≃Charac x))
+        ≡ x
+      ps false = refl
+      ps true = refl
 
--- (X : RP∞) → ⋀_x K n x → K_(S x)
+      l : (t : Bool ≃ Bool) → hel Bool (idEquiv _) t
+        ≡ emloop (Bool→ℤ/2 (Iso.fun Bool≃Charac t))
+      l t = cong emloop (cong (Bool→ℤ/2) (cong (Iso.fun Bool≃Charac)
+                  (Σ≡Prop (λ _ → isPropIsEquiv _)
+                    refl)))
 
--- _⌣_ : ⋀_x K_(S_(n x)) -> ⋀_x K_(S_(n x)) -> K_(S_n)
--- _⌣_ : ⋀_(x+y) K_(S_(n x)) -> ⋀_x K_(S_(n x)) -> K_(S_n)
+      mylem : (t z : Bool)
+        → PathP (λ i → Path (EM ℤ/2 1) embase
+                 (emloop (Bool→ℤ/2 (Iso.fun Bool≃Charac
+                 (compEquiv (invEquiv (Iso.inv Bool≃Charac t)) (Iso.inv Bool≃Charac z)))) i))
+                 (emloop (Bool→ℤ/2 t)) (emloop (Bool→ℤ/2 z))
+      mylem false false = emcomp {Group = AbGroup→Group ℤ/2} fone fzero
+      mylem false true = emcomp {Group = AbGroup→Group ℤ/2} fone fone
+      mylem true false = emcomp {Group = AbGroup→Group ℤ/2} fzero fone
+      mylem true true = emcomp {Group = AbGroup→Group ℤ/2} fzero fzero
 
--- S(X,a) , a : ⋀_x (S_(n x)) + ⋀_y (S_(n y)) 
--- S(Y,b) , b : ⋀_y (S_(n y))
-
-
--- S(X+Y, a + b)
-
-ts : (X Y : RP∞)
-  → fst X ≃ fst Y
-  → (n : fst X → fst Y → ℕ)
-  → ℕ
-ts X Y eq n = ∑RP X λ e → n e (fst eq e)
-
-sss : (X Y : RP∞) (n : fst X → fst Y → ℕ)
-  → (fst X ≃ fst Y  → ℕ)
-sss X Y n e = ts X Y e n
-
-nt : Bool → Bool → ℕ
-nt false false = 10
-nt false true = 1
-nt true false = 5
-nt true true = 17
-
-
-SM∙→∙ : {ℓ : Level} (X : RP∞) (A A' : fst X → Pointed ℓ)
-  → ((x : _) → A x →∙ A' x)
-  → SM X A → SM X A'
-SM∙→∙ X A A' f (inl x) = inl x
-SM∙→∙ X A A' f (inr g) = inr λ x → f x .fst (g x)
-SM∙→∙ X A A' f (push a i) =
-    (push (fst a , f (fst a) .fst (snd a))
-  ∙ λ i → inr (λ x → help x i)) i
+map-one-eq : isEquiv map-one
+equiv-proof map-one-eq =
+  EM1.elimProp _ (λ _ → isPropIsContr)
+    ((Bool* , refl)
+    , isEmbedding→hasPropFibers t _ _)
   where
-  help : (x : fst X)
-    → (CasesRP X {A = λ x → A' x .fst} (fst a) (f (fst a) .fst (snd a))
-                (snd (A' (not* X (fst a))))) x
-       ≡ f x .fst (CasesRP X {A = λ x → A x .fst}
-           (fst a) (a .snd) (A (not* X (fst a)) .snd) x)
-  help = CasesRP X (fst a)
-    (CasesRPβ X {A = λ x → A' x .fst} (fst a) (f (fst a) .fst (snd a))
-                (snd (A' (not* X (fst a)))) .fst
-    ∙ cong (f (fst a) .fst)
-      (sym (CasesRPβ X {A = λ x → A x .fst}
-             (fst a) (a .snd) (A (not* X (fst a)) .snd) .fst)))
-       (CasesRPβ X {A = λ x → A' x .fst} (fst a) (f (fst a) .fst (snd a))
-                (snd (A' (not* X (fst a)))) .snd
-    ∙ sym (f _ .snd)
-    ∙ cong (f (not* X (fst a)) .fst)
-        (sym (CasesRPβ X {A = λ x → A x .fst}
-           (fst a) (a .snd) (A (not* X (fst a)) .snd) .snd)))
+  t : isEmbedding map-one
+  t = RP∞pt→Prop (λ _ → isPropΠ λ _ → isPropIsEquiv _)
+    (RP∞pt→Prop (λ _ → isPropIsEquiv _)
+      (transport (λ j → isEquiv (t2 (~ j)))
+        (isoToIsEquiv BIso)))
+    where
+    BIso : Iso (Lift Bool) (fst ℤ/2)
+    BIso = compIso (invIso (equivToIso LiftEquiv)) (fst Bool≅ℤGroup/2)
+
+    t2 : PathP (λ i → bst' i .fst → isoToPath (Iso-EM-ΩEM+1 {G = ℤ/2} 0) (~ i))
+               (cong {x = Bool*} {y = Bool*} map-one)
+               (Iso.fun BIso)
+    t2 = toPathP (funExt λ { (lift false) → Σ≡Prop (λ _ → Cubical.Data.Nat.Order.isProp≤) refl
+                           ; (lift true) → Σ≡Prop (λ _ → Cubical.Data.Nat.Order.isProp≤) refl})
+
+∞wedgeconn : ∀ {ℓ} {A : RP∞ → RP∞ → Type ℓ}
+  → ((x y : _) → isSet (A x y))
+  → (f : (x : _) → A x Bool*)
+  → (g : (x : _) → A Bool* x)
+  → f Bool* ≡ g Bool*
+  → (x y : _) → A x y
+∞wedgeconn {A = A} is-set f g p =
+  uncurry λ X → PT.elim→Set (λ _ → isSetΠ λ x → is-set _ _)
+    (f1 X)
+    (EquivJ (λ X x → (y : X ≃ Bool) →
+      PathP (λ i → (y₁ : RP∞) → A (X , squash₁ ∣ x ∣₁ ∣ y ∣₁ i) y₁)
+      (f1 X x) (f1 X y))
+      λ y → f1-idEquiv
+      ◁ λ i y' → main' y' y i)
+  where
+  p1 : Bool* ≡ Bool*
+  p1 = Σ≡Prop (λ _ → squash₁) refl
+  lem : p1 ≡ refl
+  lem = ΣSquareSet (λ _ → isProp→isSet squash₁) λ _ i → Bool
+
+
+  f1 : (X : Type) → (x : X ≃ Bool) (y : RP∞) → A (X , ∣ x ∣₁) y
+  f1 X e y = subst (λ x → A x y) (Σ≡Prop (λ _ → squash₁) (sym (ua e))) (g y)
+
+  f1-idEquiv : f1 Bool (idEquiv Bool) ≡ g
+  f1-idEquiv = funExt λ y
+    → (λ j → subst (λ x → A x y) (Σ≡Prop (λ _ → squash₁) (sym (uaIdEquiv {A = Bool} j))) (g y)) ∙ (λ j → subst (λ x → A x y) (lem j) (g y))
+    ∙ transportRefl (g y)
+
+  main' : (y' : RP∞) (y : Bool ≃ Bool)
+    → PathP (λ i → A (Bool , squash₁ ∣ idEquiv Bool ∣₁ ∣ y ∣₁ i) y')
+             (g y') (f1 Bool y y')
+  main' =
+    RP∞pt→Prop (λ _ → isPropΠ λ _ → isOfHLevelPathP' 1 (is-set _ _) _ _)
+      (elimBool≃
+        (toPathP ((λ j → transport (λ i → A (Bool , l j i) Bool*) (g Bool*))
+          ∙ sym l2))
+        (sym p ◁ (((λ j → f (Bool , squash₁ ∣ idEquiv Bool ∣₁ ∣ notEquiv ∣₁ j ))
+               ▷ λ i → transp (λ j → A (l3 (~ i ∨ j)) Bool*) (~ i) (f (l3 (~ i))))
+               ▷ cong (transp (λ j → A (l3 j) Bool*) i0) p)))
+                      -- p))))
+       where
+       l : Path (Path ∥ Bool ≃ Bool ∥₁ ∣ idEquiv _ ∣₁ ∣ idEquiv _ ∣₁) (squash₁ _ _) refl
+       l = isProp→isSet squash₁ _ _ _ _
+
+       l3 : Bool* ≡ (Bool , ∣ notEquiv ∣₁)
+       l3 = Σ≡Prop (λ _ → squash₁) (λ i₁ → ua notEquiv (~ i₁)) 
+
+       
+
+       l2 : f1 Bool (idEquiv Bool) Bool* ≡ transport refl (g Bool*)
+       l2 = (λ j → transport (λ i → A (pp2 j i) Bool*) (g Bool*))
+        where
+        pp2 : Path (Bool* ≡ Bool*) (Σ≡Prop (λ _ → squash₁) (λ i₁ → ua (idEquiv Bool) (~ i₁))) refl
+        pp2 = ΣSquareSet (λ _ → isProp→isSet squash₁)
+            ((λ j i → uaIdEquiv {A = Bool} j (~ i)))
+
+map-one-pres+ : (x y : RP∞) → map-one (x +∞ y) ≡ map-one x +[ 1 ]ₖ map-one y
+map-one-pres+ = ∞wedgeconn (λ _ _ → emsquash _ _) F G p
+  where
+  F : (x : _) → map-one (x +∞ Bool*) ≡ +ₖ-syntax 1 (map-one x) (map-one Bool*)
+  G : (x : RP∞) →  map-one (Bool* +∞ x) ≡ +ₖ-syntax 1 (map-one Bool*) (map-one x)
+  p : F Bool* ≡ G Bool*
+  F X = cong map-one (+∞rId X)
+        ∙ sym (rUnitₖ 1 (map-one X))
+  G X = cong map-one (lId∞ X)
+        ∙ sym (lUnitₖ 1 (map-one X))
+  p i = cong map-one (lId≡rId (~ i)) ∙ refl
+
+isAssocHSpRP∞ : isAssocHSp (RP∞ , Bool*) _+∞_
+isAssocHSpRP∞ = transport (λ i → isAssocHSp (p1 (~ i)) (p2 (~ i))) tr
+  where
+  LL : Pointed (ℓ-suc ℓ-zero)
+  LL = ((Lift (EM ℤ/2 1)) , (lift embase))
+
+  _L+_ : LL .fst → LL .fst → LL .fst 
+  (lift x) L+ (lift y) = lift (x +ₖ y)
+
+  tr : isAssocHSp LL _L+_
+  fst (fst tr) (lift x) = cong lift (rUnitₖ 1 x)
+  fst (snd (fst tr)) (lift y) = cong lift (lUnitₖ 1 y)
+  snd (snd (fst tr)) = refl
+  snd tr (lift x) (lift y) (lift z) = cong lift (assocₖ 1 x y z)
+
+  p1 : Path (Pointed (ℓ-suc ℓ-zero)) ((RP∞ , Bool*)) LL
+  p1 = ua∙ (compEquiv (map-one , map-one-eq) LiftEquiv) refl
+
+  p2 : PathP (λ i → p1 i .fst → p1 i .fst → p1 i .fst) _+∞_ _L+_
+  p2 = toPathP (funExt λ { (lift a) → funExt λ { (lift b)
+    → transportRefl _
+    ∙ cong lift (
+      (cong map-one (cong₂
+      _+∞_ (λ i → invEq (_ , map-one-eq) (transportRefl a i))
+            λ i → invEq (_ , map-one-eq) (transportRefl b i)))
+    ∙ map-one-pres+ _ _
+    ∙ cong₂ _+ₖ_ (secEq (_ , map-one-eq) a) (secEq (_ , map-one-eq) b))}})
+
++∞-assoc : (X Y Z : RP∞) → (X +∞ (Y +∞ Z)) ≡ ((X +∞ Y) +∞ Z)
++∞-assoc = isAssocHSpRP∞ .snd
+
++∞-iso : (X : RP∞) → Iso RP∞ RP∞
+Iso.fun (+∞-iso X) = X +∞_
+Iso.inv (+∞-iso X) = X +∞_
+Iso.rightInv (+∞-iso X) t = +∞-assoc X X t ∙ cong (_+∞ t) (rCancel∞ X) ∙ lId∞ t
+Iso.leftInv (+∞-iso X) t = +∞-assoc X X t ∙ cong (_+∞ t) (rCancel∞ X) ∙ lId∞ t
+
+-- isEmbedding→hasPropFibers
+
+-- isEq : {!!}
+-- isEq = {!!}
+
+-- +∞-assoc : (Y X Z : RP∞) → (X +∞ (Y +∞ Z)) ≡ ((X +∞ Y) +∞ Z)
+-- +∞-assoc Y =
+--   ∞wedgeconn (λ _ _ → isGroupoidRP∞ _ _)
+--     (λ X → cong (X +∞_) (+∞rId Y) ∙ sym (+∞rId (X +∞ Y)))
+--     (λ Z → lId∞ (Y +∞ Z) ∙ cong (_+∞ Z) (sym (lId∞ Y)))
+--     {!!}
+--   where
+--   h : {!!}
+--   h = {!!}
+
+-- →P : (X Y : RP∞) → fst X → fst Y → fst (X +∞ Y)
+-- →P X Y x y = isoToEquiv
+--   (iso (tom X x Y y)
+--        (tom Y y X x)
+--        (bs Y y X x)
+--        (bs X x Y y))
+--   where
+--   tom : (X : RP∞) (x : fst X) (Y : RP∞) (y : fst Y)
+--     → fst X → fst Y
+--   tom X x Y y = CasesRP X x y (not* Y y)
+
+--   bs : (X : RP∞) (x : fst X) (Y : RP∞) (y : fst Y)
+--     → (t : fst X)
+--     → tom Y y X x (tom X x Y y t) ≡ t
+--   bs = J2-elem _ .fst (J2-elem _ .fst
+--     λ { false → refl
+--       ; true → refl})
+
+-- -- (X : RP∞) → ⋀_x K n x → K_(S x)
+
+-- -- _⌣_ : ⋀_x K_(S_(n x)) -> ⋀_x K_(S_(n x)) -> K_(S_n)
+-- -- _⌣_ : ⋀_(x+y) K_(S_(n x)) -> ⋀_x K_(S_(n x)) -> K_(S_n)
+
+-- -- S(X,a) , a : ⋀_x (S_(n x)) + ⋀_y (S_(n y)) 
+-- -- S(Y,b) , b : ⋀_y (S_(n y))
+
+
+-- -- S(X+Y, a + b)
+
+-- ts : (X Y : RP∞)
+--   → fst X ≃ fst Y
+--   → (n : fst X → fst Y → ℕ)
+--   → ℕ
+-- ts X Y eq n = ∑RP X λ e → n e (fst eq e)
+
+-- sss : (X Y : RP∞) (n : fst X → fst Y → ℕ)
+--   → (fst X ≃ fst Y  → ℕ)
+-- sss X Y n e = ts X Y e n
+
+-- nt : Bool → Bool → ℕ
+-- nt false false = 10
+-- nt false true = 1
+-- nt true false = 5
+-- nt true true = 17
+
+
+-- SM∙→∙ : {ℓ : Level} (X : RP∞) (A A' : fst X → Pointed ℓ)
+--   → ((x : _) → A x →∙ A' x)
+--   → SM X A → SM X A'
+-- SM∙→∙ X A A' f (inl x) = inl x
+-- SM∙→∙ X A A' f (inr g) = inr λ x → f x .fst (g x)
+-- SM∙→∙ X A A' f (push a i) =
+--     (push (fst a , f (fst a) .fst (snd a))
+--   ∙ λ i → inr (λ x → help x i)) i
+--   where
+--   help : (x : fst X)
+--     → (CasesRP X {A = λ x → A' x .fst} (fst a) (f (fst a) .fst (snd a))
+--                 (snd (A' (not* X (fst a))))) x
+--        ≡ f x .fst (CasesRP X {A = λ x → A x .fst}
+--            (fst a) (a .snd) (A (not* X (fst a)) .snd) x)
+--   help = CasesRP X (fst a)
+--     (CasesRPβ X {A = λ x → A' x .fst} (fst a) (f (fst a) .fst (snd a))
+--                 (snd (A' (not* X (fst a)))) .fst
+--     ∙ cong (f (fst a) .fst)
+--       (sym (CasesRPβ X {A = λ x → A x .fst}
+--              (fst a) (a .snd) (A (not* X (fst a)) .snd) .fst)))
+--        (CasesRPβ X {A = λ x → A' x .fst} (fst a) (f (fst a) .fst (snd a))
+--                 (snd (A' (not* X (fst a)))) .snd
+--     ∙ sym (f _ .snd)
+--     ∙ cong (f (not* X (fst a)) .fst)
+--         (sym (CasesRPβ X {A = λ x → A x .fst}
+--            (fst a) (a .snd) (A (not* X (fst a)) .snd) .snd)))
 
