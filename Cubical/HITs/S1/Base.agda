@@ -1,7 +1,5 @@
 {-
-
 Definition of the circle as a HIT with a proof that Ω(S¹) ≡ ℤ
-
 -}
 {-# OPTIONS --safe #-}
 module Cubical.HITs.S1.Base where
@@ -160,7 +158,7 @@ private
                    ; (j = i1) → loop (i ∧ t) })
           (inS (x j)) l
 
-  basedΩS¹→ΩS¹-filler : (_ i : I) → basedΩS¹ (loop i) → I → S¹
+  basedΩS¹→ΩS¹-filler : (_ i : I) → basedΩS¹ (loop i) → I → S¹
   basedΩS¹→ΩS¹-filler l i x j =
     hfill (λ t → λ { (j = i0) → loop (i ∧ (~ t))
                    ; (j = i1) → loop (i ∧ (~ t)) })

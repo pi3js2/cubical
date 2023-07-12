@@ -16,6 +16,7 @@ open import Cubical.Data.Sigma
 open import Cubical.HITs.Join
 open import Cubical.HITs.Susp.Base
 open import Cubical.Homotopy.Loopspace
+open import Cubical.HITs.Pushout
 
 private
   variable
@@ -360,3 +361,113 @@ toSusp-invSusp A (merid a i) j =
           λ r → flipSquare (sym (rUnit refl)
                 ◁ (flipSquare (sym (sym≡cong-sym r))
                 ▷ rUnit refl)))
+
+
+
+open import Cubical.Foundations.Pointed
+open import Cubical.HITs.SmashProduct
+
+module _ {ℓ ℓ' : Level} {A : Pointed ℓ} {B : Pointed ℓ'} where
+
+ sm-fillᵣ : ∀ {ℓ} {A : Type ℓ} {x* : A} (y* : A) (p* : x* ≡ y*)
+   (y : A) → (p : x* ≡ y)
+     → sym p* ≡ (sym p* ∙∙ p ∙∙ sym p)
+ sm-fillᵣ y* p* y p j i =
+   hcomp (λ r → λ {(i = i0) → p* r
+                  ; (i = i1) → p (~ r ∧ j)
+                  ; (j = i0) → p* (~ i ∧ r)
+                  ; (j = i1) → doubleCompPath-filler
+                                 (sym p*) p (sym p) r i})
+     (p (i ∧ j))
+
+ sm-fillₗ : ∀ {ℓ} {A : Type ℓ} {x* : A} (y* : A) (p* : x* ≡ y*)
+      (y : A) (p : x* ≡ y)
+   → p* ≡ (p ∙∙ sym p ∙∙ p*)
+ sm-fillₗ y* p* y p j i =
+     hcomp (λ r → λ {(i = i0) → p (~ r ∧ j)
+                    ; (i = i1) → p* r -- p (~ r ∧ j)
+                    ; (j = i0) → p* (r ∧ i) -- p* (~ i ∧ r)
+                    ; (j = i1) → doubleCompPath-filler
+                                   p (sym p) p* r i})
+       (p (~ i ∧ j))
+
+ sm-fillₗᵣ≡ : ∀ {ℓ} {A : Type ℓ} {x* : A} (y* : A) (p* : x* ≡ y*)
+   → sm-fillₗ _ (sym p*) _ (sym p*) ≡ sm-fillᵣ _ p* _ p*
+ sm-fillₗᵣ≡ = J> refl
+
+ SuspSmash→Join : Susp (A ⋀ B) → (join (typ A) (typ B))
+ SuspSmash→Join north = inr (pt B)
+ SuspSmash→Join south = inl (pt A)
+ SuspSmash→Join (merid (inl x) i) =
+   push (pt A) (pt B) (~ i)
+ SuspSmash→Join (merid (inr (x , b)) i) =
+   (sym (push x (pt B)) ∙∙ push x b ∙∙ sym (push (pt A) b)) i
+ SuspSmash→Join (merid (push (inl x) j) i) =
+   sm-fillₗ {A = join (typ A) (typ B)} _
+     (sym (push (pt A) (pt B))) _ (sym (push x (pt B))) j i
+ SuspSmash→Join (merid (push (inr x) j) i) =
+   sm-fillᵣ {A = join (typ A) (typ B)} _
+     (push (pt A) (pt B)) _  (push (pt A) x) j i
+ SuspSmash→Join (merid (push (push a k) j) i) =
+   sm-fillₗᵣ≡ _ (push (pt A) (pt B)) k j i
+
+ Join→SuspSmash : join (typ A) (typ B) → Susp (A ⋀ B)
+ Join→SuspSmash (inl x) = north
+ Join→SuspSmash (inr x) = south
+ Join→SuspSmash (push a b i) = merid (inr (a , b)) i
+
+ Join→SuspSmash→Join : (x : join (typ A) (typ B))
+   → SuspSmash→Join (Join→SuspSmash x) ≡ x
+ Join→SuspSmash→Join (inl x) = sym (push x (pt B))
+ Join→SuspSmash→Join (inr x) = push (pt A) x
+ Join→SuspSmash→Join (push a b i) j =
+   doubleCompPath-filler
+     (sym (push a (pt B))) (push a b) (sym (push (pt A) b)) (~ j) i
+
+ SuspSmash→Join→SuspSmash : (x : Susp (A ⋀ B))
+   → Join→SuspSmash (SuspSmash→Join x) ≡ x
+ SuspSmash→Join→SuspSmash north = sym (merid (inr (pt A , pt B)))
+ SuspSmash→Join→SuspSmash south = merid (inr (pt A , pt B))
+ SuspSmash→Join→SuspSmash (merid a i) j =
+   hcomp (λ r
+     → λ {(i = i0) → merid (inr (pt A , pt B)) (~ j ∨ ~ r)
+         ; (i = i1) → merid (inr (pt A , pt B)) (j ∧ r)
+         ; (j = i0) → Join→SuspSmash (SuspSmash→Join (merid a i))
+         ; (j = i1) → doubleCompPath-filler
+                        (sym (merid (inr (pt A , pt B))))
+                        (merid a)
+                        (sym (merid (inr (pt A , pt B)))) (~ r) i})
+       (f₁₂ j .fst a i)
+   where
+   f₁ f₂ : (A ⋀∙ B) →∙ ((Path (Susp (A ⋀ B)) south north
+                     , sym (merid (inr (snd A , snd B)))))
+   (fst f₁) a i = Join→SuspSmash (SuspSmash→Join (merid a i))
+   snd f₁ = refl
+   (fst f₂) a =
+        sym (merid (inr (pt A , pt B)))
+     ∙∙ merid a
+     ∙∙ sym (merid (inr (pt A , pt B)))
+   snd f₂ = cong₂ (λ x y → sym x ∙∙ y ∙∙ sym x)
+             refl (cong merid (push (inl (pt A))))
+          ∙ doubleCompPath≡compPath
+             (sym (merid (inr (pt A , pt B)))) _ _
+          ∙ cong₂ _∙_ refl (rCancel (merid (inr (pt A , pt B))))
+          ∙ sym (rUnit _)
+
+   f₁₂ : f₁ ≡ f₂
+   f₁₂ = ⋀→∙Homogeneous≡ (isHomogeneousPath _ _)
+     λ x y → cong-∙∙ Join→SuspSmash
+                    (sym (push x (pt B)))
+                    (push x y)
+                    (sym (push (pt A) y))
+           ∙ (λ i → sym (merid ((sym (push (inl x))
+                               ∙ push (inl (pt A))) i))
+                  ∙∙ merid (inr (x , y))
+                  ∙∙ sym (merid ((sym (push (inr y))
+                               ∙ push (inl (pt A))) i)))
+
+ SmashJoinIso : Iso (Susp (A ⋀ B)) (join (typ A) (typ B))
+ fun SmashJoinIso = SuspSmash→Join
+ inv SmashJoinIso = Join→SuspSmash
+ rightInv SmashJoinIso = Join→SuspSmash→Join
+ leftInv SmashJoinIso = SuspSmash→Join→SuspSmash

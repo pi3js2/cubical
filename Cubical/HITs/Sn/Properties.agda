@@ -11,6 +11,7 @@ open import Cubical.Foundations.Transport
 open import Cubical.Foundations.Prelude
 open import Cubical.Foundations.GroupoidLaws
 open import Cubical.Foundations.Univalence
+open import Cubical.Foundations.Pointed.Homogeneous
 open import Cubical.HITs.S1 renaming (_·_ to _*_) hiding (rec ; elim)
 open import Cubical.HITs.S2 renaming (S¹×S¹→S² to S¹×S¹→S²')
 open import Cubical.HITs.S3
@@ -19,6 +20,7 @@ open import Cubical.Data.Sigma
 open import Cubical.HITs.Sn.Base
 open import Cubical.HITs.Susp renaming (toSusp to σ)
 open import Cubical.HITs.Truncation
+open import Cubical.HITs.SmashProduct
 open import Cubical.Homotopy.Connected
 open import Cubical.HITs.Join renaming (joinS¹S¹→S³ to joinS¹S¹→S3)
 open import Cubical.Data.Bool
@@ -29,6 +31,9 @@ private
 
 open Iso
 
+
+open import Cubical.Homotopy.Loopspace
+
 IsoSucSphereSusp : (n : ℕ) → Iso (S₊ (suc n)) (Susp (S₊ n))
 IsoSucSphereSusp zero = S¹IsoSuspBool
 IsoSucSphereSusp (suc n) = idIso
@@ -37,6 +42,11 @@ IsoSucSphereSusp∙ : (n : ℕ)
   → Iso.inv (IsoSucSphereSusp n) north ≡ ptSn (suc n)
 IsoSucSphereSusp∙ zero = refl
 IsoSucSphereSusp∙ (suc n) = refl
+
+IsoSucSphereSusp∙' : (n : ℕ)
+  → Iso.fun (IsoSucSphereSusp n) (ptSn (suc n)) ≡ north
+IsoSucSphereSusp∙' zero = refl
+IsoSucSphereSusp∙' (suc n) = refl
 
 -- Elimination principles for spheres
 sphereElim : (n : ℕ) {A : (S₊ (suc n)) → Type ℓ} → ((x : S₊ (suc n)) → isOfHLevel (suc n) (A x))

@@ -482,3 +482,111 @@ fst joinAnnihilL = inl tt*
 snd joinAnnihilL (inl tt*) = refl
 snd joinAnnihilL (inr a) = push tt* a
 snd joinAnnihilL (push tt* a i) j = push tt* a (i ∧ j)
+
+open import Cubical.Foundations.Pointed
+open import Cubical.HITs.Wedge
+
+-- data _≡'_ {ℓ : Level} {A : Type ℓ} (x : A) : A → Type ℓ where
+--   refll : x ≡' x
+
+-- cJ : ∀ {ℓ} {A B : Type ℓ} (x : A) → isContr (Σ[ y ∈ A ] (join (x ≡' y) B))
+-- proj₁ (cJ x) = x , inl refll
+-- snd (cJ x) (.x , inl refll) = refl
+-- snd (cJ x) (a , inr x₁) = {!!}
+-- snd (cJ x) (a , push a₁ b i) = {!!}
+
+-- pushlem : {A : Type} {B C D : A → Type}
+--   → (f : (a : _) → B a → C a) (g : (a : _) → B a → D a)
+--   → Iso (Σ[ x ∈ A ] Pushout (f x) (g x))
+--          (Pushout {A = Σ A B} (λ x → fst x , f (fst x) (snd x))  (λ x → fst x , g (fst x) (snd x)))
+-- fun (pushlem f g) (a , inl x) = inl (a , x)
+-- fun (pushlem f g) (a , inr x) = inr (a , x)
+-- fun (pushlem f g) (a , push a₁ i) = push (a , a₁) i
+-- inv (pushlem f g) (inl x) = fst x , inl (snd x)
+-- inv (pushlem f g) (inr x) = fst x , inr (snd x)
+-- inv (pushlem f g) (push a i) = fst a , push (snd a) i
+-- rightInv (pushlem f g) (inl x) = refl
+-- rightInv (pushlem f g) (inr x) = refl
+-- rightInv (pushlem f g) (push a i) = refl
+-- leftInv (pushlem f g) (a , inl x) = refl
+-- leftInv (pushlem f g) (a , inr x) = refl
+-- leftInv (pushlem f g) (a , push a₁ i) = refl
+
+-- -- module _ {A B : Type ℓ} (C : A → Type ℓ') (c1 : isContr (Σ A C))  where
+-- --   jl : Σ[ x ∈ A ] join (C x) B → join (Σ[ x ∈ A ] (C x)) B
+-- --   jl (x , inl x₁) = inl (x , x₁)
+-- --   jl (x , inr x₁) = inr x₁
+-- --   jl (x , push a b i) = push (x , a) b i
+
+-- --   lj : join (Σ[ x ∈ A ] (C x)) B → Σ[ x ∈ A ] join (C x) B
+-- --   lj (inl (x , c)) = x , inl c
+-- --   lj (inr b) = fst c1 .fst , inr b
+-- --   proj₁ (lj (push (a1 , c) b i)) = c1 .snd (a1 , c) (~ i) .fst
+-- --   snd (lj (push (a1 , c) b i)) = 
+-- --     hcomp (λ k → λ {(i = i0) → push c b (~ k)
+-- --                    ; (i  = i1) → inr b})
+-- --           (inr b)
+
+-- --   t3 : (x : _) → jl (lj x) ≡ x
+-- --   t3 (inl x) = refl
+-- --   t3 (inr x) = refl
+-- --   t3 (push a b i) j =
+-- --     {!hcomp (λ k → λ {(i = i0) → push c b (~ k)
+-- --                    ; (i  = i1) → inr b})
+-- --           (inr b)!}
+-- --     where
+-- --     h : {!!}
+-- --     h = {!j = i0 ⊢ t3 (push a b i) i0
+-- -- j = i1 ⊢ push a b i
+-- -- i = i0 ⊢ inl a
+-- -- i = i1 ⊢ inr b!}
+
+
+
+
+-- module _ {A B : Type ℓ} (C : A → Type ℓ') (D : B → Type ℓ')
+--   (c1 : isContr (Σ A C))
+--   (c2 : isContr (Σ B D))
+--   where
+--   Tot = Σ[ x ∈ A ] Σ[ y ∈ B ] join (C x) (D y)
+
+--   ptB = fst (fst c2)
+--   ptA = fst (fst c1)
+  
+
+--   isCTot : isContr Tot
+--   proj₁ isCTot  = fst c1 .fst , fst c2 .fst , inl (fst c1 .snd)
+--   snd isCTot (x , y , inl x₁) = {!!}
+--     where
+--     p : Path (Σ A C) (x , x₁) (fst c1)
+--     p = sym (snd c1 _)
+--   snd isCTot (x , y , inr x₁) = {!!}
+--   snd isCTot (x , y , push a b i) = {!!}
+
+--   goal : Type _
+--   goal = Pushout {A = Σ A C × Σ B D} {B = Σ A C × B} {C = Σ B D × A}
+--                  (λ a → fst a , fst (snd a)) λ a → snd a , fst (fst a)
+
+--   goalT : {!!}
+--   goalT = {!!}
+
+
+--   M1 : Tot → goal
+--   M1 (x , y , inl x₁) = inl ((x , x₁) , y)
+--   M1 (x , y , inr x₁) = inr ((y , x₁) , x)
+--   M1 (x , y , push a b i) = push ((x , a) , (y , b)) i
+
+--   M2 : goal → Tot
+--   M2 (inl (x , b)) = fst x , b , (inl (snd x))
+--   M2 (inr (x , a)) = a , fst x , (inr (snd x))
+--   M2 (push ((a , c) , (b , d)) i) = a , b , push c d i
+
+--   M1→M2→M1 : (x : Tot) → M2 (M1 x) ≡ x
+--   M1→M2→M1 (a , b , inl x) = refl
+--   M1→M2→M1 (a , b , inr x) = refl
+--   M1→M2→M1 (a , b , push a₁ b₁ i) = refl
+
+--   M2→M1→M2 : (x : goal) → M1 (M2 x) ≡ x
+--   M2→M1→M2 (inl x) = refl
+--   M2→M1→M2 (inr x) = refl
+--   M2→M1→M2 (push a i) = refl

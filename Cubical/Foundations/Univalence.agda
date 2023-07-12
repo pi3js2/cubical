@@ -170,6 +170,15 @@ EquivJ : {A B : Type ℓ} (P : (A : Type ℓ) → (e : A ≃ B) → Type ℓ')
        → (r : P B (idEquiv B)) → (e : A ≃ B) → P A e
 EquivJ P r e = subst (λ x → P (x .fst) (x .snd)) (contrSinglEquiv e) r
 
+EquivJ-idEquiv : {A B : Type ℓ} (P : (A : Type ℓ) → (e : A ≃ B) → Type ℓ')
+       → (r : P B (idEquiv B)) → EquivJ P r (idEquiv B) ≡ r
+EquivJ-idEquiv {B = B} P r =
+  (λ i → subst (λ x → P (x .fst) (x .snd)) (contrSinglEquiv≡refl i) r)
+  ∙ transportRefl r
+  where
+  contrSinglEquiv≡refl : contrSinglEquiv (idEquiv B) ≡ refl 
+  contrSinglEquiv≡refl = isProp→isSet (isContr→isProp (EquivContr B)) _ _ _ _
+
 -- Assuming that we have an inverse to ua we can easily prove univalence
 module Univalence (au : ∀ {ℓ} {A B : Type ℓ} → A ≡ B → A ≃ B)
                   (aurefl : ∀ {ℓ} {A : Type ℓ} → au refl ≡ idEquiv A) where
