@@ -79,6 +79,10 @@ RP∞ = 2-EltType₀
 2-Elt≃ : (X Y : RP∞) → fst X ≃ fst Y → X ≡ Y
 2-Elt≃ X Y p = Σ≡Prop (λ _ → squash₁) (ua p)
 
+2-Elt≃-idEquiv : (X : RP∞) → 2-Elt≃ X X (idEquiv (fst X)) ≡ refl
+2-Elt≃-idEquiv X =
+  ΣSquareSet (λ _ → isProp→isSet squash₁) uaIdEquiv
+
 RP∞pt→Prop : ∀ {ℓ} {B : RP∞ → Type ℓ}
   → ((x : _) → isProp (B x))
   → B Bool*
@@ -87,11 +91,21 @@ RP∞pt→Prop {B = B} p b =
   uncurry λ X → PT.elim (λ _ → p _)
     λ x → subst B (2-Elt≃ Bool* (X , ∣ x ∣₁) (invEquiv x)) b
 
+RP∞pt→Prop-β : ∀ {ℓ} {B : RP∞ → Type ℓ}
+  → (pr : (x : _) → isProp (B x))
+  → (b : B Bool*)
+  → RP∞pt→Prop {B = B} pr b Bool* ≡ b
+RP∞pt→Prop-β {B = B} p q =
+    (λ i → subst B (2-Elt≃ Bool* Bool* (invEquivIdEquiv Bool i)) q)
+  ∙ (λ i → subst B (2-Elt≃-idEquiv Bool* i) q)
+  ∙ transportRefl q
+
 DiscreteBool : Discrete Bool
 DiscreteBool false false = yes refl
 DiscreteBool false true = no (true≢false ∘ sym)
 DiscreteBool true false = no true≢false
 DiscreteBool true true = yes refl
+
 
 decPt : (X : RP∞) → Discrete (fst X)
 decPt = RP∞pt→Prop (λ _ → isPropDiscrete) DiscreteBool
@@ -167,6 +181,28 @@ isSetRPpt = RP∞pt→Prop (λ _ → isPropIsSet) isSetBool
 
 not* : (X : RP∞) → fst X → fst X
 not* X = fst (fst (notEquiv* X))
+
+not¬ : (a : Bool) → ¬ (a ≡ not a)
+not¬ false p = false≢true p
+not¬ true p = false≢true (sym p)
+
+isPropPath⊎RP∞ : (I : RP∞) (i j : fst I) → isProp ((i ≡ j) ⊎ (i ≡ not* I j))
+isPropPath⊎RP∞ = RP∞pt→Prop (λ _ → isPropΠ2 λ _ _ → isPropIsProp)
+  λ { a b (inl x) (inl x₁) i → inl (isSetBool _ _ x x₁ i)
+    ; a b (inl x) (inr x₁) → ⊥.rec (not¬ b (sym x ∙ x₁))
+    ; a b (inr x) (inl x₁) → ⊥.rec (not¬ b (sym x₁ ∙ x))
+    ; a b (inr x) (inr x₁) i → inr (isSetBool _ _ x x₁ i)}
+
+RP∞DecPath : (I : RP∞) (i j : fst I) → (i ≡ j) ⊎ (i ≡ not* I j)
+RP∞DecPath = RP∞pt→Prop (λ _ → isPropΠ2 (isPropPath⊎RP∞ _))
+  λ { false false → inl refl
+  ; false true → inr refl
+  ; true false → inr refl
+  ; true true → inl refl}
+
+RP∞DecPath→ : ∀ {ℓ} (I : RP∞) (A : fst I → fst I → Type ℓ) (i j : fst I)
+  → ((i ≡ j) ⊎ (i ≡ not* I j) → A i j) → A i j
+RP∞DecPath→ I A i j p = p (RP∞DecPath I i j)
 
 not*not* : (X : RP∞) (x : fst X) → not* X (not* X x) ≡ x
 not*not* = RP∞pt→Prop (λ X → isPropΠ λ _ → isSetRPpt X _ _) F

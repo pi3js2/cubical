@@ -78,6 +78,25 @@ module Cubical.Cohomology.EilenbergMacLane.Steenrod2 where
 open import Cubical.HITs.Join
 
 
+elimPushout : ∀ {ℓ ℓ' ℓ'' ℓ'''} {A : Type ℓ}
+  {B : Type ℓ'} {C : Type ℓ''} {f : A → B} {g : A → C}
+  {D : Pushout f g → Type ℓ'''}
+  → (left : (b : B) → D (inl b))
+  → (right : (c : C) → D (inr c))
+  → (coh : (a : A) → PathP (λ i → D (push a i)) (left (f a)) (right (g a)))
+  → (x : _) → D x
+elimPushout l r c (inl x) = l x
+elimPushout l r c (inr x) = r x
+elimPushout l r c (push a i) = c a i
+
+uncurryΠ : ∀ {ℓ ℓ' ℓ'' ℓ'''}
+  {A : Type ℓ} {B : A → Type ℓ'}
+  {C : (a : A) (b : B a) → Type ℓ''}
+  {D : ((a : A) → Σ (B a) (C a)) → Type ℓ'''}
+  → ((f : (a : A) → B a) (g : (a : A) → C a (f a)) → D λ a → f a , g a)
+  → (x : _) → D x
+uncurryΠ ind x = ind (λ a → x a .fst) λ a → x a .snd
+
 J>Sq : ∀ {ℓ ℓ'} {A : Type ℓ} {x y : A} {p : x ≡ y} 
   {A : (q : x ≡ y) → Square refl refl p q → Type ℓ'}
   → A p (λ i _ → p i)
@@ -167,7 +186,7 @@ module _ {ℓ ℓ' ℓ'' : Level} (A : Type ℓ) (B : Type ℓ')
     inrR : B → PushoutR
     push* : (a : A) (b : B) → R a b → inlR a ≡ inrR b
 
-is2Type : ∀ {ℓ} (ℓ' : Level) (X : Type ℓ) → Type (ℓ-max ℓ (ℓ-suc ℓ'))
+is2Type : (ℓ' : Level) (X : Type) → Type (ℓ-suc ℓ')
 is2Type ℓ' X =
   Σ[ nope ∈ (X → X) ]
     ((B : X → Type ℓ')
@@ -245,7 +264,22 @@ joinRD I J A = joinR I λ i → joinR J (A i)
   isEq-help = RP∞pt→Prop (λ _ → isPropΠ λ _ → isPropIsEquiv _)
     (RP∞pt→Prop (λ _ → isPropIsEquiv _) (isoToIsEquiv (invIso help')))
 
+2-eltFun-elim' : ∀ {ℓ ℓ'} {A B : Type ℓ} {C : B → Type ℓ'} (e : A ≃ B)
+  → (ind : (a : A) → C (fst e a))
+  → (x : _) → subst C (secEq e _) (ind (invEq e (fst e x))) ≡ ind x
+2-eltFun-elim' {A = A} {B = B} {C = C} =
+  EquivJ (λ A e → (ind : (a : A) → C (fst e a))
+    → (x : _) → subst C (secEq e _) (ind (invEq e (fst e x))) ≡ ind x)
+    λ ind x → transportRefl (ind x)
 
+
+module _ {ℓ : Level} {I J : RP∞} {A : (fst I → fst J) → Type ℓ}
+  (ind : (x : _) → A (fst (2-eltFun {I} {J}) x)) where
+  2-eltFun-elim : (x : _) → A x
+  2-eltFun-elim f = subst A (secEq (2-eltFun {I} {J}) f) (ind (invEq (2-eltFun {I} {J}) f))
+
+  2-eltFun-elim-coh : (x : _) → 2-eltFun-elim  (fst (2-eltFun {I} {J}) x) ≡ ind x
+  2-eltFun-elim-coh = 2-eltFun-elim' {C = A} (2-eltFun {I} {J}) ind
 
 module _ {ℓ : Level} (I J : RP∞) {A : fst I → fst J → Type ℓ} where
   M1 : (C : Type) (t : C ≃ (fst I → fst J))
@@ -333,10 +367,15 @@ module 2-elter {ℓ : Level} (I : Type) (J : Type) (A : I → J → Type ℓ) (I
   PushTop : Type _
   PushTop = Σ[ i ∈ I ] (Pushout (fat→ₗ i) (fat→ᵣ i))
 
+  PushTop→left-push' : (i : I)
+    → (Pushout (fat→ₗ i) (fat→ᵣ i))
+    → (Σ[ j ∈ J ] (A i j)) × ((j : J) → A (notI i) j)
+  PushTop→left-push' i (inl (f , g , p)) = (f i) , g
+  PushTop→left-push' i (inr (f , g , p)) = f , (g (notI i))
+  PushTop→left-push' i (push (f , g , p) k) = (f i) , λ j → g (notI i) j
+
   PushTop→left-push : PushTop → left-push
-  PushTop→left-push (i , inl (f , g , p)) = i , ((f i) , g)
-  PushTop→left-push (i , inr (f , g , p)) = i , f , (g (notI i))
-  PushTop→left-push (i , push (f , g , p) k) = i , (f i) , λ j → g (notI i) j
+  PushTop→left-push (i , x) = (i , PushTop→left-push' i x)
 
   PushTop→ΠR-base : PushTop → ΠR-base
   PushTop→ΠR-base (i , inl (f , g , p)) = inl f
@@ -391,6 +430,47 @@ module 2-elter {ℓ : Level} (I : Type) (J : Type) (A : I → J → Type ℓ) (I
   ΠR-extend→Π (inl t) = ΠR-extend→Πₗ t
   ΠR-extend→Π (inr x) = ΠR-base→ x
   ΠR-extend→Π (push a i) i' = eqvl a i' i
+
+  dable : Type _
+  dable = Pushout {A = I × ΠR-extend} {B = Σ[ i ∈ I ] joinR-gen J (A i)} {C = ΠR-extend}
+                  (λ a → fst a , ΠR-extend→Π (snd a) (fst a))
+                  snd
+                  
+
+  private
+    inl123 : (a : _) → dable
+    inl123 = inl
+  module _ (ise : isEquiv ΠR-extend→Π) where
+    
+    updater→ : dable → (joinR-gen I (λ i → joinR-gen J (A i)))
+    updater→ (inl x) = inlR x
+    updater→ (inr x) = inrR (ΠR-extend→Π x)
+    updater→ (push a i) = push* (fst a , ΠR-extend→Π (snd a) (fst a)) (ΠR-extend→Π (snd a)) refl i
+
+    updater← : joinR-gen I (λ i → joinR-gen J (A i)) → dable
+    updater← (inlR x) = inl x
+    updater← (inrR x) = inr (invEq (_ , ise) x)
+    updater← (push* a b x i) =
+      (cong inl123 (ΣPathP (refl , sym x ∙ sym (funExt⁻ (secEq (_ , ise) b) (fst a))))
+              ∙ push ((fst a) , invEq (_ , ise) b)) i
+
+{-
+  updater : isEquiv ΠR-extend→Π → Iso dable (joinR-gen I (λ i → joinR-gen J (A i)))
+  Iso.fun (updater ise) = updater→ ise
+  Iso.inv (updater ise) = updater← ise
+  Iso.rightInv (updater ise) (inlR x) = refl
+  Iso.rightInv (updater ise) (inrR x) j = inrR (secEq (_ , ise) x j)
+  Iso.rightInv (updater ise) (push* a b x i) j = help (fst a) b (snd a) x j i
+    where
+    help : (i* : I) (b : (ℓ₁ : I) → joinR-gen J (A ℓ₁)) (a : joinR-gen J (A i*)) (x : b i* ≡ a)
+      → PathP (λ i → inlR (i* , a) ≡ inrR (secEq (ΠR-extend→Π , ise) b i))
+              (cong (updater→ ise) (cong (updater← ise) (push* (i* , a) b x))) (push* (i* , a) b x)
+    help i* b = J> ((cong (cong (updater→ ise)) (λ i → cong inl123 (λ j → i* , {!lUnit ? i!}) ∙ push (i* , invEq (_ , ise) b)) ∙ {!!}) ◁ {!!})
+  Iso.leftInv (updater ise) = {!!}
+  -}
+
+  ΠR-extend→Π-rev : {!ΠR-extend!} -- TotΠ (λ i → joinR-gen J (A i))
+  ΠR-extend→Π-rev = {!!}
 
 
 module BoolCase {ℓ : Level} (J : Type) (A : Bool → J → Type ℓ) where
@@ -582,6 +662,38 @@ Square-filler {y = y} p q i j k =
          k
 
 private
+  module GenF {ℓ : Level} (J : Type) (A : Bool → J → Type ℓ) where
+
+    fill₂-b : (a a' : J) (b : A true a) (b₁ : A false a')
+            (c : (i₂ : J) → A true i₂)
+            (c₁ : (i₂ : J) → A false i₂)
+            (x : c a ≡ b)
+            (d : c₁ a' ≡ b₁)
+          → I → I → I → 2-elter.ΠR-extend Bool J A (Bool-2Type _)
+    fill₂-b a a' b b₁ c c₁ x d i i₁ r = Square-filler {A = 2-elter.ΠR-extend Bool J A (Bool-2Type _)}
+          (push (true , inl (CasesBool true (a , b) (a' , b₁) , c₁ , d)))
+          (push (false , inl (CasesBool true (a , b) (a' , b₁) , c , x)))
+           i i₁ r
+
+    fill₂ : (a a' : J) (b : A true a) (b₁ : A false a')
+            (c : (i₂ : J) → A true i₂)
+            (c₁ : (i₂ : J) → A false i₂)
+            (x : c a ≡ b)
+            (d : c₁ a' ≡ b₁)
+          → I → I → I → 2-elter.ΠR-extend Bool J A (Bool-2Type _)
+    fill₂ a a' b b₁ c c₁ x d i i₁ r =
+      hfill (λ r → λ {(i = i0) → push (true , inl (CasesBool true (a , b) (a' , b₁) , c₁ , d)) (~ i₁)
+                 ; (i = i1) → push (false , push ((CasesBool true (a , b) (a' , b₁)) , (CasesBool true c c₁ , CasesBool true x d)) r) i₁
+                 ; (i₁ = i0) → push (false , inl (CasesBool true (a , b) (a' , b₁) , c , x)) (~ i)
+                 ; (i₁ = i1) → push (true , push ((CasesBool true (a , b) (a' , b₁)) , ((CasesBool true c c₁) , CasesBool true x d)) r) i})
+        (inS (Square-filler {A = 2-elter.ΠR-extend Bool J A (Bool-2Type _)}
+          (push (true , inl (CasesBool true (a , b) (a' , b₁) , c₁ , d)))
+          (push (false , inl (CasesBool true (a , b) (a' , b₁) , c , x)))
+           i i₁ i1)) r
+
+
+
+private
   module _ {ℓ : Level} (A : Bool → Bool → Type ℓ) where
 
     fill₂-b : (a a' : Bool) (b : A true a) (b₁ : A false a')
@@ -612,6 +724,35 @@ private
            i i₁ i1)) r
 
 
+×→ΠR-extend-gen : ∀ {ℓ} (J : RP∞) (A : Bool → fst J → Type ℓ)
+  → joinR J (A true) × joinR J (A false)
+  → 2-elter.ΠR-extend Bool (fst J) A (Bool-2Type _)
+×→ΠR-extend-gen J A (inlR x , inlR x₁) = inr (inl (CasesBool true x x₁))
+×→ΠR-extend-gen J A (inlR (x , b) , inrR x₁) = inl (true , ((_ , b) , x₁))
+×→ΠR-extend-gen J A (inlR (a , b) , push* (a' , d) c x₁ i) =
+  push (true , inl ((CasesBool true (a , b) (a' , d)) , c , x₁)) (~ i)
+×→ΠR-extend-gen J A (inrR x , inlR x₁) = inl (false , (x₁ , x))
+×→ΠR-extend-gen J A (inrR x , inrR x₁) = inr (inr (CasesBool true x x₁))
+×→ΠR-extend-gen J A (inrR x , push* (a , b) c x₁ i) =
+  push (false , (inr ((a , b) , ((CasesBool true x c) , x₁)))) i
+×→ΠR-extend-gen J A (push* (a , b) c x i , inlR (a' , b')) =
+  push (false , inl ((CasesBool true (a , b) (a' , b')) , (c , x))) (~ i)
+×→ΠR-extend-gen J A (push* (a' , b) c x i , inrR x₁) =
+  push (true , inr ((_ , b) , (CasesBool true c x₁ , x))) i
+×→ΠR-extend-gen J A (push* (a , b) c x i , push* (a' , b₁) c₁ d i₁) =
+  GenF.fill₂ (fst J) A a a' b b₁ c c₁ x d i i₁ i1
+
+×→ΠR-extend-gen' : ∀ {ℓ} (J : RP∞) (A : Bool → fst J → Type ℓ)
+  → ((x : Bool) → joinR J (A x))
+  → 2-elter.ΠR-extend Bool (fst J) A (Bool-2Type _)
+×→ΠR-extend-gen' J A = ×→ΠR-extend-gen J A ∘ Iso.fun ΠBool×Iso
+
+×→ΠR-extend : ∀ {ℓ} (A : Bool → Bool → Type ℓ)
+  → joinR Bool* (A true) × joinR Bool* (A false)
+  → 2-elter.ΠR-extend Bool Bool A (Bool-2Type _)
+×→ΠR-extend = ×→ΠR-extend-gen Bool*
+
+{-
 ×→ΠR-extend : ∀ {ℓ} (A : Bool → Bool → Type ℓ)
   → joinR Bool* (A true) × joinR Bool* (A false)
   → 2-elter.ΠR-extend Bool Bool A (Bool-2Type _)
@@ -627,7 +768,7 @@ private
 ×→ΠR-extend A (push* (a' , b) c x i , inrR x₁) =
   push (true , inr ((_ , b) , (CasesBool true c x₁ , x))) i
 ×→ΠR-extend A (push* (a , b) c x i , push* (a' , b₁) c₁ d i₁) = fill₂ A a a' b b₁ c c₁ x d i i₁ i1
-
+-}
 
 private
   module _ {ℓ : Level} (A : Bool → Bool → Type ℓ) where
@@ -915,3 +1056,112 @@ Iso.leftInv (ΠR-extend→×Iso A) = ΠR-extend→×→ΠR-extend A
     (RP∞pt→Prop (λ _ → isPropΠ λ _ → isPropIsEquiv _)
       λ A → transport (λ i → isEquiv (2-elter.ΠR-extend→Π Bool Bool A (2Type≡ (~ i))))
         (ΠR-extend→Π-equiv-base A))
+
+×→ΠR-extend-gen-Equiv-Bool : ∀ {ℓ} (A : Bool → Bool → Type ℓ) → isEquiv (×→ΠR-extend-gen' Bool* A)
+×→ΠR-extend-gen-Equiv-Bool A =
+  composesToId→Equiv (Iso.inv ΠBool×Iso ∘ ΠR-extend→× A) _
+    (funExt λ p → cong (Iso.inv ΠBool×Iso) (Iso.rightInv (ΠR-extend→×Iso A) (Iso.fun ΠBool×Iso p))
+                 ∙ Iso.leftInv ΠBool×Iso p)
+    (compEquiv (isoToEquiv (ΠR-extend→×Iso A))
+      (isoToEquiv (invIso ΠBool×Iso)) .snd)
+
+×→ΠR-extend-gen-Equiv : ∀ {ℓ} (J : RP∞) (A : Bool → fst J → Type ℓ)
+  → isEquiv (×→ΠR-extend-gen' J A)
+×→ΠR-extend-gen-Equiv =
+  RP∞pt→Prop (λ _ → isPropΠ λ _ → isPropIsEquiv _)
+    (×→ΠR-extend-gen-Equiv-Bool)
+
+×→ΠR-extend-gen-Equiv≃ : ∀ {ℓ} (J : RP∞) (A : Bool → fst J → Type ℓ)
+  → (((x : Bool) → joinR J (A x))) ≃ 2-elter.ΠR-extend Bool (fst J) A (Bool-2Type _)
+×→ΠR-extend-gen-Equiv≃ J A = {!!}
+
+-- module _ {ℓ : Level} (I J : RP∞) (A : fst I → fst J → Type ℓ) where
+--   module M = 2-elter {ℓ} (fst I) (fst J) A (RP∞-2Type _ I)
+--   open M
+--   GOAL = joinRD J I (λ a b → A b a)
+--   asd : Σ[ p ∈ (fst J ⊎ (fst I ≃ fst J)) ] ((i : fst I) → A i (fst (2-eltFun {I = I} {J = J}) p i)) → GOAL
+--   asd (inl x , p) = inlR (x , inrR p)
+--   asd (inr x , p) = inrR λ j → inlR ((invEq x j) , (subst (A (invEq x j)) (secEq x j) (p (invEq x j))))
+
+--   asd-coh : (d : Σ[ p ∈ (fst J ⊎ (fst I ≃ fst J)) ]
+--                   ((i : fst I) → A i (fst (2-eltFun {I = I} {J = J}) p i)))
+
+--             (p : (i₁ : fst I) (j : fst J) → A i₁ j)
+--             (q : (i₁ : fst I) → p i₁ (2-eltFun {I = I} {J = J} .fst (d .fst) i₁) ≡ d .snd i₁)
+--       → asd d ≡ inrR λ j → inrR λ i → p i j
+--   asd-coh d p q = {!!}
+
+--   open import Cubical.HITs.Pushout as PU
+--   private
+--     2-eltFun* = 2-eltFun {I = I} {J = J}
+
+--   ΠR-base→Goalₗ : (x : fst J ⊎ (fst I ≃ fst J))
+--       (g : (a : fst I) → A a (fst 2-eltFun* x a)) →
+--       GOAL
+--   ΠR-base→Goalₗ (inl x) g = inlR (x , inrR g)
+--   ΠR-base→Goalₗ (inr x) g = inrR λ j → inlR ((invEq x j) , {!curry ?!})
+
+--   ΠR-base→J→Goal : ΠR-base → GOAL
+--   ΠR-base→J→Goal = elimPushout
+--     (uncurryΠ (2-eltFun-elim {I = I} {J = J} (curry asd)))
+--     (λ q → inrR λ j → inrR λ i → q i j)
+--     (uncurry (uncurryΠ (2-eltFun-elim {I = I} {J = J} λ x g y → {!!} ∙ asd-coh (x , g) (fst y) (snd y))))
+
+
+--   left-push→J : dable → GOAL
+--   left-push→J (inl x) = {!x!}
+--   left-push→J (inr x) = {!!}
+--   left-push→J (push a i) = {!!}
+
+  
+
+-- --   ΠR-base→J : ΠR-base → GOAL
+-- --   ΠR-base→J (inl f) = asd (Iso.fun (TotAIso I J) f)
+-- --   ΠR-base→J (inr x) = inrR λ i → inrR λ j → x j i
+-- --   ΠR-base→J (push (f , p , q) i) = asd-coh (f1 I J f) p (cool (fst ∘ f) (snd ∘ f) (funExt q)) i
+-- --     where
+-- --     cool : (f1* : (a : fst I) → fst J)
+-- --            (sf : (a : fst I) → A a (f1* a))
+-- --          → (q : (λ i → p i (f1* i)) ≡ sf)
+-- --          → (i₁ : fst I) → p i₁ (2-eltFun {I} {J} .fst (f1 I J {A = A} (λ i → f1* i , sf i) .fst) i₁)
+-- --                          ≡ f1 I J {A = A} (λ i → f1* i , sf i) .snd i₁
+-- --     cool f1* = J> λ j → {!cong (p j) ?!}
+
+
+
+-- --   ΠR-extend-rec : ∀ {ℓ*} {B : Type ℓ*}
+-- --     → (l : ΠR-base → B)
+-- --     → ((i : fst I) → Σ[ g ∈ (Σ[ j ∈ fst J ] (A i j) × ((j : fst J) → A (notI i) j) → B) ]
+-- --                         ((a : Pushout (fat→ₗ i) (fat→ᵣ i))
+-- --                       → l (PushTop→ΠR-base (i , a))
+-- --                        ≡ g ((PushTop→left-push (i , a) .snd) .fst .fst , (PushTop→left-push (i , a) .snd) .fst .snd , (PushTop→left-push (i , a) .snd) .snd)))
+-- --     → (ΠR-extend → B)
+-- --   ΠR-extend-rec l r (inl x) = r (fst x) .fst (snd x .fst .fst , (snd x .fst .snd) , (snd x .snd))
+-- --   ΠR-extend-rec l r (inr x) = l x
+-- --   ΠR-extend-rec l r (push (x , f) i) = r x .snd f (~ i)
+
+-- --   dable-rec : ∀ {ℓ'} {B : Type ℓ'}
+-- --     → (l : ΠR-base → B)
+-- --     → ((i : fst I) → Σ[ left ∈ (joinR-gen (fst J) (A i) → B) ]
+-- --                         Σ[ pf ∈ (Σ[ g ∈ (Σ[ j ∈ fst J ] (A i j) × ((j : fst J) → A (notI i) j) → B) ]
+-- --                         ((a : Pushout (fat→ₗ i) (fat→ᵣ i))
+-- --                       → l (PushTop→ΠR-base (i , a))
+-- --                        ≡ g ((PushTop→left-push (i , a) .snd) .fst .fst , (PushTop→left-push (i , a) .snd) .fst .snd , (PushTop→left-push (i , a) .snd) .snd))) ]
+-- --                           ((t : ΠR-extend) → {!!} ≡ {!!}))
+-- --     → dable → B
+-- --   dable-rec l f (inl x) = f (fst x) .fst (snd x)
+-- --   dable-rec {B = B} l f (inr x) = ΠR-extend-rec {B = B} l (λ i → f i .snd .fst) x
+-- --   dable-rec l f (push a i) = {!a!}
+
+
+-- --   ΠR-extend→J : ΠR-extend → GOAL
+-- --   ΠR-extend→J (inl x) = {!left-push!}
+-- --   ΠR-extend→J (inr x) = ΠR-base→J  x
+-- --   ΠR-extend→J (push (i' , a) i) = {!!}
+
+-- -- {-
+-- -- dable→ : Type _
+-- -- dable→ = Pushout {A = I × ΠR-extend} {B = Σ[ i ∈ I ] joinR-gen J (A i)} {C = ΠR-extend}
+-- --                 (λ a → fst a , ΠR-extend→Π (snd a) (fst a))
+-- --                 snd
+-- -- -}
