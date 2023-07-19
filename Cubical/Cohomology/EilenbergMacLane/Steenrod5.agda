@@ -891,6 +891,78 @@ module 2-elter' {ℓ : Level} (I : RP∞' ℓ) (J : Type) (A : fst I → J → T
   left-push→double : left-push → joinR-gen J λ j → joinR-gen (fst I) (λ i → A i j)
   left-push→double (i , (c , r)) = inlR ((c .fst) , (inrR (elimI i (c .snd) (r (c .fst)))))
 
+ΠR-extend→Π*-pashB : ∀ {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ)
+  → (a : 2-elter'.PushTop (RP∞'· ℓ) (fst J) A) →
+      2-elter'.ΠR-extend→Πₗ (RP∞'· ℓ) (fst J) A
+      (2-elter'.PushTop→left-push (RP∞'· ℓ) (fst J) A a) true
+      ≡
+      2-elter'.ΠR-base→ (RP∞'· ℓ) (fst J) A
+      (2-elter'.PushTop→ΠR-base (RP∞'· ℓ) (fst J) A a) true
+ΠR-extend→Π*-pashB J A (false , inl (f , p)) =
+  sym (push* (evalG f true , p .snd (evalG f true)) (snd p) refl)
+ΠR-extend→Π*-pashB J A (true , inl (f , p)) = refl
+ΠR-extend→Π*-pashB J A (false , inr x) = refl
+ΠR-extend→Π*-pashB J A (true , inr (f , p)) =
+  push* (f , p true f) (p true) refl
+ΠR-extend→Π*-pashB {ℓ} J A (false , push (f , p) i) j =
+  hcomp (λ k → λ {(i = i0) → push* (evalG f true , p true (evalG f true)) (p true) refl (~ j)
+                 ; (i = i1) → push* (evalG f true , p true (evalG f true)) (p true) refl (k ∨ ~ j)
+                 ; (j = i0) → inrR (p true)
+                 ; (j = i1) → 2-elter'.ΠR-base→ (RP∞'· ℓ) (fst J) A
+                                 (compPath-filler
+                                   ((λ j → inl (f , 2-elter'.elimIηPushTop (RP∞'· ℓ) (fst J) A false f p j)))
+                                   (push (f , p)) k i) true})
+        (push* (evalG f true , p true (evalG f true)) (p true) refl (~ j))
+ΠR-extend→Π*-pashB {ℓ} J A (true , push (f , p) i) j =
+  hcomp (λ k → λ {(i = i0) → inlR (evalG f true , p true (evalG f true))
+                 ; (i = i1) → push* (evalG f true , p true (evalG f true)) (p true) refl (j ∧ k)
+                 ; (j = i0) → inlR (evalG f true , p true (evalG f true))
+                 ; (j = i1) → 2-elter'.ΠR-base→ (RP∞'· ℓ) (fst J) A
+                                 (compPath-filler
+                                   ((λ j → inl (f , 2-elter'.elimIηPushTop (RP∞'· ℓ) (fst J) A true f p j)))
+                                   (push (f , p)) k i) true})
+         (inlR (evalG f true , p true (evalG f true)))
+
+ΠR-extend→Π*-pashT : ∀ {ℓ} (I : RP∞' ℓ) (i : fst I)
+  → Type _
+ΠR-extend→Π*-pashT {ℓ = ℓ} I i = (J : RP∞' ℓ) (A : fst I → fst J → Type _) (a : _)
+  → 2-elter'.ΠR-extend→Πₗ I (fst J) A
+      (2-elter'.PushTop→left-push I (fst J) A a) i
+   ≡ 2-elter'.ΠR-base→ I (fst J) A
+      (2-elter'.PushTop→ΠR-base I (fst J) A a) i
+
+ΠR-extend→Π*-pash : ∀ {ℓ} (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ)
+  (A : fst I → fst J → Type ℓ) (a : _)
+  → 2-elter'.ΠR-extend→Πₗ I (fst J) A
+      (2-elter'.PushTop→left-push I (fst J) A a) i
+   ≡ 2-elter'.ΠR-base→ I (fst J) A
+      (2-elter'.PushTop→ΠR-base I (fst J) A a) i
+ΠR-extend→Π*-pash =
+  JRP∞' {B = λ I i → ΠR-extend→Π*-pashT I i} ΠR-extend→Π*-pashB
+
+ΠR-extend→Π* : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+  → 2-elter'.ΠR-extend I (fst J) A
+  → TotΠ (λ i → joinR-gen (fst J) (A i))
+ΠR-extend→Π* I J A (inl x) = 2-elter'.ΠR-extend→Πₗ I (fst J) A x 
+ΠR-extend→Π* I J A (inr x) = 2-elter'.ΠR-base→ I (fst J) A x
+ΠR-extend→Π* I J A (push a i) k =
+  ΠR-extend→Π*-pash I k J A a i
+
+ΠR-extend→Π*atTrue : ∀ {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ)
+  → 2-elter'.ΠR-extend (RP∞'· ℓ) (fst J) A → joinR-gen (fst J) (A true)
+ΠR-extend→Π*atTrue J A =
+  elimPushout (λ f → 2-elter'.ΠR-extend→Πₗ (RP∞'· _) (fst J) A f true)
+              (λ f → 2-elter'.ΠR-base→ (RP∞'· _) (fst J) A f true)
+              (ΠR-extend→Π*-pashB J A)
+
+ΠR-extend→Π*atTrue≡ : ∀ {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ)
+  → (x : 2-elter'.ΠR-extend (RP∞'· ℓ) (fst J) A )
+  → (ΠR-extend→Π* (RP∞'· ℓ) J A x true) ≡ (ΠR-extend→Π*atTrue J A x)
+ΠR-extend→Π*atTrue≡ J A (inl x) = refl
+ΠR-extend→Π*atTrue≡ J A (inr x) = refl
+ΠR-extend→Π*atTrue≡ J A (push a i) j =
+  JRP∞'∙ {B = λ I i → ΠR-extend→Π*-pashT I i} ΠR-extend→Π*-pashB j J A a i
+
 
 module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
   private
@@ -1951,12 +2023,13 @@ Iso.leftInv (ΠR-extend→×Iso J A) = ΠR-extend→×→ΠR-extend {J = J} A
   isEq : isEquiv (ΠR-extend→Π-alt J A)
   isEq = subst isEquiv altid (snd alt)
 
--- ΠR-extend→Π-equiv : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
---   → isEquiv (2-elter.ΠR-extend→Π I (fst J) A)
--- ΠR-extend→Π-equiv {ℓ} =
---   RP∞'pt→Prop (λ _ → isPropΠ2 λ _ _ → isPropIsEquiv _)
---     λ J A → transport (λ i → isEquiv (2-elter.ΠR-extend→Π (RP∞'· ℓ) (fst J) A (2Type≡ (~ i))))
---       (ΠR-extend→Π-equiv-base J A)
+ΠR-extend→Π-equiv : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+  → isEquiv (2-elter.ΠR-extend→Π I (fst J) A)
+ΠR-extend→Π-equiv {ℓ} =
+  RP∞'pt→Prop (λ _ → isPropΠ2 λ _ _ → isPropIsEquiv _) ΠR-extend→Π-equiv-base
+
+
+
 
 -- module _ {ℓ : Level} (I J : RP∞) (A : fst I → fst J → Type ℓ) where
 --   module M = 2-elter {ℓ} (fst I) (fst J) A (RP∞-2Type _ I)
