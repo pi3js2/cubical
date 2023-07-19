@@ -337,8 +337,8 @@ snd isCTot = uncurry (uncurry λ X
 
 JRP∞ : ∀ {ℓ} (A : (X : RP∞) (x : fst X) → Type ℓ)
   → A Bool* true
-  → (X : _) (x : _) → A X x
-JRP∞ A t X x = A'Sec (X , x)
+  → {X : _} {x : _} → A X x
+JRP∞ A t {X = X} {x = x} = A'Sec (X , x)
   where
   A' : Σ[ X ∈ RP∞ ] (fst X) → Type _
   A' (X , x) = A X x
@@ -353,7 +353,7 @@ T2 X A = (x : fst X) → T2' X x A
 isC : ∀ {ℓ} (X : RP∞) (A : fst X → Type ℓ) → isProp (T2 X A)
 isC {ℓ} X A = isPropΠ λ x
   → JRP∞ (λ X x → (A : fst X → Type ℓ) → isProp (T2' X x A))
-         (λ A → isContr→isProp CasesBool*) X x A
+         (λ A → isContr→isProp CasesBool*) {X = X} {x} A
 {-
 CasesRP-full : ∀ {ℓ} (X : RP∞) (A : fst X → Type ℓ) → T2 X A
 CasesRP-full = uncurry λ X
