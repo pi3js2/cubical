@@ -361,13 +361,15 @@ CasesRP-full = uncurry λ X
        λ e A x → (λ t1 t2 r → {!!}) , {!!}
 -}
 
+CasesBool-true : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
+  → A true → A false → A x₀
+CasesBool-true false p q = q
+CasesBool-true true p q = p
 
 CasesBool : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
   → A x₀ → A (not* Bool* x₀) → (x : _) → A x
-CasesBool {A = A} false p q false = p
-CasesBool {A = A} false p q true = q
-CasesBool {A = A} true p q false = q
-CasesBool {A = A} true p q true = p
+CasesBool {A = A} false p q y = CasesBool-true {A = A} y q p
+CasesBool {A = A} true p q y = CasesBool-true {A = A} y p q
 
 CasesBoolβ : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
   → (l : A x₀) (r : A (not* Bool* x₀))

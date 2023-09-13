@@ -393,6 +393,15 @@ joinR-gen I A = PushoutR (Σ I A) ((i : I) → A i)  λ x f → f (fst x) ≡ sn
 join-gen : ∀ {ℓ ℓ'} (I : Type ℓ) (A : I → Type ℓ') → Type _
 join-gen I A = Pushout {A = I × TotΠ A} {B = Σ I A} (λ a → fst a , snd a (fst a)) snd
 
+join-gen-ind : ∀ {ℓ ℓ' ℓ''} {I : Type ℓ} {A : I → Type ℓ'} {B : join-gen I A → Type ℓ''}
+  → (f : (g : TotΠ A) → B (inr g))
+  → ((i : I) → Σ[ g ∈ ((x : A i) → B (inl (i , x))) ]
+      ((t : TotΠ A) → PathP (λ j → B (push (i , t) j)) (g (t i)) (f t)))
+  → (x : _) → B x
+join-gen-ind f g (inl x) = g (fst x) .fst (snd x)
+join-gen-ind f g (inr x) = f x
+join-gen-ind f g (push a j) = g (fst a) .snd (snd a) j
+
 module _ {ℓ ℓ'} (I : Type ℓ) (A : I → Type ℓ') where
   private
     F : joinR-gen I A → join-gen I A

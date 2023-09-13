@@ -339,6 +339,11 @@ module TT {ℓ : Level} (I : RP∞' ℓ) (J : Type) (A : fst I →  J → Type �
   asPushout→ : asPushout → GOAL
   asPushout→ = makeWithHah.asPushout→ HAH
 
+TotΠFun : ∀ {ℓ ℓ' ℓ''} {A : Type ℓ} {B : A → Type ℓ'} {C : A → Type ℓ''}
+  → (f : (x : A) → B x → C x)
+  → TotΠ B → TotΠ C
+TotΠFun f g x = f x (g x)
+
 module TT2 {ℓ : Level} (J : Type) (A : Bool →  J → Type ℓ) where
 
   open TT (RP∞'· ℓ) J A
@@ -385,11 +390,18 @@ module TT2 {ℓ : Level} (J : Type) (A : Bool →  J → Type ℓ) where
   asPushout→Bool : asPushout → GOAL
   asPushout→Bool = makeWithHah.asPushout→ HAH-Bool
 
+  corr : GOAL → join-gen J (A true) × join-gen J (A false)
+  corr = Iso.fun (ΠBool×Iso {A = λ x → join-gen J (A x)}) ∘ TotΠFun (λ x → Iso.fun (join-gen-Iso J (A x)))
+
+  asPushout→Bool' : asPushout → join-gen J (A true) × join-gen J (A false)
+  asPushout→Bool' = corr ∘ asPushout→Bool
+
 module TTBool {ℓ : Level} (J : Type) (A : Bool → Bool → Type ℓ) where
 
   open TT (RP∞'· ℓ) Bool A
   open 2-elter' (RP∞'· ℓ) Bool A
   open TT.mega-coh'
+  open TT2 Bool A
 
   GOAL'→AsPushout : join-gen Bool (A true) × join-gen Bool (A false) → asPushout
   GOAL'→AsPushout (inl (false , b) , inl (false , d)) = inl (inr (inl (false , (CasesBool true b d))))
@@ -400,9 +412,54 @@ module TTBool {ℓ : Level} (J : Type) (A : Bool → Bool → Type ℓ) where
   GOAL'→AsPushout (inl (false , b) , push (false , d) i) = inl (pashₗ true (false , (b , d)) (~ i))
   GOAL'→AsPushout (inl (false , b) , push (true , d) i) = push (notEquiv , ppr true b d) (~ i)
   GOAL'→AsPushout (inl (true , b) , push (false , d) i) = push (idEquiv Bool , ppr true b d) (~ i)
-  GOAL'→AsPushout (inl (true , b) , push (true , d) i) = {!!}
-  GOAL'→AsPushout (inr x , b) = {!!}
-  GOAL'→AsPushout (push t i , b) = {!!}
+  GOAL'→AsPushout (inl (true , b) , push (true , d) i) = inl (pashₗ true (true , (b , d)) (~ i))
+  GOAL'→AsPushout (inr x , inl (c , d)) = inl (inl (false , (c , d) , x))
+  GOAL'→AsPushout (inr x , inr x₁) = inl (inr (inr (CasesBool true x x₁)))
+  GOAL'→AsPushout (inr x , push (false , d) i) = inl (pashᵣ false (false , (CasesBool true x d)) i)
+  GOAL'→AsPushout (inr x , push (true , d) i) = inl (pashᵣ false (true , CasesBool true x d) i)
+  GOAL'→AsPushout (push (false , b) i , inl (false , d)) = inl (((pashₗ false (false , (d , b)))) (~ i))
+  GOAL'→AsPushout (push (false , b) i , inl (true , d)) = push (notEquiv , ppr false d b) (~ i)
+  GOAL'→AsPushout (push (true , b) i , inl (false , d)) = push (idEquiv Bool , ppr false d b) (~ i)
+  GOAL'→AsPushout (push (true , b) i , inl (true , d)) = inl (((pashₗ false (true , (d , b)))) (~ i))
+  GOAL'→AsPushout (push (false , d) i , inr x) = inl (pashᵣ true (false , (CasesBool true d x)) i)
+  GOAL'→AsPushout (push (true , d) i , inr x) = inl (pashᵣ true (true , CasesBool true d x) i)
+  GOAL'→AsPushout (push (false , b) i , push (false , d) j) =
+    inl (hcomp (λ k → λ {(i = i0) → pashₗ true (false , b false , d) (~ j ∨ ~ k)
+                        ; (i = i1) → pashₗᵣ false (false , (CasesBool true b d)) k j
+                        ; (j = i0) → pashₗ false (false , d false , b) (~ i ∨ ~ k)
+                        ; (j = i1) → pashₗᵣ true (false , CasesBool true b d) k i})
+               (inr (inl (false , elimIηPushTop* true false (CasesBool true b d) (i ∧ j)))))
+  GOAL'→AsPushout (push (false , b) i , push (true , d) j) =
+    hcomp (λ k → λ {(j = i0) → push (notEquiv , pplr false (CasesBool true b d) k) (~ i)
+                   ; (j = i1) → inl (pashᵣ true (false , CasesBool true b d) (i ∨ ~ k))
+                   ; (i = i0) → push (notEquiv , pplr true (CasesBool true b d) k) (~ j)
+                   ; (i = i1) → inl (pashᵣ false (true , CasesBool true b d) (j ∨ ~ k))})
+          (push (notEquiv , ppl (CasesBool true b d)) (~ i ∧ ~ j))
+  GOAL'→AsPushout (push (true , b) i , push (false , d) j) =
+    hcomp (λ k → λ {(j = i0) → push (idEquiv Bool , pplr false (CasesBool true b d) k) (~ i)
+                   ; (j = i1) → inl (pashᵣ true (true , CasesBool true b d) (i ∨ ~ k))
+                   ; (i = i0) → push (idEquiv Bool , pplr true (CasesBool true b d) k) (~ j)
+                   ; (i = i1) → inl (pashᵣ false (false , CasesBool true b d) (j ∨ ~ k))})
+          (push (idEquiv Bool , ppl (CasesBool true b d)) (~ i ∧ ~ j))
+  GOAL'→AsPushout (push (true , b) i , push (true , d) j) =
+    inl (hcomp (λ k → λ {(i = i0) → pashₗ true (true , b true , d) (~ j ∨ ~ k)
+                        ; (i = i1) → pashₗᵣ false (true , (CasesBool true b d)) k j
+                        ; (j = i0) → pashₗ false (true , d true , b) (~ i ∨ ~ k)
+                        ; (j = i1) → pashₗᵣ true (true , CasesBool true b d) k i})
+               (inr (inl (true , elimIηPushTop* true true (CasesBool true b d) (i ∧ j)))))
+
+  cancel1 : (x : _) → asPushout→Bool' (GOAL'→AsPushout x) ≡ x
+  cancel1 (inl (false , b) , inl (false , d)) = refl
+  cancel1 (inl (false , b) , inl (true , d)) = refl
+  cancel1 (inl (true , b) , inl (false , d)) = refl
+  cancel1 (inl (true , b) , inl (true , d)) = refl
+  cancel1 (inl (false , b) , inr x) = refl
+  cancel1 (inl (true , b) , inr x) = refl
+  cancel1 (inl (false , b) , push (false , d) i) = {!refl!}
+  cancel1 (inl (false , b) , push (true , d) i) = {!!}
+  cancel1 (inl (true , b) , push a₁ i) = {!!}
+  cancel1 (inr x , d) = {!!}
+  cancel1 (push a i , d) = {!!}
 
 --   GOAL : Type _
 --   GOAL = (i : fst I) → joinR-gen J (A i)
