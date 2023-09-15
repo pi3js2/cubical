@@ -483,7 +483,8 @@ module TTBool {ℓ : Level} (A : Bool → Bool → Type ℓ) where
     left (2-elter'.inr (inl (false , d))) j = inl (inr (inl (false , CasesBoolη d j)))
     left (2-elter'.inr (inl (true , d))) j = inl (inr  (inl (true , CasesBoolη d j)))
     left (2-elter'.inr (inr x)) j = inl (inr (inr (CasesBoolη x j)))
-    left (2-elter'.inr (push (false , b) i)) j = inl {!ff-fill (b true) (b false)  (j ∧ i) (i ∨ ~ j) i1!}
+    left (2-elter'.inr (push (false , b) i)) j =
+      inl {!ff-fill (b true) (b false)  (j ∧ i) (i ∨ ~ j) i1!}
     left (2-elter'.inr (push (true , b) i)) j = {!!}
     left (2-elter'.pashₗ i (false , b) i₁) = {!!}
     left (2-elter'.pashₗ i (true , b) i₁) = {!!}
@@ -655,175 +656,216 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ) wh
   asPushout→joinₗ (2-elter'.pashᵣ i e i₁) =
     ((λ k → inl (e .fst , inr (elimIη {B = λ z → A z (e .fst)} (λ x → snd e x (e .fst)) i k)))
     ∙ push ((fst e) , (λ j → inr λ x → snd e x j))) i₁
-  asPushout→joinₗ (2-elter'.pashₗᵣ i e j k) = {!!}
+  asPushout→joinₗ (2-elter'.pashₗᵣ i e j k) =
+    hcomp (λ r → λ {(k = i0) → inl (fst e , inr (elimI i (snd e i (fst e)) (snd e (notI i) (fst e))))
+                   ; (k = i1) → push (fst e , (λ j₁ → inr (λ x → snd e x j₁))) (j ∧ r)
+                   ; (j = i0) → inl (fst e , inr (elimIηPushTop* i (fst e) (snd e) k))
+                   ; (j = i1) → compPath-filler
+                                  (λ k₁ → inl (e .fst , inr (elimIη (λ x → snd e x (e .fst)) i k₁)))
+                                  (push (fst e , (λ j₁ → inr (λ x → snd e x j₁)))) r k})
+          (inl (fst e , inr (elimIη (λ x → snd e x (e .fst)) i k)))
 
-module _ {ℓ : Level} (I : RP∞' ℓ) (A : fst I →  fst I → Type ℓ) where 
-  open 2-elter' I (fst I) A
+module _ {ℓ : Level} (A : Bool → Bool → Type ℓ) where 
+  open 2-elter' (RP∞'· ℓ) Bool A
 
-  the-coh :  (a : TT.M.asPushoutBack I (fst I) A (idEquiv (fst I)))
-      → asPushout→joinₗ I I A (TT.M.asPushoutBack→ₗ I (fst I) A (idEquiv (fst I) , a))
-      ≡ inr (λ i → inl (i , TT.M.asPushoutBack→ᵣ I (fst I) A (idEquiv (fst I) , a) .snd i))
-  the-coh (2-elter'.ppl f) j = inr λ x → push (x , (λ j → f j x)) (~ j)
-  the-coh (2-elter'.ppr i a b) =
-    (λ k → inl (i , push (i , elimI {B = λ k → A k i} i a (b i)) (~ k)))
-    ∙ (λ k → inl (i , inl (i , (elimIβ {B = λ k → A k i} i a (b i) .fst
-                              ∙ sym (elimIβ {B = λ k → A k k} i a (b (notI i)) .fst)) k)))
-    ∙ push (i , (λ j → inl (j , elimI i a (b (notI i)) j)))
-  the-coh (2-elter'.pplr i f k) j = {!!}
+  the-coh :  (a : TT.M.asPushoutBack (RP∞'· ℓ) Bool A (idEquiv Bool))
+      → asPushout→joinₗ (RP∞'· ℓ) (RP∞'· ℓ) A (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) Bool A (idEquiv Bool , a))
+      ≡ inr (λ i → inl (i , TT.M.asPushoutBack→ᵣ (RP∞'· ℓ) Bool A (idEquiv Bool , a) .snd i))
+  the-coh (2-elter'.ppl f) k = inr λ x → push (x , (λ i → f i x)) (~ k)
+  the-coh (2-elter'.ppr false a b) = {!Goal: inl (true , inr (λ y → CasesBool-true y a (b true))) ≡
+      inr (λ i → inl (i , CasesBool-true i a (b false)))!}
+  the-coh (2-elter'.ppr true a b) =
+      (λ k → inl (true , push (true , CasesBool true a (b true)) (~ k)))
+    ∙ push (true , λ x → inl (x , CasesBool {A = λ z → A z z} true a (b false) x))
+  the-coh (2-elter'.pplr false f i₁) =
+    {!(push (idfun Bool true , (λ j₁ → inr (λ x → f x j₁)))) (~ i₁))
+         (inl
+          (idfun Bool true ,
+           inr
+           (TT.M.elimIη (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
+            (λ x → f x (idfun Bool true)) true (~ i₁))))!}
+  the-coh (2-elter'.pplr true f i₁) j =
+    hcomp (λ r → λ {(i₁ = i0) → push (true , (λ x → push (x , (λ i → f i x)) (~ j))) r
+                   ; (j = i0) → compPath-filler (λ k → inl (true , inr {!CasesBool true ? ?!})) (push (true , λ j₁ → inr (λ x → f x j₁))) r (~ i₁)
+                   ; (j = i1) →
+                     push (true , λ x → inl (x , {!CasesBoolη {A = λ x → A x x} (λ x → f x x) (~ i₁) x!})) r})
+          {!!} -- (inl (true , push (true , (λ i → f i true)) (~ j)))
 
-asPushout→joinᵣₚ :
-  {ℓ : Level} (I J : RP∞' ℓ) (e : fst I ≃ fst J) (A : fst I →  fst J → Type ℓ)
-    →
-    Σ[ F ∈ (((i : fst I) → A i (fst e i))
-      → join-gen (fst J) (λ j → join-gen (fst I) (λ i → A i j))) ]
-      ((a : TT.M.asPushoutBack I (fst J) A e)
-        → asPushout→joinₗ I J A (TT.M.asPushoutBack→ₗ I (fst J) A (e , a))
-          ≡ F (TT.M.asPushoutBack→ᵣ I (fst J) A (e , a) .snd)) 
-asPushout→joinᵣₚ {ℓ} I =
-  JRP∞'' I λ A → (λ f → inr λ i → inl (i , f i))
-        , the-coh I A
-  where
-  open 2-elter' I (fst I)
 
-asPushout→joinᵣₚ-refl : {ℓ : Level} (I : RP∞' ℓ) (A : fst I → fst I → Type ℓ)
-  → asPushout→joinᵣₚ I I (idEquiv (fst I)) A
-    ≡ ((λ f → inr λ i → inl (i , f i)) , (the-coh I A))
-asPushout→joinᵣₚ-refl I = funExt⁻ (JRP∞''-refl I λ A → (λ f → inr λ i → inl (i , f i))
-        , the-coh I A)
+-- module _ {ℓ : Level} (I : RP∞' ℓ) (A : fst I →  fst I → Type ℓ) where 
+--   open 2-elter' I (fst I) A
 
-asPushout→join : {ℓ : Level} (I J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
-  → TT.M.asPushout I (fst J) A
-  → join-gen (fst J) (λ j → join-gen (fst I) (λ i → A i j))
-asPushout→join {ℓ} I J A (inl x) = asPushout→joinₗ I J A x
-asPushout→join {ℓ} I J A (inr (e , p)) = asPushout→joinᵣₚ I J e A .fst p
-asPushout→join {ℓ} I J A (push a i) = asPushout→joinᵣₚ I J (fst a) A .snd (snd a) i
+--   the-coh :  (a : TT.M.asPushoutBack I (fst I) A (idEquiv (fst I)))
+--       → asPushout→joinₗ I I A (TT.M.asPushoutBack→ₗ I (fst I) A (idEquiv (fst I) , a))
+--       ≡ inr (λ i → inl (i , TT.M.asPushoutBack→ᵣ I (fst I) A (idEquiv (fst I) , a) .snd i))
+--   the-coh (2-elter'.ppl f) j = inr λ x → push (x , (λ j → f j x)) (~ j)
+--   the-coh (2-elter'.ppr i a b) =
+--     ((λ k → inl (i , push (i , elimI {B = λ k → A k i} i a (b i)) (~ k)))
+--     ∙ (λ k → inl (i , inl (i , (elimIβ {B = λ k → A k i} i a (b i) .fst
+--                               ∙ sym (elimIβ {B = λ k → A k k} i a (b (notI i)) .fst)) k))))
+--     ∙ push (i , (λ j → inl (j , elimI i a (b (notI i)) j)))
+--   the-coh (2-elter'.pplr i f k) j =
+--     hcomp (λ r → λ {(j = i0) → {!!} {- compPath-filler
+--                                   (λ k₁ → inl (i , inr (elimIη (λ x → f x i) i k₁)))
+--                                   (push (i , (λ j₁ → inr (λ x → f x j₁)))) r (~ k) -}
+--                    ; (j = i1) → {!!} -- push (i , λ j → inl (j , TT.M.asPushoutBack→ᵣ I (fst I) A (idEquiv (fst I) , pplr i f k) .snd j)) r
+--                    ; (k = i0) → {!!} -- push (i , (λ x → push (x , (λ m → f m x)) (~ j))) r
+--                    } )
+--       {!!} -- (inl (i , push (i , ({!elimIη (λ x₁ → f x₁ i) i (~ k)!})) (~ j))) -- (inl (i , push (i , elimIη (λ x → f x i) i (~ k)) (~ j))) -- (inl (i , push (i , {!elimIη (λ x → f x i) i (~ k)!}) (~ j)))
 
-bigTy : {ℓ : Level} (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
-  → Type ℓ
-bigTy I i J A = Σ[ g ∈ (join-gen (fst J) (A i) → join-gen (fst J) (λ j → join-gen (fst I) (λ i → A i j))) ]
-      ((t : TotΠ (λ i₁ → join-gen (fst J) (A i₁)))
-        → g (t i) ≡ asPushout→join I J A (asPushout← I J A t))
-
-fun1 : {ℓ : Level} (J : RP∞' ℓ) (A : Bool →  fst J → Type ℓ)
-  → join-gen (fst J) (A true)
-  → join-gen (fst J) (λ j → join-gen Bool (λ i → A i j))
-fun1 J A (inl (x , a)) = inl (x , inl (true , a))
-fun1 J A (inr x) = inr λ j → inl (true , x j)
-fun1 J A (push a i) = push (fst a , (λ j → inl (true , snd a j))) i
-
-fun2 : {ℓ : Level} (J : RP∞' ℓ) (A : Bool →  fst J → Type ℓ)
-  → (x : TT.M.ΠR-extend** (RP∞'· ℓ) (fst J) A)
-  → fun1 J A (TT2.asPushout→Bool' (fst J) A (inl x) .fst)
-   ≡ asPushout→join (RP∞'· ℓ) J A (inl x)
-fun2 J A (2-elter'.inl (false , y)) =
-    sym (push (y .fst .fst , λ j → inl (true , y .snd j)))
-  ∙ λ k → inl (fst (fst y)
-         , push (true , CasesBool true (snd y (fst (fst y))) (snd (fst y))) k)
-fun2 J A (2-elter'.inl (true , y)) k =
-  inl (fst (fst y) , push (true , CasesBool true (snd (fst y)) (snd y (fst (fst y)))) k)
-fun2 J A (2-elter'.inr (inl x)) k = inl (fst x , push (true , snd x) k)
-fun2 J A (2-elter'.inr (inr x)) k = inr (λ j → push (true , (λ i → x i j)) k)
-fun2 J A (2-elter'.inr (push a i)) j = push (fst a , (λ r → push (true , (λ x → snd a x r)) j)) i
-fun2 J A (2-elter'.pashₗ false e i₁) j =
-  compPath-filler' (sym (push (e .fst , (λ j₁ → inl (true , e .snd .snd j₁)))))
-     (λ k → inl (e .fst
-           , push (true , (CasesBool {A = λ x → A x (e .fst)}
-                             true (e .snd .snd (e .fst)) (e .snd .fst))) k))
-     (~ i₁) j
-fun2 J A (2-elter'.pashₗ true e i₁) j =
-  inl (e .fst , push (true , CasesBool true (e .snd .fst) (e .snd .snd (e .fst))) j)
-fun2 J A (2-elter'.pashᵣ false e i₁) j = {!!}
-fun2 J A (2-elter'.pashᵣ true e i₁) j = {!!}
-fun2 J A (2-elter'.pashₗᵣ i e i₁ i₂) = {!!}
-
-fun3-coh : ∀ {ℓ} {A : Bool → Bool → Type ℓ}
-  → (p : TT.M.asPushoutBack (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _))
-  → PathP (λ i → (fun1 (RP∞'· ℓ) A
-          (TT.makeWithHah.asPushout→ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
-           (TT2.HAH-Bool (fst (RP∞'· ℓ)) A)
-           (push (idEquiv (fst (RP∞'· ℓ)) , p) i) true))
-         ≡ the-coh (RP∞'· ℓ) A p i)
-           (fun2 (RP∞'· ℓ) A
-            (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
-             (idEquiv (fst (RP∞'· ℓ)) , p)))
-           (push (true , λ i₁ → inl (i₁ , TT.M.asPushoutBack→ᵣ-pre (RP∞'· ℓ) Bool A (idEquiv Bool) p i₁)))
-fun3-coh {A = A} (2-elter'.ppl f) i j =
-  hcomp (λ k → λ {(i = i0) → inr (λ j₁ → push (true , (λ i₁ → f i₁ j₁)) (~ k ∨ j))
-                 ; (i = i1) → push (true , (λ i₁ → push (i₁ , (λ k → f k i₁)) (~ k))) j
-                 ; (j = i0) → push (true , (λ j₁ → push (true , (λ i → f i j₁)) (~ k))) (~ i)
-                 ; (j = i1) → inr (λ x → push (x , (λ j₁ → f j₁ x)) (~ i ∨ ~ k))})
-        (push (true , (λ i₁ → inr (λ k → f k i₁))) (~ i ∨ j))
-fun3-coh {A = A} (2-elter'.ppr false a b) i j =
-  {!j = i0 ⊢ push (true , (λ j₁ → inl (true , f true j₁))) (~ i)
-j = i1 ⊢ inr (λ x → push (x , (λ j₁ → f j₁ x)) (~ i))
-i = i0 ⊢ inr (λ j₁ → push (true , (λ i₁ → f i₁ j₁)) j)
-i = i1 ⊢ push (true , (λ i₁ → inl (i₁ , f i₁ i₁))) j!}
-fun3-coh {A = A} (2-elter'.ppr true a b) i j = {!!}
-fun3-coh {A = A} (2-elter'.pplr false f i₂) i j = {!!}
-fun3-coh {A = A} (2-elter'.pplr true f i₂) i j = {!!}
-
--- fun3 : {ℓ : Level} (J : RP∞' ℓ) (e : Bool ≃ fst J)
---   (A : Bool → fst J → Type ℓ)
---   → Σ[ F ∈ ((p : (i : Bool) → A i (fst e i))
---   → inl (fst e true , inl (true , p true))
---     ≡ asPushout→joinᵣₚ (RP∞'· ℓ) J e A .fst p ) ]
---     ((p : TT.M.asPushoutBack (RP∞'· ℓ) (fst J) A e)
---     → PathP (λ i → fun1 J A (TT2.asPushout→Bool' (fst J) A (push (e , p) i) .fst)
---                    ≡ asPushout→joinᵣₚ (RP∞'· ℓ) J e A .snd p i)
---              (fun2 J A (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst J) A (e , p)))
---              (F (TT.M.asPushoutBack→ᵣ (RP∞'· ℓ) (fst J) A (e , p) .snd)))
--- fun3 {ℓ} = JRP∞'' (RP∞'· _)  λ A
---   → (λ p → push (true , (λ j → inl (j , p j)))
---             ∙ sym (funExt⁻ (cong fst (asPushout→joinᵣₚ-refl (RP∞'· _) A)) p))
---    , SQ
---    where
---    SQ : {A : Bool → Bool → Type ℓ}
---      → (p : TT.M.asPushoutBack (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _))
---      → PathP (λ i →
---          fun1 (RP∞'· ℓ) A
---          (TT2.asPushout→Bool' (fst (RP∞'· ℓ)) A
---           (push (idEquiv (fst (RP∞'· ℓ)) , p) i) .fst)
---          ≡ asPushout→joinᵣₚ (RP∞'· ℓ) (RP∞'· ℓ) (idEquiv (fst (RP∞'· ℓ))) A .snd p i)
---          (fun2 (RP∞'· ℓ) A (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
---            (idEquiv (fst (RP∞'· ℓ)) , p)))
---          (push (true , (λ j → inl (j , TT.M.asPushoutBack→ᵣ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _ , p) .snd j)))
---             ∙ sym (funExt⁻ (cong fst (asPushout→joinᵣₚ-refl (RP∞'· _) A))
---                 (TT.M.asPushoutBack→ᵣ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _ , p) .snd)))
---    SQ {A = A} p i j =
---      hcomp (λ k → λ {(j = i0) → fun1 (RP∞'· ℓ) A (TT.makeWithHah.asPushout→ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
---                                    (TT2.HAH-Bool (fst (RP∞'· ℓ)) A) (push (idEquiv (fst (RP∞'· ℓ)) , p) i) true)
---                     ; (j = i1) → asPushout→joinᵣₚ-refl (RP∞'· _) A (~ k) .snd p i
---                     ; (i = i0) → fun2 (RP∞'· ℓ) A (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
---                                     (idEquiv (fst (RP∞'· ℓ)) , p)) j })
---            (fun3-coh p i j)
-
--- fun1-id : {ℓ : Level} (J : RP∞' ℓ) (A : Bool →  fst J → Type ℓ)
---   → (y : TT.M.asPushout (RP∞'· ℓ) (fst J) A)
---   → fun1 J A (TT2.asPushout→Bool' (fst J) A y .fst) ≡ asPushout→join (RP∞'· ℓ) J A y
--- fun1-id J A (inl x) = fun2 J A x
--- fun1-id J A (inr (e , p)) = fun3 J e A .fst p
--- fun1-id J A (push (e , p) i) = fun3 J e A .snd p i
-
--- lem1 : {ℓ : Level} (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
---   → bigTy I i J A
--- lem1 {ℓ} =
---   JRP∞' λ J A → (fun1 J A)
---   , λ F → cong (fun1 J A)
---            ((cong fst (main J A F)))
---          ∙ fun1-id J A (asPushout← (RP∞'· ℓ) J A F)
+-- asPushout→joinᵣₚ :
+--   {ℓ : Level} (I J : RP∞' ℓ) (e : fst I ≃ fst J) (A : fst I →  fst J → Type ℓ)
+--     →
+--     Σ[ F ∈ (((i : fst I) → A i (fst e i))
+--       → join-gen (fst J) (λ j → join-gen (fst I) (λ i → A i j))) ]
+--       ((a : TT.M.asPushoutBack I (fst J) A e)
+--         → asPushout→joinₗ I J A (TT.M.asPushoutBack→ₗ I (fst J) A (e , a))
+--           ≡ F (TT.M.asPushoutBack→ᵣ I (fst J) A (e , a) .snd)) 
+-- asPushout→joinᵣₚ {ℓ} I =
+--   JRP∞'' I λ A → (λ f → inr λ i → inl (i , f i))
+--         , the-coh I A
 --   where
---   main : (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) (F : TotΠ (λ i₁ → join-gen (fst J) (A i₁)))
---     → ΠBool→× F  ≡ TT2.asPushout→Bool' (fst J) A (asPushout← (RP∞'· ℓ) J A F)
---   main J A F = sym (cong (Iso.fun ΠBool×Iso) (funExt⁻ (TT2.asPushout→Bool≡ (fst J) A) (asPushout← (RP∞'· ℓ) J A F))
---              ∙ cong ΠBool→× (secEq (_ , asPushout→-isEquiv (RP∞'· _) J A) F))
+--   open 2-elter' I (fst I)
 
--- mainFun : {ℓ : Level} (I J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
---   → join-gen (fst I) (λ i → join-gen (fst J) (A i))
+-- asPushout→joinᵣₚ-refl : {ℓ : Level} (I : RP∞' ℓ) (A : fst I → fst I → Type ℓ)
+--   → asPushout→joinᵣₚ I I (idEquiv (fst I)) A
+--     ≡ ((λ f → inr λ i → inl (i , f i)) , (the-coh I A))
+-- asPushout→joinᵣₚ-refl I = funExt⁻ (JRP∞''-refl I λ A → (λ f → inr λ i → inl (i , f i))
+--         , the-coh I A)
+
+-- asPushout→join : {ℓ : Level} (I J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
+--   → TT.M.asPushout I (fst J) A
 --   → join-gen (fst J) (λ j → join-gen (fst I) (λ i → A i j))
--- mainFun I J A =
---   join-gen-ind
---     (λ x → asPushout→join I J A (asPushout← I J A x))
---     λ i → lem1 I i J A
+-- asPushout→join {ℓ} I J A (inl x) = asPushout→joinₗ I J A x
+-- asPushout→join {ℓ} I J A (inr (e , p)) = asPushout→joinᵣₚ I J e A .fst p
+-- asPushout→join {ℓ} I J A (push a i) = asPushout→joinᵣₚ I J (fst a) A .snd (snd a) i
 
--- module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ) where
+-- bigTy : {ℓ : Level} (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
+--   → Type ℓ
+-- bigTy I i J A = Σ[ g ∈ (join-gen (fst J) (A i) → join-gen (fst J) (λ j → join-gen (fst I) (λ i → A i j))) ]
+--       ((t : TotΠ (λ i₁ → join-gen (fst J) (A i₁)))
+--         → g (t i) ≡ asPushout→join I J A (asPushout← I J A t))
+
+-- fun1 : {ℓ : Level} (J : RP∞' ℓ) (A : Bool →  fst J → Type ℓ)
+--   → join-gen (fst J) (A true)
+--   → join-gen (fst J) (λ j → join-gen Bool (λ i → A i j))
+-- fun1 J A (inl (x , a)) = inl (x , inl (true , a))
+-- fun1 J A (inr x) = inr λ j → inl (true , x j)
+-- fun1 J A (push a i) = push (fst a , (λ j → inl (true , snd a j))) i
+
+-- fun2 : {ℓ : Level} (J : RP∞' ℓ) (A : Bool →  fst J → Type ℓ)
+--   → (x : TT.M.ΠR-extend** (RP∞'· ℓ) (fst J) A)
+--   → fun1 J A (TT2.asPushout→Bool' (fst J) A (inl x) .fst)
+--    ≡ asPushout→join (RP∞'· ℓ) J A (inl x)
+-- fun2 J A (2-elter'.inl (false , y)) =
+--     sym (push (y .fst .fst , λ j → inl (true , y .snd j)))
+--   ∙ λ k → inl (fst (fst y)
+--          , push (true , CasesBool true (snd y (fst (fst y))) (snd (fst y))) k)
+-- fun2 J A (2-elter'.inl (true , y)) k =
+--   inl (fst (fst y) , push (true , CasesBool true (snd (fst y)) (snd y (fst (fst y)))) k)
+-- fun2 J A (2-elter'.inr (inl x)) k = inl (fst x , push (true , snd x) k)
+-- fun2 J A (2-elter'.inr (inr x)) k = inr (λ j → push (true , (λ i → x i j)) k)
+-- fun2 J A (2-elter'.inr (push a i)) j = push (fst a , (λ r → push (true , (λ x → snd a x r)) j)) i
+-- fun2 J A (2-elter'.pashₗ false e i₁) j =
+--   compPath-filler' (sym (push (e .fst , (λ j₁ → inl (true , e .snd .snd j₁)))))
+--      (λ k → inl (e .fst
+--            , push (true , (CasesBool {A = λ x → A x (e .fst)}
+--                              true (e .snd .snd (e .fst)) (e .snd .fst))) k))
+--      (~ i₁) j
+-- fun2 J A (2-elter'.pashₗ true e i₁) j =
+--   inl (e .fst , push (true , CasesBool true (e .snd .fst) (e .snd .snd (e .fst))) j)
+-- fun2 J A (2-elter'.pashᵣ false e i₁) j = {!!}
+-- fun2 J A (2-elter'.pashᵣ true e i₁) j = {!!}
+-- fun2 J A (2-elter'.pashₗᵣ i e i₁ i₂) = {!!}
+
+-- fun3-coh : ∀ {ℓ} {A : Bool → Bool → Type ℓ}
+--   → (p : TT.M.asPushoutBack (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _))
+--   → PathP (λ i → (fun1 (RP∞'· ℓ) A
+--           (TT.makeWithHah.asPushout→ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
+--            (TT2.HAH-Bool (fst (RP∞'· ℓ)) A)
+--            (push (idEquiv (fst (RP∞'· ℓ)) , p) i) true))
+--          ≡ the-coh (RP∞'· ℓ) A p i)
+--            (fun2 (RP∞'· ℓ) A
+--             (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
+--              (idEquiv (fst (RP∞'· ℓ)) , p)))
+--            (push (true , λ i₁ → inl (i₁ , TT.M.asPushoutBack→ᵣ-pre (RP∞'· ℓ) Bool A (idEquiv Bool) p i₁)))
+-- fun3-coh {A = A} (2-elter'.ppl f) i j =
+--   hcomp (λ k → λ {(i = i0) → inr (λ j₁ → push (true , (λ i₁ → f i₁ j₁)) (~ k ∨ j))
+--                  ; (i = i1) → push (true , (λ i₁ → push (i₁ , (λ k → f k i₁)) (~ k))) j
+--                  ; (j = i0) → push (true , (λ j₁ → push (true , (λ i → f i j₁)) (~ k))) (~ i)
+--                  ; (j = i1) → inr (λ x → push (x , (λ j₁ → f j₁ x)) (~ i ∨ ~ k))})
+--         (push (true , (λ i₁ → inr (λ k → f k i₁))) (~ i ∨ j))
+-- fun3-coh {A = A} (2-elter'.ppr false a b) i j =
+--   {!j = i0 ⊢ push (true , (λ j₁ → inl (true , f true j₁))) (~ i)
+-- j = i1 ⊢ inr (λ x → push (x , (λ j₁ → f j₁ x)) (~ i))
+-- i = i0 ⊢ inr (λ j₁ → push (true , (λ i₁ → f i₁ j₁)) j)
+-- i = i1 ⊢ push (true , (λ i₁ → inl (i₁ , f i₁ i₁))) j!}
+-- fun3-coh {A = A} (2-elter'.ppr true a b) i j = {!!}
+-- fun3-coh {A = A} (2-elter'.pplr false f i₂) i j = {!!}
+-- fun3-coh {A = A} (2-elter'.pplr true f i₂) i j = {!!}
+
+-- -- fun3 : {ℓ : Level} (J : RP∞' ℓ) (e : Bool ≃ fst J)
+-- --   (A : Bool → fst J → Type ℓ)
+-- --   → Σ[ F ∈ ((p : (i : Bool) → A i (fst e i))
+-- --   → inl (fst e true , inl (true , p true))
+-- --     ≡ asPushout→joinᵣₚ (RP∞'· ℓ) J e A .fst p ) ]
+-- --     ((p : TT.M.asPushoutBack (RP∞'· ℓ) (fst J) A e)
+-- --     → PathP (λ i → fun1 J A (TT2.asPushout→Bool' (fst J) A (push (e , p) i) .fst)
+-- --                    ≡ asPushout→joinᵣₚ (RP∞'· ℓ) J e A .snd p i)
+-- --              (fun2 J A (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst J) A (e , p)))
+-- --              (F (TT.M.asPushoutBack→ᵣ (RP∞'· ℓ) (fst J) A (e , p) .snd)))
+-- -- fun3 {ℓ} = JRP∞'' (RP∞'· _)  λ A
+-- --   → (λ p → push (true , (λ j → inl (j , p j)))
+-- --             ∙ sym (funExt⁻ (cong fst (asPushout→joinᵣₚ-refl (RP∞'· _) A)) p))
+-- --    , SQ
+-- --    where
+-- --    SQ : {A : Bool → Bool → Type ℓ}
+-- --      → (p : TT.M.asPushoutBack (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _))
+-- --      → PathP (λ i →
+-- --          fun1 (RP∞'· ℓ) A
+-- --          (TT2.asPushout→Bool' (fst (RP∞'· ℓ)) A
+-- --           (push (idEquiv (fst (RP∞'· ℓ)) , p) i) .fst)
+-- --          ≡ asPushout→joinᵣₚ (RP∞'· ℓ) (RP∞'· ℓ) (idEquiv (fst (RP∞'· ℓ))) A .snd p i)
+-- --          (fun2 (RP∞'· ℓ) A (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
+-- --            (idEquiv (fst (RP∞'· ℓ)) , p)))
+-- --          (push (true , (λ j → inl (j , TT.M.asPushoutBack→ᵣ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _ , p) .snd j)))
+-- --             ∙ sym (funExt⁻ (cong fst (asPushout→joinᵣₚ-refl (RP∞'· _) A))
+-- --                 (TT.M.asPushoutBack→ᵣ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A (idEquiv _ , p) .snd)))
+-- --    SQ {A = A} p i j =
+-- --      hcomp (λ k → λ {(j = i0) → fun1 (RP∞'· ℓ) A (TT.makeWithHah.asPushout→ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
+-- --                                    (TT2.HAH-Bool (fst (RP∞'· ℓ)) A) (push (idEquiv (fst (RP∞'· ℓ)) , p) i) true)
+-- --                     ; (j = i1) → asPushout→joinᵣₚ-refl (RP∞'· _) A (~ k) .snd p i
+-- --                     ; (i = i0) → fun2 (RP∞'· ℓ) A (TT.M.asPushoutBack→ₗ (RP∞'· ℓ) (fst (RP∞'· ℓ)) A
+-- --                                     (idEquiv (fst (RP∞'· ℓ)) , p)) j })
+-- --            (fun3-coh p i j)
+
+-- -- fun1-id : {ℓ : Level} (J : RP∞' ℓ) (A : Bool →  fst J → Type ℓ)
+-- --   → (y : TT.M.asPushout (RP∞'· ℓ) (fst J) A)
+-- --   → fun1 J A (TT2.asPushout→Bool' (fst J) A y .fst) ≡ asPushout→join (RP∞'· ℓ) J A y
+-- -- fun1-id J A (inl x) = fun2 J A x
+-- -- fun1-id J A (inr (e , p)) = fun3 J e A .fst p
+-- -- fun1-id J A (push (e , p) i) = fun3 J e A .snd p i
+
+-- -- lem1 : {ℓ : Level} (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
+-- --   → bigTy I i J A
+-- -- lem1 {ℓ} =
+-- --   JRP∞' λ J A → (fun1 J A)
+-- --   , λ F → cong (fun1 J A)
+-- --            ((cong fst (main J A F)))
+-- --          ∙ fun1-id J A (asPushout← (RP∞'· ℓ) J A F)
+-- --   where
+-- --   main : (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) (F : TotΠ (λ i₁ → join-gen (fst J) (A i₁)))
+-- --     → ΠBool→× F  ≡ TT2.asPushout→Bool' (fst J) A (asPushout← (RP∞'· ℓ) J A F)
+-- --   main J A F = sym (cong (Iso.fun ΠBool×Iso) (funExt⁻ (TT2.asPushout→Bool≡ (fst J) A) (asPushout← (RP∞'· ℓ) J A F))
+-- --              ∙ cong ΠBool→× (secEq (_ , asPushout→-isEquiv (RP∞'· _) J A) F))
+
+-- -- mainFun : {ℓ : Level} (I J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ)
+-- --   → join-gen (fst I) (λ i → join-gen (fst J) (A i))
+-- --   → join-gen (fst J) (λ j → join-gen (fst I) (λ i → A i j))
+-- -- mainFun I J A =
+-- --   join-gen-ind
+-- --     (λ x → asPushout→join I J A (asPushout← I J A x))
+-- --     λ i → lem1 I i J A
+
+-- -- module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I →  fst J → Type ℓ) where
   
