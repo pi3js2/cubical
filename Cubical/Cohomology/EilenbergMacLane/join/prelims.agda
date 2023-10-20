@@ -164,8 +164,7 @@ Iso.leftInv ΠBool×Iso a i true = a true
 
 CasesBoolη : ∀ {ℓ} {A : Bool → Type ℓ} (f : (x : Bool) → A x)
   → CasesBool {A = A} true (f true) (f false) ≡ f
-CasesBoolη f i false = f false
-CasesBoolη f i true = f true
+CasesBoolη f = funExt (CasesBool true refl refl)
 
 CasesBoolη-coh :  ∀ {ℓ} {A : Bool → Type ℓ} → (a : A true) (b : A false)
   → CasesBoolη {A = A} (CasesBool true a b) ≡ refl
@@ -648,4 +647,177 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) {A : fst I → fst J → Type ℓ} whe
       M121 I J {A = A} _ (2-eltFun {I = I} {J = J}) x
   Iso.leftInv TotAIso x =
      M212 I J {A = A} _ (2-eltFun {I = I} {J = J}) x
+
+
+
+module GetProps {ℓ} (X : RP∞' ℓ) where
+  2not : fst X → fst X
+  2not = snd X .fst .fst
+
+  2elim : ∀ {B : fst X → Type ℓ} (x : fst X) → B x → B (2not x) → (x' : fst X) → B x'
+  2elim  {B = B} = snd X .fst .snd .snd B .fst
+
+  2elimβ : ∀ {B : fst X → Type ℓ} (x : fst X) (a : B x) (b : B (2not x))
+    → (2elim {B = B} x a b x ≡ a) × (2elim {B = B} x a b (2not x) ≡ b)
+  2elimβ {B = B} x a b = snd X .fst .snd .snd B .snd x a b
+
+  PickOne : (A : fst X → Pointed ℓ)
+          → Σ[ x ∈ fst X ] A x .fst
+          → (x : fst X) → A x .fst
+  PickOne A (x , a) = 2elim x a (A (2not x) .snd)
+
+  PickOneConst : (A : fst X → Pointed ℓ) (x : fst X)
+    → PickOne A (x , A x .snd) ≡ λ x → A x .snd
+  PickOneConst A x =
+    funExt (2elim x (2elimβ x (A x .snd) (A (2not x) .snd) .fst) (2elimβ x (A x .snd) (A (2not x) .snd) .snd))
+
+  2Smash : (A : fst X → Pointed ℓ) → Type ℓ
+  2Smash A = Pushout fst (PickOne A)
+
+  2Smash∙ : (A : fst X → Pointed ℓ) → Pointed ℓ
+  fst (2Smash∙ A) = 2Smash A
+  snd (2Smash∙ A) = inr (λ x → A x .snd)
+
+  isBiHom : (A : fst X → Pointed ℓ) (B : Pointed ℓ) → (TotΠ (fst ∘ A) → fst B) → Type ℓ
+  isBiHom A B g =
+      Σ[ f ∈ ((x : fst X) → fst B) ]
+        Σ[ gf ∈ ((x : fst X) (y : fst (A x)) → g (PickOne A (x , y)) ≡ f x) ]
+          g (λ x → A x .snd) ≡ snd B
+
+  BiHom : (A : fst X → Pointed ℓ) (B : Pointed ℓ) → Type ℓ
+  BiHom A B = Σ[ g ∈ _ ] isBiHom A B g
+
+Ben : ℕ → Σ[ X ∈ (RP∞' ℓ-zero) ] (fst X → ℕ)
+Ben n = (RP∞'· ℓ-zero) , (λ _ → n)
+
+isEqBen : Σ[ X ∈ (RP∞' ℓ-zero) ] (fst X → ℕ) → ℕ
+isEqBen (X , p) = {!!}
+  where
+  0RP = RP∞'· ℓ-zero
+  isRP : (X Y : RP∞' ℓ-zero) → isRP∞ ℓ-zero (fst X ≃ fst Y)
+  isRP = {!!}
+
+  _+RP_ : (X Y : RP∞' ℓ-zero) → RP∞' ℓ-zero
+  X +RP Y = (fst X ≃ fst Y) , isRP X Y
+
+  ++RP : (X : RP∞' ℓ-zero) → X +RP X ≡ 0RP
+  ++RP = {!!}
+
+  +RP-assoc : (X Y Z : RP∞' ℓ-zero) → X +RP (Y +RP Z) ≡ (X +RP Y) +RP Z 
+  +RP-assoc = {!!}
+
+  +RP-rid : (X : RP∞' ℓ-zero) → X +RP 0RP ≡ X 
+  +RP-rid = {!!}
+
+  +RP-lid : (X : RP∞' ℓ-zero) → 0RP +RP X ≡ X 
+  +RP-lid = {!!}
+
+  +Iso : (X : RP∞' ℓ-zero) → Iso (RP∞' ℓ-zero) (RP∞' ℓ-zero)
+  Iso.fun (+Iso X) = X +RP_
+  Iso.inv (+Iso X) = X +RP_
+  Iso.rightInv (+Iso X) Y = +RP-assoc X X Y ∙ cong (_+RP Y) (++RP X) ∙ +RP-lid Y
+  Iso.leftInv (+Iso X) Y = +RP-assoc X X Y ∙ cong (_+RP Y) (++RP X) ∙ +RP-lid Y
+  
+
+  ta : Iso (RP∞' ℓ-zero) (RP∞' ℓ-zero)
+  ta = +Iso X
+
+  PP : Iso (Σ[ X ∈ (RP∞' ℓ-zero) ] (fst X → ℕ)) (Σ[ X ∈ (RP∞' ℓ-zero) ] (Bool → ℕ))
+  PP = compIso (invIso (Σ-cong-iso-fst ta))
+         (Σ-cong-iso-snd λ Y → pathToIso ((λ j → {!fst X ≃ fst Y!} → ℕ) ∙ {!!}))
+
+
+-- QT : (A B D : Pointed₀) (C : Type)
+--   → (isHom : isHomogeneous B)
+--   → (incl : D →∙ A)
+--   → ∥ C ∥₁
+--   → isEquiv {A = A →∙ B} {B = C → A →∙ B} (λ f _ → f)
+--    → (f g : A →∙ B)
+--    → ((d : fst D) (c : C) → fst f (fst incl d) ≡ fst g (fst incl d))
+--    → ((d : fst D) → fst f (fst incl d) ≡ fst g (fst incl d))
+-- QT A B D C h cpt incl isEq f g ind d = {!ind -- invEq (_ , isEq) !}
+--   where
+--   help : Iso (D →∙ A) {!!}
+--   help = {!!}
+
+
+-- open import Cubical.ZCohomology.Base
+-- open import Cubical.ZCohomology.Properties
+-- open import Cubical.ZCohomology.GroupStructure as GS
+
+
+-- 2Smash∙→Hom+ₗ :
+--   (X : RP∞' ℓ-zero) (n : ℕ) (A : fst X → Pointed₀)
+--   → ((x : fst X) → A x .fst)
+--   → (f :  ((x : fst X) → A x .fst) → coHomK (2 + n))
+--   → (fb : GetProps.isBiHom X A (coHomK-ptd (2 + n)) f) 
+--   → singl (GS.0ₖ (2 + n)) × singl (GS.0ₖ (2 + n))
+-- 2Smash∙→Hom+ₗ =
+--   RP∞'pt→Prop (λ _ → isPropΠ4 λ _ _ _ _ → isPropΠ λ _ → isProp× (isContr→isProp (isContrSingl _ )) (isContr→isProp (isContrSingl _ )))
+--     λ n A g f fb → ((f (GetProps.2elim (RP∞'· ℓ-zero) true (g true) (A _ .snd)))
+--                , sym ((fb .snd .fst true (g true) ∙ sym (fb .snd .fst true (A true .snd)))
+--                    ∙∙ cong f (GetProps.PickOneConst (RP∞'· ℓ-zero) A true)
+--                    ∙∙ fb .snd .snd))
+--                , ((f (GetProps.2elim (RP∞'· ℓ-zero) true (A _ .snd) (g false)))
+--                , sym ((fb .snd .fst false (g false) ∙ sym (fb .snd .fst false (A _ .snd)))
+--                    ∙∙ cong f (GetProps.PickOneConst (RP∞'· ℓ-zero) A true)
+--                    ∙∙ fb .snd .snd))
+
+-- test : (A B : Type) (n : ℕ)
+--   → isOfHLevel (suc n) B
+--   → (f : (a : A) → B)
+--   → ((x y : A) → f x ≡ f y) 
+--   → ∥ A ∥₁ → B
+-- test A B zero hl f x = PT.rec hl f
+-- test A B (suc n) hl f x ∣ x₁ ∣₁ = f x₁
+-- test A B (suc n) hl f x (squash₁ a a₁ i) = {!test A B n !}
+
+-- 2Smash∙→Hom : (X : RP∞' ℓ-zero) (n : ℕ) (A : fst X → Pointed₀)
+--   (f g : ((x : fst X) → A x .fst) → coHomK (2 + n))
+--   (r : f ≡ g)
+--   (fb : GetProps.isBiHom X A (coHomK-ptd (2 + n)) f) (gb : GetProps.isBiHom X A (coHomK-ptd (2 + n)) g)
+--   → Path (GetProps.BiHom X A _) (f , fb) (g , gb)
+-- 2Smash∙→Hom X n =
+--   transport (λ i → (A : snd (blyat i) → Pointed₀)
+--   → {!!}) {!PT.rec!} {-
+--   transport (λ i → (n : ℕ) (A : snd (blyat i) → Pointed₀)
+--   (f g : ((x : (snd (blyat i))) → A x .fst) → coHomK (2 + n))
+--   (r : f ≡ g) → {!!} → {!!})
+--     {!!}-}
+--   where
+--   blyat : Path (Σ[ T ∈ Type₁ ] T) -- (Pointed (ℓ-suc ℓ-zero))
+--            (RP∞' ℓ-zero , RP∞'· ℓ-zero)
+--            (RP∞' ℓ-zero , X)
+--   blyat = {!!}
+-- {- J> help
+--   where
+--   open GetProps X
+--   help : (fb gb : isBiHom A (coHomK-ptd (suc (suc n))) f) →
+--       Path (BiHom A (coHomK-ptd (2 + n)))
+--       (f , fb)
+--       (f , gb)
+--   fst (help fb gb i) g = {!thesingl .fst .fst!}
+--     where
+--     thesingl : singl _ × singl _
+--     thesingl = 2Smash∙→Hom+ₗ X n A g f fb
+
+--     lp : {!!}
+--     lp = thesingl .fst .snd ∙ {!thesingl .fst!}
+
+--     h : f g ≡ f g
+--     h = {!!} -- sym (GS.rUnitₖ (2 + n) {!f g!}) ∙∙ cong (f g +ₖ_) {!!} ∙∙ GS.rUnitₖ _ (f g)
+--   fst (snd (help (f₁ , f₁l , fp₁) (f₂ , f₂l , fp₂) i)) x = {!!}
+--   fst (snd (snd (help (f₁ , f₁l , fp₁) (f₂ , f₂l , fp₂) i))) = {!!}
+--   snd (snd (snd (help (f₁ , f₁l , fp₁) (f₂ , f₂l , fp₂) i))) = {!!}
+
+-- -}
+
+--   -- ΣPathP ((funExt (λ { (inl x) → cong (fst f) (push (x , A x .snd)) ∙∙ {!!} ∙∙ {!!} ; (inr x) → {!!} ∙∙ {!!} ∙∙ {!!} ; (push a i) → {!!}})) , {!!})
+--   -- where
+--   -- open GetProps X
+--   -- _+B_ : {!!}
+--   -- _+B_ = {!!}
+
+--   -- t : fst f (inr (λ x → A {!!} .snd)) ≡ {!!}
+--   -- t = {!!}
 

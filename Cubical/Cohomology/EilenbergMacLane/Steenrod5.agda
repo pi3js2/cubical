@@ -1816,8 +1816,6 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
     (funExt (uncurry λ i y → PushTop≃Main I i J A .snd y .fst))
     (funExt (uncurry λ i y → PushTop≃Main I i J A .snd y .snd))
 
-
-
 -- module _ {ℓ : Level} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) where
 --   private
 --     module 1st = 2-elter (RP∞'· ℓ) (fst J) A
@@ -2778,7 +2776,6 @@ Iso.leftInv (ΠR-extend→×Iso J A) = ΠR-extend→×→ΠR-extend {J = J} A
   → isEquiv (2-elter.ΠR-extend→Π I (fst J) A)
 ΠR-extend→Π-equiv {ℓ} =
   RP∞'pt→Prop (λ _ → isPropΠ2 λ _ _ → isPropIsEquiv _) ΠR-extend→Π-equiv-base
-
 
 
 -- module _ {ℓ : Level} (I J : RP∞) (A : fst I → fst J → Type ℓ) where
