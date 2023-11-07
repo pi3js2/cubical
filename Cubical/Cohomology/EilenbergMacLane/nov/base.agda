@@ -73,7 +73,7 @@ open import Cubical.Cohomology.EilenbergMacLane.GenSmash
 open import Cubical.Foundations.Univalence
 
 
-module Cubical.Cohomology.EilenbergMacLane.Steenrod5 where
+module Cubical.Cohomology.EilenbergMacLane.nov.base where
 open import Cubical.HITs.Join
 open import Cubical.Functions.FunExtEquiv
 
@@ -2775,6 +2775,7 @@ Iso.leftInv (ΠR-extend→×Iso J A) = ΠR-extend→×→ΠR-extend {J = J} A
   → isEquiv (2-elter.ΠR-extend→Π I (fst J) A)
 ΠR-extend→Π-equiv {ℓ} =
   RP∞'pt→Prop (λ _ → isPropΠ2 λ _ _ → isPropIsEquiv _) ΠR-extend→Π-equiv-base
+
 
 -- module _ {ℓ : Level} (I J : RP∞) (A : fst I → fst J → Type ℓ) where
 --   module M = 2-elter {ℓ} (fst I) (fst J) A (RP∞-2Type _ I)

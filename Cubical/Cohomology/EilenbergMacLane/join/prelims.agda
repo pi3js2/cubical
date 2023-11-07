@@ -392,6 +392,127 @@ joinR-gen I A = PushoutR (Σ I A) ((i : I) → A i)  λ x f → f (fst x) ≡ sn
 join-gen : ∀ {ℓ ℓ'} (I : Type ℓ) (A : I → Type ℓ') → Type _
 join-gen I A = Pushout {A = I × TotΠ A} {B = Σ I A} (λ a → fst a , snd a (fst a)) snd
 
+join-gen-funct : ∀ {ℓ ℓ'} (I : Type ℓ) {A B : I → Type ℓ'}
+  → ((i : I) → A i → B i) → join-gen I A → join-gen I B
+join-gen-funct I f (inl x) = inl ((fst x) , f _ (snd x))
+join-gen-funct I f (inr x) = inr λ i → f i (x i)
+join-gen-funct I f (push (a , b) i) =
+  push (a , (λ x → f x (b x))) i
+{-
+module ASDASD {ℓ ℓ'} (I : Type ℓ) {A B C : I → Type ℓ'}
+  (f : (i : I) → A i → B i) (g : (i : I) → A i → C i) where
+  PushoutJoin : Type _
+  PushoutJoin = Pushout {A = join-gen I A} {B = join-gen I B} {C = join-gen I C}
+                          (join-gen-funct I f)
+                          (join-gen-funct I g)
+
+  inlR-fun : (i : I) → Pushout (f i) (g i) → PushoutJoin
+  inlR-fun i (inl x) = inl (inl (i , x))
+  inlR-fun i (inr x) = inr (inl (i , x))
+  inlR-fun i (push a i₁) = push (inl (i , a)) i₁
+
+  PushoutJoinR→ : PushoutJoin → join-gen I (λ i → Pushout (f i) (g i))
+  PushoutJoinR→ (inl x) = join-gen-funct I (λ i → inl) x
+  PushoutJoinR→ (inr x) = join-gen-funct I (λ i → inr) x
+  PushoutJoinR→ (push (inl x) i) = inl (fst x , push (snd x) i)
+  PushoutJoinR→ (push (inr x) i) = inr λ i₁ → push (x i₁) i
+  PushoutJoinR→ (push (push (a , b) i₁) i) =
+    push (a , (λ x → push (b x) i)) i₁
+
+module _ {A1 A2 B1 B2 C1 C2 : Type} (f1 : A1 → B1) (g1 : A1 → C1) (f2 : A2 → B2) (g2 : A2 → C2) where 
+  T : Type
+  T = Pushout (join→ f1 f2) (join→ g1 g2)
+
+  TL : Type
+  TL = Pushout f1 g1
+
+  TR : Type
+  TR = Pushout f2 g2
+
+  T→Join : T → join TL TR
+  T→Join (inl (inl x)) = inl (inl x)
+  T→Join (inl (inr x)) = inr (inl x)
+  T→Join (inl (push a b i)) = push (inl a) (inl b) i
+  T→Join (inr (inl x)) = inl (inr x)
+  T→Join (inr (inr x)) = inr (inr x) 
+  T→Join (inr (push a b i)) = push (inr a) (inr b) i
+  T→Join (push (inl x) i) = inl (push x i)
+  T→Join (push (inr x) i) = inr (push x i)
+  T→Join (push (push a b i₁) i) = push (push a i) (push b i) i₁
+
+  Join→T : join TL TR → T
+  Join→T (inl (inl x)) = inl (inl x)
+  Join→T (inl (inr x)) = inr (inl x)
+  Join→T (inl (push a i)) = push (inl a) i
+  Join→T (inr (inl x)) = inl (inr x)
+  Join→T (inr (inr x)) = inr (inr x)
+  Join→T (inr (push a i)) = push (inr a) i
+  Join→T (push (inl x) (inl x₁) i) = inl (push x x₁ i)
+  Join→T (push (inl x) (inr x₁) i) = ((λ i → inl (push x {!x!} i)) ∙ {!!}) i
+  Join→T (push (inl x) (push a i₁) i) = {!i = i0 ⊢ inl (inl x)
+i = i1 ⊢ inr (inr x₁)!}
+  Join→T (push (inr x) b i) = {!!}
+  Join→T (push (push a i₁) (inl x) i) = {!!}
+  Join→T (push (push a i₁) (inr x) i) = {!!}
+  Join→T (push (push a i₁) (push a₁ i₂) i) = {!!}
+
+module _ {ℓ'} {A B C : Bool → Type ℓ'}
+              (f : (i : Bool) → A i → B i)
+              (g : (i : Bool) → A i → C i) where
+  module D = ASDASD Bool f g
+
+  open D
+  help : (x : Pushout (f true) (g true)) (y : Pushout (f false) (g false)) → PushoutJoin
+  help (inl x) (inl x₁) = inl (inr (CasesBool true x x₁))
+  help (inl x) (inr x₁) = inl (inl (_ , x))
+  help (inl x) (push a i) = inl (push (true , CasesBool true x (f false a)) (~ i))
+  help (inr x) (inl x₁) = inr (inl (_ , x))
+  help (inr x) (inr x₁) = inr (inr (CasesBool true x x₁))
+  help (inr x) (push a i) = inr (push (true , CasesBool true x (g false a)) i)
+  help (push a i) (inl x) = ((λ i → inl (push (true , CasesBool true (f true a) x) (~ i)))
+                          ∙ push (inl (true , a))) i
+  help (push a i) (inr x) = (push (inl (true , a))
+                          ∙ λ i → inr (push (true , CasesBool true (g true a) x) i)) i
+  help (push a i) (push a₁ i₁) =
+    hcomp (λ k → λ {(i = i0) →
+                      inl (push (true , CasesBool true (f true a) (f false a₁))
+                          (~ i₁ ∧ k))
+                   ; (i = i1) → inr (push (true , CasesBool true (g true a) (g false a₁)) (i₁ ∧ k))
+                   ; (i₁ = i0)
+                     → compPath-filler' (λ i₂ → inl (push (true , CasesBool true (f true a) (f false a₁)) (~ i₂)))
+                          (push (inl (true , a))) k i
+                   ; (i₁ = i1)
+                     → compPath-filler (push (inl (true , a)))
+                         (λ i₂ → inr (push (true , CasesBool true (g true a) (g false a₁)) i₂))
+                          k i})
+          (push (inl (true , a)) i)
+
+  AsA : (join-gen Bool λ i → Pushout (f i) (g i)) → PushoutJoin
+  AsA (inl (x , inl x₁)) = inl (inl (x , x₁))
+  AsA (inl (x , inr x₁)) = inr (inl (x , x₁))
+  AsA (inl (x , push a i)) = push (inl (x , a)) i
+  AsA (inr x) = help (x true) (x false)
+  AsA (push (false , y) i) with (y true) | (y false)
+  ... | inl x | inl x₁ = inl ((push (false , CasesBool true x x₁)) i)
+  ... | inl x | inr x₁ = {!!}
+  ... | inl x | push a i₁ =
+    {!Goal: Pushout (join-gen-funct Bool f) (join-gen-funct Bool g)
+———— Boundary (wanted) —————————————————————————————————————
+i = i0 ⊢ inr (inl (false , x₁))
+i = i1 ⊢ inl (inl (true , x))!}
+  ... | inr x | s = {!!}
+  ... | push a i₁ | s = {!!}
+  AsA (push (true , y) i) = {!!}
+
+
+  JoinRPushout→PushoutJoinR : joinR-gen I (λ i → Pushout (f i) (g i)) → PushoutJoinR
+  JoinRPushout→PushoutJoinR (inlR (i , j)) = inlR-fun i j
+  JoinRPushout→PushoutJoinR (inrR x) = {!!}
+  JoinRPushout→PushoutJoinR (push* a b x i) = {!!}
+
+join-gen-pres : {!!}
+join-gen-pres = {!!}
+-}
 join-gen-ind : ∀ {ℓ ℓ' ℓ''} {I : Type ℓ} {A : I → Type ℓ'} {B : join-gen I A → Type ℓ''}
   → (f : (g : TotΠ A) → B (inr g))
   → ((i : I) → Σ[ g ∈ ((x : A i) → B (inl (i , x))) ]
@@ -686,45 +807,6 @@ module GetProps {ℓ} (X : RP∞' ℓ) where
 
   BiHom : (A : fst X → Pointed ℓ) (B : Pointed ℓ) → Type ℓ
   BiHom A B = Σ[ g ∈ _ ] isBiHom A B g
-
-Ben : ℕ → Σ[ X ∈ (RP∞' ℓ-zero) ] (fst X → ℕ)
-Ben n = (RP∞'· ℓ-zero) , (λ _ → n)
-
-isEqBen : Σ[ X ∈ (RP∞' ℓ-zero) ] (fst X → ℕ) → ℕ
-isEqBen (X , p) = {!!}
-  where
-  0RP = RP∞'· ℓ-zero
-  isRP : (X Y : RP∞' ℓ-zero) → isRP∞ ℓ-zero (fst X ≃ fst Y)
-  isRP = {!!}
-
-  _+RP_ : (X Y : RP∞' ℓ-zero) → RP∞' ℓ-zero
-  X +RP Y = (fst X ≃ fst Y) , isRP X Y
-
-  ++RP : (X : RP∞' ℓ-zero) → X +RP X ≡ 0RP
-  ++RP = {!!}
-
-  +RP-assoc : (X Y Z : RP∞' ℓ-zero) → X +RP (Y +RP Z) ≡ (X +RP Y) +RP Z 
-  +RP-assoc = {!!}
-
-  +RP-rid : (X : RP∞' ℓ-zero) → X +RP 0RP ≡ X 
-  +RP-rid = {!!}
-
-  +RP-lid : (X : RP∞' ℓ-zero) → 0RP +RP X ≡ X 
-  +RP-lid = {!!}
-
-  +Iso : (X : RP∞' ℓ-zero) → Iso (RP∞' ℓ-zero) (RP∞' ℓ-zero)
-  Iso.fun (+Iso X) = X +RP_
-  Iso.inv (+Iso X) = X +RP_
-  Iso.rightInv (+Iso X) Y = +RP-assoc X X Y ∙ cong (_+RP Y) (++RP X) ∙ +RP-lid Y
-  Iso.leftInv (+Iso X) Y = +RP-assoc X X Y ∙ cong (_+RP Y) (++RP X) ∙ +RP-lid Y
-  
-
-  ta : Iso (RP∞' ℓ-zero) (RP∞' ℓ-zero)
-  ta = +Iso X
-
-  PP : Iso (Σ[ X ∈ (RP∞' ℓ-zero) ] (fst X → ℕ)) (Σ[ X ∈ (RP∞' ℓ-zero) ] (Bool → ℕ))
-  PP = compIso (invIso (Σ-cong-iso-fst ta))
-         (Σ-cong-iso-snd λ Y → pathToIso ((λ j → {!fst X ≃ fst Y!} → ℕ) ∙ {!!}))
 
 
 -- QT : (A B D : Pointed₀) (C : Type)

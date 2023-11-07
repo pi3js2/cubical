@@ -277,7 +277,7 @@ module 2-elter' {ℓ : Level} (I : RP∞' ℓ) (J : Type) (A : fst I → J → T
   fat* = J × ((i : fst I) (j : J) → A i j)
 
   fat→ₗ* : (i : fst I) → fat* → left-push↑ₗ* i
-  fat→ₗ* i (f , g) = f , (g i f) , (g (notI i))
+  fat→ₗ* i (f , g) = f , (g i f) , (g (notI i)) 
 
   fat→ᵣ* : (i : fst I) → fat* → left-push↑ᵣ i
   fat→ᵣ* i (f , g) = f , g

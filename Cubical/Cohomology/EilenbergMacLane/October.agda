@@ -227,7 +227,7 @@ module _  {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) where
 
     push-pushₗ : (j : fst J) → push-push-typ j j
     push-pushₗ j a a' f g p q i k =
-      hcomp (λ r → λ {(i = i0) → {!push-inl-β!}
+      hcomp (λ r → λ {(i = i0) → {!!}
                    ; (i = i1) → {!!}
                    ; (k = i0) → {!!}
                    ; (k = i1) → {!!}})

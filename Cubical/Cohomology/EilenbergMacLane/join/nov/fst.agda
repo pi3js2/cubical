@@ -76,7 +76,8 @@ open import Cubical.Cohomology.EilenbergMacLane.join.prelims
 open import Cubical.Cohomology.EilenbergMacLane.join.2elter
 
 open import Cubical.Cohomology.EilenbergMacLane.join.2elter-alt
-module Cubical.Cohomology.EilenbergMacLane.join.asPushoutOut-alt where
+
+module Cubical.Cohomology.EilenbergMacLane.join.nov.fst where
 
 open import Cubical.HITs.Join
 open import Cubical.Functions.FunExtEquiv
