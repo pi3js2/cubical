@@ -118,13 +118,13 @@ module Rewrite1 {ℓ} (I : RP∞' ℓ) (J : Type) (A : fst I → J → Type ℓ)
     PushTop-ab = Σ[ i ∈ fst I ] (Pushout (fat→ₗ-ab i) (fat→ᵣ-ab i))
 
     AB→Σ : (i : fst I) → AB → Σ J (A i)
-    fst (AB→Σ a f) = ?
-    snd (AB→Σ a f) = ?
+    fst (AB→Σ a f) = {!!}
+    snd (AB→Σ a f) = {!!}
 
     PushTop→left-push'-ab : (i : fst I)
       → (Pushout (fat→ₗ-ab i) (fat→ᵣ-ab i))
       → (Σ[ j ∈ J ] (A i j)) × ((j : J) → A (M.notI i) j)
-    PushTop→left-push'-ab i (inl (f , g , p)) = {!f!} , {!!} -- (f i) , g
+    PushTop→left-push'-ab i (inl (f , g , p)) = {!AB→Σ i f!} , {!!} -- (f i) , g
     PushTop→left-push'-ab i (inr (f , g , p)) = f , (g (M.notI i))
     PushTop→left-push'-ab i (push (f , g , p) k) = {!!} -- (f i) , λ j → g (M.notI i) j
 
