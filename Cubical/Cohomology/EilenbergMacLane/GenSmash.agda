@@ -49,7 +49,7 @@ open import Cubical.Data.Unit
 open import Cubical.Data.Nat
 open import Cubical.Data.Nat.Order hiding (eq)
 open import Cubical.Data.Sigma
-open import Cubical.Data.Bool hiding (_≤_)
+open import Cubical.Data.Bool hiding (_≤_ ; Bool*)
 
 open import Cubical.Algebra.Group.Base
 open import Cubical.Algebra.AbGroup.Base

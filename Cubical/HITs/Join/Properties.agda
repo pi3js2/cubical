@@ -8,6 +8,8 @@ This file contains:
 - Associativity of the join
   Written by: Loïc Pujet, September 2019
 
+- Ganea's theorem
+
 -}
 
 {-# OPTIONS --safe #-}
@@ -19,12 +21,16 @@ open import Cubical.Foundations.Equiv
 open import Cubical.Foundations.Isomorphism
 open import Cubical.Foundations.GroupoidLaws
 open import Cubical.Foundations.Function
+open import Cubical.Foundations.Path
+open import Cubical.Foundations.Pointed
 
 open import Cubical.Data.Sigma renaming (fst to proj₁; snd to proj₂)
 open import Cubical.Data.Unit
 
 open import Cubical.HITs.Join.Base
 open import Cubical.HITs.Pushout
+
+open import Cubical.Homotopy.Loopspace
 
 private
   variable
@@ -483,110 +489,217 @@ snd joinAnnihilL (inl tt*) = refl
 snd joinAnnihilL (inr a) = push tt* a
 snd joinAnnihilL (push tt* a i) j = push tt* a (i ∧ j)
 
-open import Cubical.Foundations.Pointed
-open import Cubical.HITs.Wedge
 
--- data _≡'_ {ℓ : Level} {A : Type ℓ} (x : A) : A → Type ℓ where
---   refll : x ≡' x
+--- Ganea's construction ---
 
--- cJ : ∀ {ℓ} {A B : Type ℓ} (x : A) → isContr (Σ[ y ∈ A ] (join (x ≡' y) B))
--- proj₁ (cJ x) = x , inl refll
--- snd (cJ x) (.x , inl refll) = refl
--- snd (cJ x) (a , inr x₁) = {!!}
--- snd (cJ x) (a , push a₁ b i) = {!!}
+-- preliminary lemmas
+private module _ {ℓ : Level} {B : Type ℓ} where
+  ganea-fill₁ : {x : B} (y : B)
+    → (p : x ≡ y)
+    → (z : B)
+    → (q : y ≡ z)
+    → (i j k : I) → B
+  ganea-fill₁ y p z q i j k =
+    hfill (λ k → λ {(i = i0) → p j
+                   ; (i = i1) → q (~ j ∧ k)
+                   ; (j = i0) → compPath-filler p q k i
+                   ; (j = i1) → y})
+              (inS (p (i ∨ j)))
+              k
 
--- pushlem : {A : Type} {B C D : A → Type}
---   → (f : (a : _) → B a → C a) (g : (a : _) → B a → D a)
---   → Iso (Σ[ x ∈ A ] Pushout (f x) (g x))
---          (Pushout {A = Σ A B} (λ x → fst x , f (fst x) (snd x))  (λ x → fst x , g (fst x) (snd x)))
--- fun (pushlem f g) (a , inl x) = inl (a , x)
--- fun (pushlem f g) (a , inr x) = inr (a , x)
--- fun (pushlem f g) (a , push a₁ i) = push (a , a₁) i
--- inv (pushlem f g) (inl x) = fst x , inl (snd x)
--- inv (pushlem f g) (inr x) = fst x , inr (snd x)
--- inv (pushlem f g) (push a i) = fst a , push (snd a) i
--- rightInv (pushlem f g) (inl x) = refl
--- rightInv (pushlem f g) (inr x) = refl
--- rightInv (pushlem f g) (push a i) = refl
--- leftInv (pushlem f g) (a , inl x) = refl
--- leftInv (pushlem f g) (a , inr x) = refl
--- leftInv (pushlem f g) (a , push a₁ i) = refl
+  ganea-fill₂ : (i j k : I)
+    → {x : B} (y : B) (q : x ≡ y)
+       (z : B) (p : q (~ i) ≡ z)
+    → B
+  ganea-fill₂ i j k y q z p =
+    hfill (λ k
+           → λ {(i = i0) → p j
+              ; (i = i1) → compPath-filler' (sym q) p k j
+              ; (j = i0) → q (k ∨ ~ i)
+              ; (j = i1) → z})
+              (inS (p j))
+              k
 
--- -- module _ {A B : Type ℓ} (C : A → Type ℓ') (c1 : isContr (Σ A C))  where
--- --   jl : Σ[ x ∈ A ] join (C x) B → join (Σ[ x ∈ A ] (C x)) B
--- --   jl (x , inl x₁) = inl (x , x₁)
--- --   jl (x , inr x₁) = inr x₁
--- --   jl (x , push a b i) = push (x , a) b i
-
--- --   lj : join (Σ[ x ∈ A ] (C x)) B → Σ[ x ∈ A ] join (C x) B
--- --   lj (inl (x , c)) = x , inl c
--- --   lj (inr b) = fst c1 .fst , inr b
--- --   proj₁ (lj (push (a1 , c) b i)) = c1 .snd (a1 , c) (~ i) .fst
--- --   snd (lj (push (a1 , c) b i)) = 
--- --     hcomp (λ k → λ {(i = i0) → push c b (~ k)
--- --                    ; (i  = i1) → inr b})
--- --           (inr b)
-
--- --   t3 : (x : _) → jl (lj x) ≡ x
--- --   t3 (inl x) = refl
--- --   t3 (inr x) = refl
--- --   t3 (push a b i) j =
--- --     {!hcomp (λ k → λ {(i = i0) → push c b (~ k)
--- --                    ; (i  = i1) → inr b})
--- --           (inr b)!}
--- --     where
--- --     h : {!!}
--- --     h = {!j = i0 ⊢ t3 (push a b i) i0
--- -- j = i1 ⊢ push a b i
--- -- i = i0 ⊢ inl a
--- -- i = i1 ⊢ inr b!}
+  ganea-fill₃ : ∀ {ℓ} {A : Type ℓ} (f : A → B) (b : B)
+    (i k : I)
+    (a : A) (q : f a ≡ b) (p : q (~ i) ≡ b)
+    → join (fiber f b) (b ≡ b)
+  ganea-fill₃ f b i k a q p =
+    hfill (λ k → λ {(i = i0) → inr p
+                   ; (i = i1) → push (a , p) (sym q ∙ p) (~ k)})
+          (inS (inr λ j → ganea-fill₂ i j i1 _ q _ p)) k
 
 
+-- Proof of the main theorem
+module _ {A : Pointed ℓ} {B : Pointed ℓ'} (f : A →∙ B) where
+  fib-cofib : Type _
+  fib-cofib = cofib {A = fiber (fst f) (pt B)} fst
+
+  GaneaMap : fib-cofib → fst B
+  GaneaMap (inl x) = pt B
+  GaneaMap (inr x) = fst f x
+  GaneaMap (push a i) = a .snd (~ i)
+
+  GaneaFib : Type _
+  GaneaFib = fiber GaneaMap (pt B)
+
+  join→GaneaFib : join (fiber (fst f) (pt B)) (Ω B .fst) → GaneaFib
+  join→GaneaFib (inl x) = inr (fst x) , snd x
+  join→GaneaFib (inr x) = (inl tt) , x
+  proj₁ (join→GaneaFib (push a b i)) = push (fst a , snd a ∙ sym b) (~ i)
+  snd (join→GaneaFib (push a b i)) j = ganea-fill₁ _ (snd a) _  (sym b) i j i1
+
+  GaneaFib→join : GaneaFib → join (fiber (fst f) (pt B)) (Ω B .fst)
+  GaneaFib→join (inl x , p) = inr p
+  GaneaFib→join (inr x , p) = inl (x , p)
+  GaneaFib→join (push (a , q) i , p) =
+    ganea-fill₃ (fst f) (pt B) i i1 a q p
+
+  GaneaFib→join→GaneaFib : (x : GaneaFib)
+    → join→GaneaFib (GaneaFib→join x) ≡ x
+  GaneaFib→join→GaneaFib (inl x , y) = refl
+  GaneaFib→join→GaneaFib (inr x , y) = refl
+  GaneaFib→join→GaneaFib (push (a , q) i , p) j =
+    hcomp (λ k
+    → λ {(i = i0) → inl tt , p
+        ; (i = i1) → main p k j
+        ; (j = i0) → join→GaneaFib (ganea-fill₃ (fst f) (pt B) i k a q p)
+        ; (j = i1) → push (a , q) i , p})
+          ((push (a , q) (i ∧ j))
+         , λ k → hcomp (λ r
+           → λ {(i = i0) → p k
+               ; (i = i1) → compPath-filler' (sym q) p (r ∧ (~ j)) k
+               ; (j = i0) → ganea-fill₂ i k r _ q _ p
+               ; (j = i1) → p k
+               ; (k = i0) → q ((r ∧ ~ j) ∨ ~ i)
+               ; (k = i1) → snd B})
+      (p k))
+    where
+    filler₁ : (i j k : I) (p : fst f a ≡ pt B) → fst B
+    filler₁ i j k p =
+      hfill (λ k
+        → λ {(i = i0) → compPath-filler p (sym (sym q ∙ p)) k j
+            ; (i = i1) → q (j ∨ ~ k)
+            ; (j = i0) → q (~ k ∧ i)
+            ; (j = i1) → ((λ i₂ → q (~ i₂)) ∙ p) (~ k ∧ ~ i)})
+       (inS (compPath-filler (sym q) p j (~ i))) k
+
+    main' : (p : fst f a ≡ pt B)
+      → cong join→GaneaFib (push (a , p) (sym q ∙ p))
+        ≡ λ i → (push (a , q) (~ i)) , (compPath-filler' (sym q) p i)
+    proj₁ (main' p i j) = push (a , λ j → filler₁ i j i1 p) (~ j)
+    snd (main' p i j) r =
+      hcomp (λ k → λ {(i = i0) → ganea-fill₁ _ p _ (sym (sym q ∙ p)) j r k
+                     ; (i = i1) → J-lem _ q _ p k r j
+                     ; (j = i0) → compPath-filler' (sym q) p (~ k ∧ i) r
+                     ; (j = i1) → (sym q ∙ p) (r ∨ ~ (k ∨ i))
+                     ; (r = i0) → filler₁ i j k p
+                     ; (r = i1) → snd B})
+            (J-lem₂ _ q _ p r j i)
+      where
+      J-lem : ∀ {ℓ} {A : Type ℓ} {x : A} (y : A) (q : x ≡ y)
+        (z : A) (p : x ≡ z)
+        → PathP (λ k
+          → Square (λ j → q (j ∨ ~ k)) refl
+                    (compPath-filler' (λ i₂ → q (~ i₂)) p (~ k))
+                    (sym q ∙ p))
+                 (λ i _ → (sym q ∙ p) i)
+                  λ i j → compPath-filler' (sym q) p j i
+      J-lem {x = x} =
+        J> (J> J-lem-refl x refl (refl ∙ refl)
+                (compPath-filler' (sym refl) refl))
+        where
+        J-lem-refl : ∀ {ℓ} {A : Type ℓ} {x : A} (y : A)
+          (p : x ≡ y) (q : x ≡ y) (r : p ≡ q)
+          → PathP (λ k → Square refl refl (r (~ k)) q)
+                   (λ i _ → q i) λ i j → r j i
+        J-lem-refl = J> (J> refl)
+
+      J-lem₂ : ∀ {ℓ} {A : Type ℓ} {x : A} (y : A) (q : x ≡ y) (z : A) (p : x ≡ z)
+        → PathP (λ r → Square (λ i → compPath-filler' (sym q) p i r)
+                                (λ i → (sym q ∙ p) (r ∨ ~ i))
+                                (λ j → p (r ∨ j)) refl)
+          (λ j i → compPath-filler (sym q) p j (~ i))
+          refl
+      J-lem₂ {x = x} =
+        J> (J> λ i j k → J-lem₂-refl _ (rUnit (refl {x = x})) k i j)
+        where
+        J-lem₂-refl : ∀ {ℓ} {A : Type ℓ} {x : A} (q : x ≡ x) (r : refl ≡ q)
+          → PathP (λ k
+            → Square (λ j → r j (~ k)) (λ _ → x)
+                      (r k) λ i → q (i ∨ ~ k))
+                   refl λ i _ → q i
+        J-lem₂-refl = J> refl
 
 
--- module _ {A B : Type ℓ} (C : A → Type ℓ') (D : B → Type ℓ')
---   (c1 : isContr (Σ A C))
---   (c2 : isContr (Σ B D))
---   where
---   Tot = Σ[ x ∈ A ] Σ[ y ∈ B ] join (C x) (D y)
+    main : (p : fst f a ≡ pt B)
+      → PathP (λ k → join→GaneaFib (push (a , p) (sym q ∙ p) (~ k))
+                    ≡ (inr a , p))
+              (λ i → push (a , q) i , compPath-filler' (sym q) p (~ i))
+              refl
+    main p = flipSquare (cong sym (main' p)
+      ◁ λ j i → push (a , q) (j ∨ i)
+          , compPath-filler' (sym q) p (~ (j ∨ i)))
 
---   ptB = fst (fst c2)
---   ptA = fst (fst c1)
-  
+  join→GaneaFib→join : (x : join (fiber (fst f) (pt B)) (Ω B .fst))
+    → GaneaFib→join (join→GaneaFib x) ≡ x
+  join→GaneaFib→join (inl x) = refl
+  join→GaneaFib→join (inr x) = refl
+  join→GaneaFib→join (push (a , q) p i) j =
+    main (fst f) (pt B) q p j i
+    where
+    main : (f : fst A → fst B) (b : fst B)
+        (q : f a ≡ b) (p : b ≡ b)
+      → Path (Path (join (fiber f b) (b ≡ b)) _ _)
+        (λ i → ganea-fill₃ f b (~ i) i1 a (q ∙ sym p)
+        λ j → ganea-fill₁ _ q _ (sym p) i j i1)
+        (push (a , q) p)
+    main f = J> λ q i j
+      → hcomp (λ k → λ {(i = i0) → ganea-fill₃ f (f a) (~ j) i1
+                                       a (lUnit (sym q) k)
+                                       (side _ q k j)
+                        ; (i = i1) → push (a , refl) q j
+                        ; (j = i0) → inl (a , refl)
+                        ; (j = i1) → inr q})
+         (hcomp (λ k → λ {(i = i0) → ganea-fill₃ f (f a) (~ j) k
+                                       a (sym q) λ j₂ → q (~ j ∨ j₂)
+                        ; (i = i1) → push (a , refl) q (j ∨ ~ k)
+                        ; (j = i0) → push (a , refl) (rUnit q (~ i)) (~ k)
+                        ; (j = i1) → inr q})
+                (inr λ k → btm _ q k i j))
+       where
+       btm : ∀ {ℓ} {A : Type ℓ} {x : A} (y : A) (q : x ≡ y)
+         → Cube refl refl
+                 (λ k j → ganea-fill₂ (~ j) k i1
+                            _ (sym q) _ (λ j₂ → q (~ j ∨ j₂)))
+                 (λ k j → q k)
+                 (λ k i → rUnit q (~ i) k)
+                 λ k i → q k
+       btm {x = x} =
+         J> λ k i j → ganea-fill₂ (~ j) k (~ i) x (sym refl) x refl
 
---   isCTot : isContr Tot
---   proj₁ isCTot  = fst c1 .fst , fst c2 .fst , inl (fst c1 .snd)
---   snd isCTot (x , y , inl x₁) = {!!}
---     where
---     p : Path (Σ A C) (x , x₁) (fst c1)
---     p = sym (snd c1 _)
---   snd isCTot (x , y , inr x₁) = {!!}
---   snd isCTot (x , y , push a b i) = {!!}
 
---   goal : Type _
---   goal = Pushout {A = Σ A C × Σ B D} {B = Σ A C × B} {C = Σ B D × A}
---                  (λ a → fst a , fst (snd a)) λ a → snd a , fst (fst a)
+       side : ∀ {ℓ} {A : Type ℓ} {x : A} (y : A) (p : x ≡ y)
+         → PathP (λ k → Square refl p (lUnit (sym p) k) refl)
+                  (λ i j → p (~ i ∨ j))
+                  λ j j₂ → ganea-fill₁ _ refl _ (sym p) j j₂ i1
+       side {A = A} {x = x} =
+         J> ((λ i j k → lUnit (refl {x = x}) (i ∧ ~ k) j)
+            ▷ λ k i j → filler k j i)
+         where
+         filler : I → I → I → A
+         filler k i j =
+             hcomp (λ r → λ {(i = i0) → rUnit (refl {x = x}) r j
+                            ; (i = i1) → x
+                            ; (j = i0) → x
+                            ; (j = i1) → x
+                            ; (k = i0) → rUnit (refl {x = x}) (r ∧ ~ i) j
+                            ; (k = i1) → ganea-fill₁ x refl x refl j i r})
+                   x
 
---   goalT : {!!}
---   goalT = {!!}
-
-
---   M1 : Tot → goal
---   M1 (x , y , inl x₁) = inl ((x , x₁) , y)
---   M1 (x , y , inr x₁) = inr ((y , x₁) , x)
---   M1 (x , y , push a b i) = push ((x , a) , (y , b)) i
-
---   M2 : goal → Tot
---   M2 (inl (x , b)) = fst x , b , (inl (snd x))
---   M2 (inr (x , a)) = a , fst x , (inr (snd x))
---   M2 (push ((a , c) , (b , d)) i) = a , b , push c d i
-
---   M1→M2→M1 : (x : Tot) → M2 (M1 x) ≡ x
---   M1→M2→M1 (a , b , inl x) = refl
---   M1→M2→M1 (a , b , inr x) = refl
---   M1→M2→M1 (a , b , push a₁ b₁ i) = refl
-
---   M2→M1→M2 : (x : goal) → M1 (M2 x) ≡ x
---   M2→M1→M2 (inl x) = refl
---   M2→M1→M2 (inr x) = refl
---   M2→M1→M2 (push a i) = refl
+  -- Main theorem
+  GaneaIso : Iso GaneaFib (join (fiber (fst f) (pt B)) (Ω B .fst))
+  fun GaneaIso = GaneaFib→join
+  inv GaneaIso = join→GaneaFib
+  rightInv GaneaIso = join→GaneaFib→join
+  leftInv GaneaIso = GaneaFib→join→GaneaFib
