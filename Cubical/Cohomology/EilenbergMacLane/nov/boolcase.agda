@@ -386,30 +386,77 @@ Lift→ : ∀ {ℓ ℓ' ℓ''} {A : Type ℓ} {B : Type ℓ'}
 Lift→ f (lift a) = lift (f a)
 
 -- TODO --verify is iso
-ΠR-extend* : (I J : RP∞' ℓ-zero) (A : fst I → fst J → Type ℓ-zero)
-  → Rewrite1.ΠR-extend-ab I (fst J) A
+ΠR-extend* : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → Type ℓ
+ΠR-extend* I J A =
+  Rewrite1.ΠR-extend-ab I (fst J) A
        (Σ[ x ∈ fst J ⊎ (fst I ≃ fst J) ]
          ((i : fst I) → A i (fst (2-eltFun {I = I} {J = J}) x i)))
        (λ i p → Iso.inv (TotAIso I J {A}) p i .fst)
        (λ i x → Iso.inv (TotAIso I J {A}) x i .snd)
+
+
+ΠR-extend*Iso : (I J : RP∞' ℓ-zero) (A : fst I → fst J → Type ℓ-zero)
+  → ΠR-extend* I J A
   → Rewrite1.ΠR-extend-ab I (fst J) A
        ((i : fst I) → Σ[ j ∈ fst J ] A i j)
        (λ i f → f i .fst)
        λ i f → f i .snd
-ΠR-extend* I J A (inl x) = inl x
-ΠR-extend* I J A (inr (inl x)) = inr (inl (Iso.inv (TotAIso I J {A}) x))
-ΠR-extend* I J A (inr (inr x)) = inr (inr x)
-ΠR-extend* I J A (inr (push ((x , s2) , q , t) i)) =
+ΠR-extend*Iso I J A (inl x) = inl x
+ΠR-extend*Iso I J A (inr (inl x)) = inr (inl (Iso.inv (TotAIso I J {A}) x))
+ΠR-extend*Iso I J A (inr (inr x)) = inr (inr x)
+ΠR-extend*Iso I J A (inr (push ((x , s2) , q , t) i)) =
   inr (push ((Iso.inv (TotAIso I J {A}) (x , s2)) , q , t) i)
-ΠR-extend* I J A (push (i' , inl (a , b)) i) =
+ΠR-extend*Iso I J A (push (i' , inl (a , b)) i) =
   push (i' , inl (Iso.inv (TotAIso I J {A}) a , b)) i
-ΠR-extend* I J A (push (i' , inr x) i) =
+ΠR-extend*Iso I J A (push (i' , inr x) i) =
   push (i' , inr x) i
-ΠR-extend* I J A (push (i' , push (a , b) i₁) i) =
+ΠR-extend*Iso I J A (push (i' , push (a , b) i₁) i) =
   push (i' , push ((Iso.inv (TotAIso I J {A}) a) , b) i₁) i
 
-thePush'' : {!!}
-thePush'' = {!!}
+
+module _ {ℓ : Level} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) where
+  leftFun* : ΠR-extend* (RP∞'· ℓ) J A → joinR-gen (fst J) (A true)
+  leftFun* (inl (false , (a , b))) = inrR b
+  leftFun* (inl (true , y)) = inlR (fst y)
+  leftFun* (inr (inl x)) = inlR (Iso.inv (TotAIso (RP∞'· _) J {A}) x true)
+  leftFun* (inr (inr x)) = inrR (x true)
+  leftFun* (inr (push (t , s , q) i)) =
+    push* (f3 (RP∞'· ℓ) J {A = A} t true) (s true) (q true) i
+  leftFun* (push (false , inl (a , b)) i) =
+    push* (f3 (RP∞'· ℓ) J {A = A} a true) (fst b) (snd b) (~ i)
+  leftFun* (push (true , inl x) i) = inlR (f3 (RP∞'· ℓ) J {A = A} (fst x) true)
+  leftFun* (push (false , inr x) i) = inrR (fst (snd x) true)
+  leftFun* (push (true , inr (a , b , c)) i) = push* a (b true) c i
+  leftFun* (push (false , push (a , b) j) i) =
+    push* (f3 (RP∞'· ℓ) J {A = A} a true) (fst b true) (snd b true) (~ i ∨ j)
+  leftFun* (push (true , push (a , b) j) i) =
+    push* (f3 (RP∞'· ℓ) J {A = A} a true) (fst b true) (snd b true) (i ∧ j)
+
+
+leftFunExtCurry* : {ℓ : Level} (I : RP∞' ℓ) (i : fst I)
+  (J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+  → ΠR-extend* I J A → joinR-gen (fst J) (A i)
+leftFunExtCurry* = JRP∞' leftFun*
+
+module _ {ℓ : Level} (I J : RP∞' ℓ)(A : fst I → fst J → Type ℓ) where
+  leftFunExt*' : (i : fst I) → ΠR-extend* I J A → joinR-gen (fst J) (A i)
+  leftFunExt*' i = leftFunExtCurry* I i J A
+
+  leftFunExt* :  fst I × ΠR-extend* I J A
+             → Σ[ i ∈ fst I ] (joinR-gen (fst J) (A i))
+  leftFunExt* (i , p) = i , leftFunExt*' i p
+
+
+leftFunExtId* : {ℓ : Level} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ)
+  → leftFunExt*' (RP∞'· ℓ) J A true ≡ leftFun* J A
+leftFunExtId* {ℓ = ℓ} J A i = lem i J A
+  where
+  lem : leftFunExtCurry* (RP∞'· ℓ) true ≡ leftFun*
+  lem = JRP∞'∙ leftFun*
+
+joinR-Push'' : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → Type ℓ 
+joinR-Push'' I J A =
+  Pushout {A = fst I × ΠR-extend* I J A} (leftFunExt* I J A) snd
 
 ΠR-extend-iso : {!!}
 ΠR-extend-iso = {!!}
