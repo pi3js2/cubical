@@ -78,6 +78,25 @@ module Cubical.Cohomology.EilenbergMacLane.nov.boolcase where
 open import Cubical.HITs.Join
 open import Cubical.Functions.FunExtEquiv
 
+CubeP : ∀ {ℓ} (A : I → I → I → Type ℓ)
+  {a₀₀₀ : A i0 i0 i0} {a₀₀₁ : A i0 i0 i1} {a₀₀₋ : PathP (λ i → A i0 i0 i) a₀₀₀ a₀₀₁}
+  {a₀₁₀ : A i0 i1 i0} {a₀₁₁ : A i0 i1 i1} {a₀₁₋ : PathP (λ i → A i0 i1 i) a₀₁₀ a₀₁₁}
+  {a₀₋₀ : PathP (λ j → A i0 j i0) a₀₀₀ a₀₁₀} {a₀₋₁ : PathP (λ j → A i0 j i1) a₀₀₁ a₀₁₁}
+  (a₀₋₋ : SquareP (λ j k → A i0 j k) a₀₀₋ a₀₁₋ a₀₋₀ a₀₋₁)
+  {a₁₀₀ : A i1 i0 i0} {a₁₀₁ : A i1 i0 i1}  {a₁₀₋ : PathP (λ k → A i1 i0 k) a₁₀₀ a₁₀₁}
+  {a₁₁₀ : A i1 i1 i0} {a₁₁₁ : A i1 i1 i1} {a₁₁₋ : PathP (λ k → A i1 i1 k) a₁₁₀ a₁₁₁}
+  {a₁₋₀ : PathP (λ j → A i1 j i0) a₁₀₀ a₁₁₀} {a₁₋₁ : PathP (λ j → A i1 j i1) a₁₀₁ a₁₁₁}
+  (a₁₋₋ : SquareP (λ j k → A i1 j k) a₁₀₋ a₁₁₋ a₁₋₀ a₁₋₁)
+  {a₋₀₀ : PathP (λ i → A i i0 i0) a₀₀₀ a₁₀₀} {a₋₀₁ : PathP (λ i → A i i0 i1) a₀₀₁ a₁₀₁}
+  (a₋₀₋ : SquareP (λ i k → A i i0 k) a₀₀₋ a₁₀₋ a₋₀₀ a₋₀₁)
+  {a₋₁₀ : PathP (λ i → A i i1 i0) a₀₁₀ a₁₁₀} {a₋₁₁ : PathP (λ i → A i i1 i1) a₀₁₁ a₁₁₁}
+  (a₋₁₋ : SquareP (λ i k → A i i1 k) a₀₁₋ a₁₁₋ a₋₁₀ a₋₁₁)
+  (a₋₋₀ : SquareP (λ i j → A i j i0) a₀₋₀ a₁₋₀ a₋₀₀ a₋₁₀)
+  (a₋₋₁ : SquareP (λ i j → A i j i1) a₀₋₁ a₁₋₁ a₋₀₁ a₋₁₁)
+  → Type ℓ
+CubeP A a₀₋₋ a₁₋₋ a₋₀₋ a₋₁₋ a₋₋₀ a₋₋₁ =
+  PathP (λ i → SquareP (λ j k → A i j k) (a₋₀₋ i) (a₋₁₋ i) (a₋₋₀ i) (a₋₋₁ i)) a₀₋₋ a₁₋₋
+
 private
   Bool≃Bool-elim' : ∀ {ℓ} (A : Bool ≃ Bool → Type ℓ)
     → (a : A (idEquiv _)) (b : A notEquiv)
@@ -86,30 +105,32 @@ private
   fst (Bool≃Bool-elim' A a b) true = a
   snd (Bool≃Bool-elim' A a b) = refl , refl
   
+  Bool≃Bool-elim : ∀ {ℓ} (A : Bool ≃ Bool → Type ℓ)
+    → (a : A (idEquiv _)) (b : A notEquiv)
+    → Σ[ f ∈ TotΠ A ] (f (idEquiv _) ≡ a) × (f notEquiv ≡ b)
+  Bool≃Bool-elim  {ℓ} =
+    transport (λ i → (A : isoToPath Bool≃Charac (~ i) → Type ℓ)
+                     (a : A (ua-gluePt (isoToEquiv Bool≃Charac) (~ i) (idEquiv _)))
+                     (b : A (ua-gluePt (isoToEquiv Bool≃Charac) (~ i) (notEquiv)))
+                  → Σ[ f ∈ TotΠ A ] (f _ ≡ a) × (f _ ≡ b))
+              λ A a b → (CasesBool true a b) , (refl , refl)
 
-Bool≃Bool-elim : ∀ {ℓ} (A : Bool ≃ Bool → Type ℓ)
-  → (a : A (idEquiv _)) (b : A notEquiv)
-  → Σ[ f ∈ TotΠ A ] (f (idEquiv _) ≡ a) × (f notEquiv ≡ b)
-Bool≃Bool-elim  {ℓ} =
-  transport (λ i → (A : isoToPath Bool≃Charac (~ i) → Type ℓ)
-                   (a : A (ua-gluePt (isoToEquiv Bool≃Charac) (~ i) (idEquiv _)))
-                   (b : A (ua-gluePt (isoToEquiv Bool≃Charac) (~ i) (notEquiv)))
-                → Σ[ f ∈ TotΠ A ] (f _ ≡ a) × (f _ ≡ b))
-            λ A a b → (CasesBool true a b) , (refl , refl)
+module _ {ℓ} (A : (e : Bool ≃ Bool) (p : fst e true ≡ true) → Type ℓ)
+  (a : A (idEquiv _) refl) where
+  private
+    l = Bool≃Bool-elim (λ e → (p : fst e true ≡ true) → A e p)
+                       (λ p → subst (A (idEquiv Bool)) (isSetBool _ _ refl p) a)
+                       λ p → ⊥.rec (false≢true p)
 
-Bool≃Bool-elim-id : ∀ {ℓ} (A : (e : Bool ≃ Bool) (p : fst e true ≡ true) → Type ℓ)
-  → (a : A (idEquiv _) refl)
-  → Σ[ f ∈ ((e : Bool ≃ Bool) (p : fst e true ≡ true) → A e p) ] (f (idEquiv _) refl ≡ a)
-Bool≃Bool-elim-id A a = (λ e p → l .fst e p)
-  , funExt⁻ (l .snd .fst) refl
-  ∙ cong (λ x → subst (A (idEquiv Bool)) x a)
-      (isSet→isGroupoid isSetBool true true refl refl
-        (isSetBool true true refl refl) refl)
-  ∙ transportRefl a -- (funExt⁻ (l .snd .fst) refl)
-  where
-  l = Bool≃Bool-elim (λ e → (p : fst e true ≡ true) → A e p)
-        (λ p → subst (A (idEquiv Bool)) (isSetBool _ _ refl p) a)
-        λ p → ⊥.rec (false≢true p)
+  Bool≃Bool-elim-id : (e : Bool ≃ Bool) (p : fst e true ≡ true) → A e p
+  Bool≃Bool-elim-id = l .fst
+
+  Bool≃Bool-elim-idβ : Bool≃Bool-elim-id (idEquiv _) refl ≡ a
+  Bool≃Bool-elim-idβ = funExt⁻ (l .snd .fst) refl
+                     ∙ cong (λ x → subst (A (idEquiv Bool)) x a)
+                         (isSet→isGroupoid isSetBool true true refl refl
+                           (isSetBool true true refl refl) refl)
+                     ∙ transportRefl a
 
 module RP' {ℓ} (I : RP∞' ℓ) where
   notI = snd I .fst .fst
@@ -903,6 +924,126 @@ Better! I J A =
   Pushout {A = fst I × ΠR-extend** I J A}
   {B = Σ[ i ∈ fst I ] joinR-gen (fst J) (A i)} {C = ΠR-extend** I J A} (λ x → fst x , leftMap** I J A (fst x) (snd x)) snd
 
+module _ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
+  btm-map :  (Σ[ i ∈ fst I ] (joinR-gen (fst J) (A i)))
+    → joinR-gen (fst J) λ j → joinR-gen (fst I) λ i → A i j
+  btm-map (i , inlR x) = inlR (fst x , inlR (i , snd x))
+  btm-map (i , inrR x) = inrR λ j → inlR (i , x j)
+  btm-map (i , push* a b x i₁) = push* (fst a , inlR (i , snd a)) (λ j → inlR (i , b j)) (λ t → inlR (i , x t)) i₁
+
+--   btm-map' : (Σ[ i ∈ fst I ] (joinR-gen (fst J) (A i)))
+--     → joinR-gen (fst J) λ j → joinR-gen (fst I) λ i → A i j
+--   btm-map' (i , inlR x) = {!!}
+--   btm-map' (i , inrR x) = {!!}
+--   btm-map' (i , push* a b x i₁) = {!!}
+
+-- btm-map∘leftMapBool : ∀ {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ)
+--   → (x : ΠR-extend** (RP∞'· ℓ) J A)
+--   → btm-map (RP∞'· ℓ) J A (true , leftMapBool J A true x) ≡ btm-map (RP∞'· ℓ) J A (false , leftMapBool J A false x)
+-- btm-map∘leftMapBool J A (inl (false , (j , a) , g)) =
+--      cong inrR (funExt (RP'.elimI J j
+--        {!!}
+--        (sym (RP'.elimIβ J j (inlR (false , a)) (inlR (true , g (RP'.notI J j))) .snd)))) 
+--    ∙ sym (push* (j , inlR (false , a))
+--         (RP'.elimI J j (inlR (false , a)) (inlR (true , g (RP'.notI J j))))
+--         (RP'.elimIβ J j (inlR (false , a)) (inlR (true , g (RP'.notI J j))) .fst))
+-- btm-map∘leftMapBool J A (inl (true , x)) = {!!}
+-- btm-map∘leftMapBool J A (inr (inl (inl x , f))) = {!!}
+-- btm-map∘leftMapBool J A (inr (inl (inr x , f))) = {!!}
+-- btm-map∘leftMapBool J A (inr (inr x)) = {!!}
+-- btm-map∘leftMapBool J A (inr (push a i)) = {!!}
+-- btm-map∘leftMapBool J A (push (false , j , a) i) = {!snd₁!}
+-- btm-map∘leftMapBool J A (push (true , j , a) i) = {!snd₁!}
+
+-- module _ {ℓ} (btm-map-coh : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (i : fst I) (x : ΠR-extend** I J A)
+--                → btm-map I J A (i , leftMap** I J A i x)
+--                 ≡ btm-map I J A (RP'.notI I i , leftMap** I J A (RP'.notI I i) x))
+--              (h : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+--                → ΠR-base-ab* I J A → joinR-gen (fst J) λ j → joinR-gen (fst I) (λ i → A i j))
+--              (h-coh1 : (A : Bool → Bool → Type ℓ) (a : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
+--                → btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (true , leftMap** (RP∞'· ℓ) (RP∞'· ℓ) A true (inl (true , (TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true a))))
+--                ≡ h (RP∞'· ℓ) (RP∞'· ℓ) A (TY→R (RP∞'· ℓ)  (RP∞'· ℓ) A true true a))
+--              (h-coh2 : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (k : fst I) (c : ΠR-base-ab* I J A)
+--                     → btm-map I J A (k , leftMap** I J A k (inr c)) ≡ h I J A c) where
+--   btm-map-coh2 : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ)
+--     → (a : TY I J A i j)
+--     → btm-map I J A (i , leftMap** I J A i (inl (i , (TY→Lₗ I J A i j a))))
+--      ≡ h I J A (TY→R I J A i j a)
+--   btm-map-coh2 = JRP∞' (JRP∞' h-coh1)
+
+--   btm-map-coh2≡ : (A : Bool → Bool → Type ℓ) (a : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
+--     → btm-map-coh2 (RP∞'· ℓ) true (RP∞'· ℓ) true A a ≡ h-coh1 A a
+--   btm-map-coh2≡ = {!!}
+
+--   ΠR→ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+--     → ΠR-extend** I J A → joinR-gen (fst J) λ j → joinR-gen (fst I) (λ i → A i j)
+--   ΠR→ I J A (inl x) = btm-map I J A (fst x , leftMap** I J A (fst x) (inl x))
+--   ΠR→ I J A (inr x) = h I J A x
+--   ΠR→ I J A (push (i , j , a) k) = btm-map-coh2 I i J j A a k
+
+--   leftLem : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (k : fst I) (i : fst I) (b : _)
+--             → (btm-map I J A (k , leftMap** I J A k (inl (i , b))) ≡ ΠR→ I J A (inl (i , b)))
+--   leftLem I J A k = RP'.elimI I k (λ _ → refl) (λ y → btm-map-coh I J A k (inl (RP'.notI I k , y)))
+
+--   leftFunCoh≡ : (A : Bool → Bool → Type ℓ)
+--     → leftFun-coh** (RP∞'· ℓ) (RP∞'· ℓ) A true true
+--      ≡ λ a → CasesBool true (leftFun-cohₗ** (RP∞'· ℓ) (RP∞'· ℓ) A true true a)
+--                              (leftFun-cohᵣ** (RP∞'· ℓ) (RP∞'· ℓ) A true true a)
+--   leftFunCoh≡ A = funExt λ x → funExt (CasesBool true (sym (lUnit _)) (sym (lUnit _)))
+
+--   main-b' : (A : Bool → Bool → Type ℓ)
+--     → (k : Bool) (a : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
+--     → Square (λ i → btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (k , leftFun-coh** (RP∞'· ℓ) (RP∞'· ℓ) A true true a k i))
+--               (h-coh1 A a)
+--               (leftLem (RP∞'· ℓ) (RP∞'· ℓ) A k true
+--                 (newBack→ₗ (RP∞'· ℓ) (RP∞'· ℓ) A (true , true , a) .snd) )
+--               (h-coh2 (RP∞'· ℓ) (RP∞'· ℓ) A k (newBack→ᵣ (RP∞'· ℓ) (RP∞'· ℓ) A (true , true , a)))
+--   main-b' A false x i j =
+--     hcomp (λ r → λ {(i = i0) → btm-map-coh (RP∞'· ℓ) (RP∞'· ℓ) A false (push (true , true , x) j) (~ r ∧ ~ j)
+--                    ; (i = i1) → h-coh1 A x j
+--                    ; (j = i0) → btm-map-coh (RP∞'· ℓ) (RP∞'· ℓ) A false (inl (true , ((TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true x)))) (~ r ∨ i)
+--                    ; (j = i1) → h-coh2 (RP∞'· ℓ) (RP∞'· ℓ) A false ((TY→R (RP∞'· ℓ) (RP∞'· ℓ) A true true x)) i})
+--           {!!}
+--   main-b' A true a = {!!}
+
+--   main-b : (A : Bool → Bool → Type ℓ)
+--     → (k : Bool) (a : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
+--       → Square (leftLem (RP∞'· ℓ) (RP∞'· ℓ) A k true (newBack→ₗ (RP∞'· ℓ) (RP∞'· ℓ) A (true , true , a) .snd))
+--                 (h-coh2 (RP∞'· ℓ) (RP∞'· ℓ)  A k (newBack→ᵣ (RP∞'· ℓ) (RP∞'· ℓ) A (true , true , a)))
+--                 (λ m → btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (k , leftFun-coh** (RP∞'· ℓ) (RP∞'· ℓ) A true true a k m))
+--                 (btm-map-coh2 (RP∞'· ℓ) true (RP∞'· ℓ) true A a)
+--   main-b A k x = flipSquare ((λ m i → btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (k , leftFunCoh≡ A m x k i))
+--                           ◁ main-b' A k x
+--                           ▷ sym (btm-map-coh2≡ A x))
+  
+--   main : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ)
+--     → (k : fst I) (a : TY I J A i j)
+--       → Square (leftLem I J A k i (newBack→ₗ I J A (i , j , a) .snd))
+--                 (h-coh2 I J A k (newBack→ᵣ I J A (i , j , a)))
+--                 (λ m → btm-map I J A (k , leftFun-coh** I J A i j a k m))
+--                 (btm-map-coh2 I i J j A a)
+--   main = JRP∞' (JRP∞' main-b)
+
+--   Woho : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+--     → Better! I J A → joinR-gen (fst J) λ j → joinR-gen (fst I) (λ i → A i j)
+--   Woho I J A = elimPushout
+--     (btm-map I J A)
+--     (ΠR→ I J A)
+--     (uncurry λ k → elimPushout
+--         (uncurry (leftLem I J A k))
+--         (h-coh2 I J A k)
+--         λ {(i , j , a) → main I i J j A k a})
+
+-- --   Woho : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+-- --     → Better! I J A → joinR-gen (fst J) λ j → joinR-gen (fst I) (λ i → A i j)
+-- --   Woho I J A (inl g) = btm-map I J A g
+-- --   Woho I J A (inr (inl (i , p))) = btm-map I J A (i , leftMap** I J A i (inl (i , p)))
+-- --   Woho I J A (inr (inr x)) = h I J A x
+-- --   Woho I J A (inr (push (i , j , a) k)) = btm-map-coh2 I i J j A a k
+-- --   Woho I J A (push (k , inl x) i) = {!!}
+-- --   Woho I J A (push (k , inr x) i) = {!!}
+-- --   Woho I J A (push (k , push (i , j , a) r) m) = {!!}
+
 leftMapsAgree : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (i : fst I) (x : ΠR-extend* I J A)
   → leftMap** I J A i (ΠR-extend→New I J A x) ≡ leftFun*-full I J A i x
 leftMapsAgree I J A i (inl x) = refl
@@ -1050,8 +1191,31 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
   ((λ t → inl (fst a , leftMapsAgree I J A (fst a) (snd a) (~ t)))
   ∙ push (fst a , ΠR-extend→New I J A (snd a))) i
 
+{-
+HAHA : {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠR-extend** I J A → Type ℓ}
+  → (f : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (i : fst I) (p : ΠR-extend** I J A) → Targ I J A p)
+  → (f-coh : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (i : fst I) (p : ΠR-extend** I J A) → f I J A i ≡ f I J A (RP'.notI I i))
+  → (inl : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (p : _) → Targ I J A (inl p))
+  → (inr : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (p : _) → Targ I J A (inr p))
+  → Unit
+  → (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (p : ΠR-extend** I J A) → Targ I J A p
+HAHA {Targ = T} f f-coh inler inrer ind I J A (inl x) = inler I J A x
+HAHA {Targ = T} f f-coh inler inrer ind I J A (inr x) = inrer I J A x
+HAHA {ℓ = ℓ} {Targ = T} f f-coh inler inrer ind I J A (push (i , j , a) k) =
+  hcomp (λ r → λ {(k = i0) → {!!}
+                 ; (k = i1) → {!!}})
+        (f I J A i (push (i , j , a) k))
+  where
+  help : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ) (a : TY I J A i j)
+    → PathP (λ k → T I J A (push (i , j , a) k))
+             (inler I J A (newBack→ₗ I J A (i , j , a)))
+             (inrer I J A (newBack→ᵣ I J A (i , j , a)))
+  help = JRP∞' (JRP∞' λ A a → {!!}
+              ◁ (λ j → f (RP∞'· ℓ) (RP∞'· ℓ) A true (push (true , true , a) j))
+              ▷ {!!})
+-}
 
-module _ {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠR-extend** I J A → Type ℓ}
+module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠR-extend** I J A → Type ℓ}
          (inler : (A : Bool → Bool → Type ℓ) (a : A true true) (b : TotΠ (A false))
          → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (inl (true , (true , a) , b)))
          (inr-inr : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (t : (i : fst I) (j : fst J) → A i j)
@@ -1067,6 +1231,38 @@ module _ {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type 
                ((p : (i : fst I) (j : fst I) → A i j) (q : (x : fst I) → p x x ≡ f x)
             → PathP (λ r → Targ I I A (inr (push ((inr (idEquiv (fst I)) , f) , (p , q)) r)))
                                    k (inr-inr I I A p)))
+         (push-inl : (A : Bool → Bool → Type ℓ) (f : (i : fst (RP∞'· ℓ)) → A i true)
+           (g : (j : Bool) → A false j) (p : g true ≡ f false)
+         → PathP (λ k → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                    (push (true , true , inl (inl (f , g , p))) k))
+                  (inler A (f true) g)
+                  (inr-inl-inl (RP∞'· ℓ) A f .fst))
+         (push-inr : (A : Bool → Bool → Type ℓ) (g : (i : fst (RP∞'· ℓ)) → A i i)
+           (p : (j : Bool) → A false j) (q : p false ≡ g false)
+           → PathP (λ k →  Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , g , p , q))) k))
+               (inler A (g true) p)
+               (inr-inl-inr (RP∞'· ℓ) A g .fst))
+         (coh-inr : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j)
+           → PathP (λ k → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr g) k))
+                    (inler A (g true true) (g false)) (inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A g))
+         (coh-eq1 : (A : Bool → Bool → Type ℓ) (g : (i : Bool) → A i i) (f : TotΠ (A false)) (p : f false ≡ g false)
+                     → PathP (λ k → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , g , f , p))) k))
+                             (inler A (g true) f)
+                       (inr-inl-inr (RP∞'· ℓ) A g .fst))
+         (coh-eq2 : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j)
+           → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                                (push (true , true , push (inr (idEquiv Bool , refl , g)) i) j))
+                     (coh-eq1 A (λ i → g i i) (g false) refl)
+                     (coh-inr A g)
+                     (λ _ → inler A (g true true) (g false))
+                     (inr-inl-inr (RP∞'· ℓ) A (λ i → g i i) .snd g (λ _ → refl)))
+          (coh-eq-l : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j)
+            → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                                (push (true , true , push (inl g) i) j))
+                        (push-inl A (λ i₁ → g i₁ true) (g false) (λ _ → g false true))
+                        (coh-inr A g)
+                        (λ _ → inler A (g true true) (g false))
+                        (inr-inl-inl (RP∞'· ℓ) A (λ i → g i true) .snd g (λ _ → refl)))
          where
 
   inr-inl-inl* : (I J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ)
@@ -1077,6 +1273,14 @@ module _ {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type 
                                    k (inr-inr I J A p))
   inr-inl-inl* I = JRP∞' (inr-inl-inl I)
 
+  inr-inl-inl*≡ : (I : RP∞' ℓ) (A : fst I → Bool → Type ℓ)
+                        (f : (x : fst I) → A x true)
+                          → inr-inl-inl* I (RP∞'· ℓ) true A f ≡ inr-inl-inl I A f
+  inr-inl-inl*≡ I A f i = help i A f
+    where
+    help : inr-inl-inl* I (RP∞'· ℓ) true ≡ inr-inl-inl I
+    help = JRP∞'∙ (inr-inl-inl I)
+
   inr-inl-inr* : (I J : RP∞' ℓ) (e : fst I ≃ fst J) (A : fst I → fst J → Type ℓ)
                (f : (i : fst I) → A i (fst e i))
            → Σ[ k ∈ Targ I J A (inr (inl (inr e , f))) ]
@@ -1084,6 +1288,14 @@ module _ {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type 
             → PathP (λ r → Targ I J A (inr (push ((inr e , f) , (p , q)) r)))
                                    k (inr-inr I J A p))
   inr-inl-inr* I = JRP∞'' I (inr-inl-inr I)
+
+  inr-inl-inr*≡ : (I : RP∞' ℓ) (A : fst I → fst I → Type ℓ)
+               (f : (i : fst I) → A i i)
+           → inr-inl-inr* I I (idEquiv (fst I)) A f ≡ inr-inl-inr I A f
+  inr-inl-inr*≡ I A f i = help i A f
+    where
+    help : inr-inl-inr* I I (idEquiv (fst I)) ≡ inr-inl-inr I
+    help = JRP∞''-refl I (inr-inl-inr I)
 
   ΠR-extend→Inl' : (J : RP∞' ℓ) (j : fst J) (A : Bool → fst J → Type ℓ)
      (a : A true j)
@@ -1118,16 +1330,85 @@ module _ {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type 
   ΠR-extend→Inr I J A (push ((inl j , f) , p , q) i) = inr-inl-inl* I J j A f .snd p q i
   ΠR-extend→Inr I J A (push ((inr e , f) , p , q) i) = inr-inl-inr* I J e A f .snd p q i
 
+  push-inr*-ty : (A : Bool → Bool → Type ℓ) (e : Bool ≃ Bool) (pf : fst e true ≡ true)
+    → Type ℓ
+  push-inr*-ty A e pf =
+    Σ[ t ∈
+         (((g : (i : fst (RP∞'· ℓ)) → A i (fst e i))
+         (f : (t : Bool) → A false t)
+         (p : f (fst e false) ≡ g false)
+         → PathP (λ k → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (e , pf , g , f , p))) k))
+                  (ΠR-extend→Inl (RP∞'· ℓ) true (RP∞'· ℓ) (fst e true) A (g true) f)
+                  (inr-inl-inr* (RP∞'· ℓ) (RP∞'· ℓ) e A g .fst))) ]
+         ((g : (i j : Bool) → A i j)
+         → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                               (push (true , true , push (inr (e , pf , g)) i) j))
+                    (t (λ i → g i (fst e i)) (g false) refl)
+                    (ΠR-extend→Inl≡ A (g true true) (g false) ◁ coh-inr A g)
+                    (λ i → ΠR-extend→Inl (RP∞'· ℓ) true (RP∞'· ℓ) (pf i) A (g true (pf i)) (g false))
+                    (inr-inl-inr* (RP∞'· ℓ) (RP∞'· ℓ) e A (λ i → g i (fst e i)) .snd g λ _ → refl))
+
+  push-inr*-bool : (A : Bool → Bool → Type ℓ) → push-inr*-ty A (idEquiv _) refl 
+  fst (push-inr*-bool A) g f p =
+      ΠR-extend→Inl≡ A (g true) f
+    ◁ coh-eq1 A g f p
+    ▷ cong fst (sym (inr-inl-inr*≡ (RP∞'· ℓ) A g))
+  snd (push-inr*-bool A) g i j =
+    hcomp (λ k
+      → λ {(i = i0) → doubleWhiskFiller
+                         (ΠR-extend→Inl≡ A (g true true) (g false))
+                         (coh-eq1 A (λ i → g i i) (g false) refl)
+                         (cong fst (sym (inr-inl-inr*≡ (RP∞'· ℓ) A (λ i → g i i)))) k j
+          ; (i = i1) → doubleWhiskFiller
+                         (ΠR-extend→Inl≡ A (g true true) (g false))
+                         (coh-inr A g)
+                         (λ _ → inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A g) k j
+          ; (j = i0) → ΠR-extend→Inl≡ A (g true true) (g false) (~ k)
+          ; (j = i1) → inr-inl-inr*≡ (RP∞'· ℓ) A (λ i → g i i) (~ k) .snd g (λ _ → refl) i})
+          (coh-eq2 A g i j)
+
+  push-inl*-bool : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j)
+    → SquareP
+        (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inl g) i) j))
+        (ΠR-extend→Inl≡ A (g true true) (g false)
+          ◁ push-inl A (λ i₁ → g i₁ true) (g false) refl
+          ▷ cong fst (sym (inr-inl-inl*≡ (RP∞'· ℓ) A (λ i₂ → g i₂ true))))
+        (ΠR-extend→Inl≡ A (g true true) (g false) ◁ coh-inr A g)
+        (λ _ → ΠR-extend→Inl (RP∞'· ℓ) true (RP∞'· ℓ) true A
+                 (g true true) (g (RP'.notI (RP∞'· ℓ) true)))
+         (inr-inl-inl* (RP∞'· ℓ) (RP∞'· ℓ) true A (λ i₁ → g i₁ true) .snd g λ _ → refl)
+  push-inl*-bool A g i j =
+    hcomp (λ k
+      → λ {(i = i0) → doubleWhiskFiller
+                         (ΠR-extend→Inl≡ A (g true true) (g false))
+                         (push-inl A (λ i₁ → g i₁ true) (g false) refl)
+                         (cong fst (sym (inr-inl-inl*≡ (RP∞'· ℓ) A (λ i → g i true)))) k j
+          ; (i = i1) → doubleWhiskFiller
+                         (ΠR-extend→Inl≡ A (g true true) (g false))
+                         (coh-inr A g)
+                         (λ _ → inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A g) k j
+          ; (j = i0) → ΠR-extend→Inl≡ A (g true true) (g false) (~ k)
+          ; (j = i1) → inr-inl-inl*≡ (RP∞'· ℓ) A (λ i → g i true) (~ k) .snd g (λ _ → refl) i})
+          (coh-eq-l A g i j)
+
+  push-inr* : (A : Bool → Bool → Type ℓ) (e : Bool ≃ Bool) (pf : fst e true ≡ true)
+    → push-inr*-ty A e pf
+  push-inr* A = Bool≃Bool-elim-id _ (push-inr*-bool A)
+
   cohr-b : (A : Bool → Bool → Type ℓ)
-      (x : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true) → PathP (λ k → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , x) k))
+      (x : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
+        → PathP (λ k → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , x) k))
          (ΠR-extend→Inl (RP∞'· ℓ) true (RP∞'· ℓ) (fst (fst (TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true x))) A
            (snd (fst (TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true x))) (snd (TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true x)))
          (ΠR-extend→Inr (RP∞'· ℓ) (RP∞'· ℓ) A (TY→R (RP∞'· ℓ) (RP∞'· ℓ) A true true x))
-  cohr-b A (inl (inl (f , g , p))) = {!!}
-  cohr-b A (inl (inr x)) = {!!}
-  cohr-b A (inr x) = {!Tyᵣ (RP∞'· ℓ) (RP∞'· ℓ) A true true!}
-  cohr-b A (push (inl x) i) = {!!}
-  cohr-b A (push (inr (e , p , s)) i) = {!Bool≃Bool-elim-id!}
+  cohr-b A (inl (inl (f , g , p))) =
+      ΠR-extend→Inl≡ A (f true) g
+    ◁ push-inl A f g p
+    ▷ cong fst (sym (inr-inl-inl*≡ (RP∞'· ℓ) A f))
+  cohr-b A (inl (inr (e , pf , g , p , q))) = push-inr* A e pf .fst g p q
+  cohr-b A (inr x) = ΠR-extend→Inl≡ A (x true true) (x false) ◁ coh-inr A x
+  cohr-b A (push (inl g) i) j = push-inl*-bool A g i j
+  cohr-b A (push (inr (e , pf , g)) i) j = push-inr* A e pf .snd g i j
 
   cohr' : (J : RP∞' ℓ) (j : fst J) (A : Bool → fst J → Type ℓ)
     → (x : TY (RP∞'· ℓ) J A true j) → PathP (λ k → Targ (RP∞'· ℓ) J A (push (true , j , x) k))
@@ -1147,6 +1428,109 @@ module _ {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type 
   ΠR-extend→ I J A (inl (f , (j , a) , b)) = ΠR-extend→Inl I f J j A a b
   ΠR-extend→ I J A (inr x) = ΠR-extend→Inr I J A x
   ΠR-extend→ I J A (push (i , j , x) k) = cohr I i J j A x k
+
+
+  module ID (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
+            (G-inler : (A : Bool → Bool → Type ℓ) (a : A true true) (b : TotΠ (A false)) (i : Bool)
+                    → G (RP∞'· ℓ) (RP∞'· ℓ) A (inl (true , (true , a) , b)) i ≡ inler A a b)
+            (G-inr-inr : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (t : (i : fst I) (j : fst J) → A i j)
+                       (i : fst I)
+                  → G I J A (inr (inr t)) i ≡ inr-inr I J A t)
+            (G-inr-inl-inl₁ : (I : RP∞' ℓ) (A : fst I → Bool → Type ℓ)
+                        (f : (x : fst I) → A x true) (i : fst I)
+                     → (G I (RP∞'· ℓ) A (inr (inl (inl true , f))) i)
+                       ≡ inr-inl-inl I A f .fst)
+            (G-inr-inl-inl₂ : (I : RP∞' ℓ) (A : fst I → Bool → Type ℓ)
+                        (f : (x : fst I) → A x true) (i : fst I)
+                        (p : (i₁ : fst I) (j : Bool) → A i₁ j) (q : (x : fst I) → p x true ≡ f x)
+                     → SquareP (λ i j → Targ I (RP∞'· ℓ) A (inr (push ((inl true , f) , p , q) j)))
+                                (λ k → G I (RP∞'· ℓ) A (inr (push ((inl true , f) , p , q) k)) i)
+                                (inr-inl-inl I A f .snd p q)
+                                (G-inr-inl-inl₁ I A f i)
+                                (G-inr-inr I (RP∞'· ℓ) A p i))
+            (G-inr-inl-inr₁ : (I : RP∞' ℓ) (A : fst I → fst I → Type ℓ)
+              (f : (i : fst I) → A i i) (i : fst I)
+              → G I I A (inr (inl (inr (idEquiv (fst I)) , f))) i ≡ inr-inl-inr I A f .fst)
+            (G-inr-inl-inr₂ : (I : RP∞' ℓ) (A : fst I → fst I → Type ℓ)
+              (f : (i : fst I) → A i i) (p : (i₁ j : fst I) → A i₁ j)
+                 (q : ((x : fst I) → p x x ≡ f x))
+                 (i : fst I)
+              → SquareP (λ i j → Targ I I A (inr (push ((inr (idEquiv (fst I)) , f) , p , q) j)))
+                         (λ k → G I I A (inr (push ((inr (idEquiv (fst I)) , f) , p , q) k)) i)
+                         (inr-inl-inr I A f .snd p q)
+                         (G-inr-inl-inr₁ I A f i)
+                         (G-inr-inr I I A p i))
+            (G-push-inl : (A : Bool → Bool → Type ℓ) (f : (i : fst (RP∞'· ℓ)) → A i true)
+              (g : (j : Bool) → A false j) (p : g true ≡ f false) (i : Bool)
+              → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                                   (push (true , true , inl (inl (f , g , p))) j))
+                         (λ k → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inl (f , g , p))) k) i)
+                         (push-inl A f g p)
+                         (G-inler A (f true) g i)
+                         (G-inr-inl-inl₁ (RP∞'·  ℓ) A f i))
+            (G-push-inr : (A : Bool → Bool → Type ℓ) (g : (i : fst (RP∞'· ℓ)) → A i i)
+               (p : (j : Bool) → A false j) (q : p false ≡ g false) (i : Bool)
+               → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                                   (push (true , true , inl (inr (idEquiv Bool , refl , g , p , q))) j))
+                         (λ k → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , g , p , q))) k) i)
+                         (push-inr A g p q)
+                         (G-inler A (g true) p i)
+                         (G-inr-inl-inr₁ (RP∞'· ℓ) A g i))
+            (G-coh-inr : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j) (i : Bool)
+           → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr g) j))
+                      (λ k → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr g) k) i)
+                      (coh-inr A g)
+                      (G-inler A (g true true) (g false) i)
+                      (G-inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A g i))
+            (G-coh-eq1 : (A : Bool → Bool → Type ℓ) (g : (i : Bool) → A i i) (f : TotΠ (A false)) (p : f false ≡ g false) (x : Bool)
+                     → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , g , f , p))) j))
+                       (λ i → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , g , f , p))) i) x)
+                       (coh-eq1 A g f p)
+                       (G-inler A (g true) f x)
+                       (G-inr-inl-inr₁ (RP∞'· ℓ) A g x))
+            (G-coh-eq2 : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j) (x : Bool)
+           → CubeP (λ k i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                                (push (true , true , push (inr (idEquiv Bool , refl , g)) i) j))
+               (λ i j → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inr (idEquiv Bool , refl , g)) i) j) x)
+               (coh-eq2 A g)
+               (G-coh-eq1 A (λ i → g i i) (g false) refl x)
+               (G-coh-inr A g x)
+               (λ i _ → G-inler A (g true true) (g false) x i)
+               (G-inr-inl-inr₂ (RP∞'· ℓ) A (λ i → g i i) g (λ i → refl) x))
+            (G-coh-eq-l :
+              (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j) (x : Bool)
+           → CubeP (λ k i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                                (push (true , true , push (inl g) i) j))
+               (λ i j → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inl g) i) j) x)
+               (coh-eq-l A g)
+               (G-push-inl A (λ i → g i true) (g false) refl x)
+               (G-coh-inr A g x)
+               (λ i _ → G-inler A (g true true) (g false) x i)
+               (G-inr-inl-inl₂ (RP∞'· ℓ) A (λ i → g i true) x g (λ _ → refl)))
+            where
+    GID-inl-base : {!!}
+    GID-inl-base = {!!}
+
+    GID-inl : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ) (a : A i j) (f : (j : fst J) → A (RP'.notI I i) j) (x : fst I)
+      → G I J A (inl (i , (j , a) , f)) x ≡ ΠR-extend→Inl I i J j A a f
+    GID-inl = JRP∞' (JRP∞' λ A a f x → G-inler A a f x ∙ sym (ΠR-extend→Inl≡ A a f))
+
+    GID-inr : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (x : _)
+      → G I J A (inr x) i
+      ≡ ΠR-extend→ I J A (inr x)
+    GID-inr I i J A (inl (inl x , f)) = {!!}
+    GID-inr I i J A (inl (inr x , f)) = {!!}
+    GID-inr I i J A (inr x) = G-inr-inr I J A x i
+    GID-inr I i J A (push (a , f) i₁) = {!a!}
+
+    GID-inl≡ : {!!}
+    GID-inl≡ = {!!}
+
+    GID : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (x : _)
+      → G I J A x i ≡ ΠR-extend→ I J A x
+    GID I k J A (inl (i , (j , a) , f)) = GID-inl I i J j A a f k 
+    GID I k J A (inr x) = {!x!}
+    GID I k J A (push a i₁) = {!!}
 
 
 -- BaseF : ∀ {ℓ} (I : RP∞' ℓ)
