@@ -1348,13 +1348,11 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
                     (λ i → ΠR-extend→Inl (RP∞'· ℓ) true (RP∞'· ℓ) (pf i) A (g true (pf i)) (g false))
                     (inr-inl-inr* (RP∞'· ℓ) (RP∞'· ℓ) e A (λ i → g i (fst e i)) .snd g λ _ → refl))
 
-  push-inr*-bool : (A : Bool → Bool → Type ℓ) → push-inr*-ty A (idEquiv _) refl 
-  fst (push-inr*-bool A) g f p =
-      ΠR-extend→Inl≡ A (g true) f
-    ◁ coh-eq1 A g f p
-    ▷ cong fst (sym (inr-inl-inr*≡ (RP∞'· ℓ) A g))
-  snd (push-inr*-bool A) g i j =
-    hcomp (λ k
+  push-inr*-bool-filler : (A : Bool → Bool → Type ℓ)
+    → (g : (i j : Bool) → A i j)
+    → (i j k : _) → _
+  push-inr*-bool-filler A g i j k =
+    hfill (λ k
       → λ {(i = i0) → doubleWhiskFiller
                          (ΠR-extend→Inl≡ A (g true true) (g false))
                          (coh-eq1 A (λ i → g i i) (g false) refl)
@@ -1365,7 +1363,15 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
                          (λ _ → inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A g) k j
           ; (j = i0) → ΠR-extend→Inl≡ A (g true true) (g false) (~ k)
           ; (j = i1) → inr-inl-inr*≡ (RP∞'· ℓ) A (λ i → g i i) (~ k) .snd g (λ _ → refl) i})
-          (coh-eq2 A g i j)
+          (inS (coh-eq2 A g i j))
+          k
+
+  push-inr*-bool : (A : Bool → Bool → Type ℓ) → push-inr*-ty A (idEquiv _) refl 
+  fst (push-inr*-bool A) g f p =
+      ΠR-extend→Inl≡ A (g true) f
+    ◁ coh-eq1 A g f p
+    ▷ cong fst (sym (inr-inl-inr*≡ (RP∞'· ℓ) A g))
+  snd (push-inr*-bool A) g i j = push-inr*-bool-filler A g i j i1
 
   push-inl*-bool : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j)
     → SquareP
@@ -1394,6 +1400,10 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
   push-inr* : (A : Bool → Bool → Type ℓ) (e : Bool ≃ Bool) (pf : fst e true ≡ true)
     → push-inr*-ty A e pf
   push-inr* A = Bool≃Bool-elim-id _ (push-inr*-bool A)
+
+  push-inr*≡ : (A : Bool → Bool → Type ℓ)
+    → push-inr* A (idEquiv _) refl ≡ push-inr*-bool A
+  push-inr*≡ A = Bool≃Bool-elim-idβ _ (push-inr*-bool A)
 
   cohr-b : (A : Bool → Bool → Type ℓ)
       (x : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
@@ -1508,29 +1518,372 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
                (λ i _ → G-inler A (g true true) (g false) x i)
                (G-inr-inl-inl₂ (RP∞'· ℓ) A (λ i → g i true) x g (λ _ → refl)))
             where
-    GID-inl-base : {!!}
-    GID-inl-base = {!!}
+    GID-inl'' : (A : Bool → Bool → Type ℓ)
+      (a : A true true) (f : (j : Bool) → A false j) (x : Bool)
+      → G (RP∞'· ℓ) (RP∞'· ℓ) A (inl (true , (true , a) , f)) x ≡ ΠR-extend→Inl (RP∞'· ℓ) true (RP∞'· ℓ) true A a f
+    GID-inl'' A a f x = G-inler A a f x ∙ sym (ΠR-extend→Inl≡ A a f)
 
-    GID-inl : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ) (a : A i j) (f : (j : fst J) → A (RP'.notI I i) j) (x : fst I)
+    GID-inl' : (J : RP∞' ℓ) (j : fst J) (A : Bool → fst J → Type ℓ)
+      (a : A true j) (f : (j : fst J) → A false j) (x : Bool)
+      → G (RP∞'· ℓ) J A (inl (true , (j , a) , f)) x ≡ ΠR-extend→Inl (RP∞'· ℓ) true J j A a f
+    GID-inl' = JRP∞' GID-inl''
+
+    GID-inl : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ)
+      (a : A i j) (f : (j : fst J) → A (RP'.notI I i) j) (x : fst I)
       → G I J A (inl (i , (j , a) , f)) x ≡ ΠR-extend→Inl I i J j A a f
-    GID-inl = JRP∞' (JRP∞' λ A a f x → G-inler A a f x ∙ sym (ΠR-extend→Inl≡ A a f))
+    GID-inl = JRP∞' GID-inl'
+
+    GID-inl≡ : (A : Bool → Bool → Type ℓ)
+      (a : A true true) (f : (j : Bool) → A false j) (x : Bool)
+        → GID-inl (RP∞'· ℓ) true (RP∞'· ℓ) true A a f x
+        ≡ GID-inl'' A a f x -- G-inler A a f x ∙ sym (ΠR-extend→Inl≡ A a f)
+    GID-inl≡ A a f x =
+        (λ i → h1 i (RP∞'· ℓ) true A a f x)
+      ∙ λ i → h2 i A a f x
+      where
+      h1 : GID-inl (RP∞'· ℓ) true ≡ GID-inl'
+      h1 = JRP∞'∙ GID-inl'
+
+      h2 : GID-inl' (RP∞'· ℓ) true ≡ GID-inl''
+      h2 = JRP∞'∙ GID-inl''
+
+    G-inr-inl-inl*-TY : (I : RP∞' ℓ) (J : RP∞' ℓ) (j : fst J)
+      (A : fst I → fst J → Type ℓ)
+      (f : (i : fst I) → A i j) (i : fst I)
+      → Type ℓ
+    G-inr-inl-inl*-TY I J j A f i =
+      Σ[ p1 ∈ G I J A (inr (inl (inl j , f))) i
+            ≡ inr-inl-inl* I J j A f .fst ]
+        ((g : (i : fst I) (j : fst J) → A i j)
+         (p : (i : fst I) → g i j ≡ f i)
+         → SquareP (λ k i → Targ I J A (inr (push ((inl j , f) , g , p) i)))
+                     (λ k → G I J A (inr (push ((inl j , f) , g , p) k)) i)
+                     (inr-inl-inl* I J j A f .snd g p)
+                     p1
+                     (G-inr-inr I J A g i))
+
+    G-inr-inl-inl*-bool-diag-fill : (I : RP∞' ℓ)
+      (A : fst I → Bool → Type ℓ)
+      (f : (i : fst I) → A i true) (i : fst I)
+      (g : _) (p : _) (j k r : _) → _
+    G-inr-inl-inl*-bool-diag-fill I A f i g p j k r =
+      hfill (λ r → λ {(k = i0) → compPath-filler
+                                      (G-inr-inl-inl₁ I A f i)
+                                      (λ i₁ → fst (inr-inl-inl*≡ I A f (~ i₁))) r j
+                        ; (k = i1) → G-inr-inr I (RP∞'· ℓ) A g i j
+                        ; (j = i0) → G I (RP∞'· ℓ) A (inr (push (((inl true) , f) , g , p) k)) i
+                        ; (j = i1) → snd (inr-inl-inl*≡ I A f (~ r)) g p k})
+              (inS (G-inr-inl-inl₂ I A f i g p j k))
+              r
+
+    G-inr-inl-inl*-bool : (I : RP∞' ℓ)
+      (A : fst I → Bool → Type ℓ)
+      (f : (i : fst I) → A i true) (i : fst I)
+      → G-inr-inl-inl*-TY I (RP∞'· ℓ) true A f i
+    fst (G-inr-inl-inl*-bool I A f i) =
+      G-inr-inl-inl₁ I A f i ∙ cong fst (sym (inr-inl-inl*≡ I A f))
+    snd (G-inr-inl-inl*-bool I A f i) g p j k =
+      G-inr-inl-inl*-bool-diag-fill I A f i g p j k i1
+
+    abstract
+      G-inr-inl-inl*-full : (I : RP∞' ℓ) (J : RP∞' ℓ) (j : fst J)
+        (A : fst I → fst J → Type ℓ)
+        (f : (i : fst I) → A i j) (i : fst I)
+        → G-inr-inl-inl*-TY I J j A f i
+      G-inr-inl-inl*-full I = JRP∞' (G-inr-inl-inl*-bool I)
+
+      G-inr-inl-inl*-full≡ : (I : RP∞' ℓ)
+        (A : fst I → Bool → Type ℓ)
+        (f : (i : fst I) → A i true) (i : fst I)
+        → G-inr-inl-inl*-full I (RP∞'· ℓ) true A f i ≡ G-inr-inl-inl*-bool I A f i
+      G-inr-inl-inl*-full≡ I A f i w = cool w A f i
+        where
+        cool : G-inr-inl-inl*-full I (RP∞'· ℓ) true ≡ G-inr-inl-inl*-bool I
+        cool = JRP∞'∙ (G-inr-inl-inl*-bool I)
+
+    G-inr-inl-inl*₁ : (I : RP∞' ℓ) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ)
+      → (f : (i : fst I) → A i j)
+      → (i : fst I)
+      → G I J A (inr (inl (inl j , f))) i ≡ inr-inl-inl* I J j A f .fst
+    G-inr-inl-inl*₁ I = JRP∞' λ A f x
+      → G-inr-inl-inl₁ I A f x ∙ cong fst (sym (inr-inl-inl*≡ I A f))
+
+    G-inr-inl-inr*-TY : (I J : RP∞' ℓ) (e : fst I ≃ fst J)
+      (A : fst I → fst J → Type ℓ)
+      (i : fst I)
+      → Type ℓ
+    G-inr-inl-inr*-TY I J e A i =
+      Σ[ p1 ∈ ((f : (i : fst I) → A i (fst e i))
+              → G I J A (inr (inl (inr e , f))) i
+               ≡ ΠR-extend→ I J A (inr (inl (inr e , f)))) ]
+          ((f : (i₁ : fst I) → A i₁ (fst e i₁))
+                (g : (i : fst I) (j : fst J) → A i j)
+                (p : (i : fst I) → g i (fst e i) ≡ f i)
+          → SquareP (λ k j → Targ I J A (inr (push ((inr e , f) , g , p) j)))
+                     (λ j → G I J A (inr (push ((inr e , f) , g , p) j)) i)
+                     (inr-inl-inr* I J e A f .snd g p)
+                     (p1 f)
+                     (G-inr-inr I J A g i))
+
+    G-inr-inl-inr*-diag-fill : (I : RP∞' ℓ)
+      (A : fst I → fst I → Type ℓ)
+      (f : _) (g : _) (p : _)
+      (i : fst I) (j k r : _) 
+      → _
+    G-inr-inl-inr*-diag-fill I A f g p i j k r =
+      hfill (λ r → λ {(k = i0) → compPath-filler
+                                    (G-inr-inl-inr₁ I A f i)
+                                    (λ i₁ → fst (inr-inl-inr*≡ I A f (~ i₁))) r j
+                      ; (k = i1) → G-inr-inr I I A g i j
+                      ; (j = i0) → G I I A (inr (push (((inr (idEquiv (fst I))) , f) , g , p) k)) i
+                      ; (j = i1) → snd (inr-inl-inr*≡ I A f (~ r)) g p k})
+            (inS (G-inr-inl-inr₂ I A f g p i j k))
+            r
+
+    G-inr-inl-inr*-diag : (I : RP∞' ℓ)
+      (A : fst I → fst I → Type ℓ)
+      (i : fst I)
+      → G-inr-inl-inr*-TY I I (idEquiv (fst I)) A i
+    fst (G-inr-inl-inr*-diag I A i) f =
+        G-inr-inl-inr₁ I A f i
+      ∙ cong fst (sym (inr-inl-inr*≡ I A f))
+    snd (G-inr-inl-inr*-diag I A i) f g p j k =
+      G-inr-inl-inr*-diag-fill I A f g p i j k i1
+
+    abstract
+      G-inr-inl-inr*-full : (I J : RP∞' ℓ) (e : fst I ≃ fst J)
+        (A : fst I → fst J → Type ℓ)
+        (i : fst I)
+        → G-inr-inl-inr*-TY I J e A i
+      G-inr-inl-inr*-full I =
+        JRP∞'' I (G-inr-inl-inr*-diag I)
+
+      G-inr-inl-inr*≡ : (I : RP∞' ℓ)
+        (A : fst I → fst I → Type ℓ)
+        (i : fst I)
+        → G-inr-inl-inr*-full I I (idEquiv _) A i ≡ G-inr-inl-inr*-diag I A i
+      G-inr-inl-inr*≡ I A i k = help k A i
+        where
+        help : G-inr-inl-inr*-full I I (idEquiv _) ≡ G-inr-inl-inr*-diag I
+        help = JRP∞''-refl I (G-inr-inl-inr*-diag I)
 
     GID-inr : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (x : _)
       → G I J A (inr x) i
       ≡ ΠR-extend→ I J A (inr x)
-    GID-inr I i J A (inl (inl x , f)) = {!!}
-    GID-inr I i J A (inl (inr x , f)) = {!!}
+    GID-inr I i J A (inl (inl x , f)) = G-inr-inl-inl*-full I J x A f i .fst
+    GID-inr I i J A (inl (inr e , f)) = G-inr-inl-inr*-full I J e A i .fst f
     GID-inr I i J A (inr x) = G-inr-inr I J A x i
-    GID-inr I i J A (push (a , f) i₁) = {!a!}
+    GID-inr I i J A (push ((inl x , f) , g , p) j) k = G-inr-inl-inl*-full I J x A f i .snd g p k j
+    GID-inr I i J A (push ((inr x , f) , g , p) j) k = G-inr-inl-inr*-full I J x A i .snd f g p k j
 
-    GID-inl≡ : {!!}
-    GID-inl≡ = {!!}
+    module _ (A : Bool → Bool → Type ℓ)
+            (k : Bool)
+            (x : _) where
+            
+      help-inr''-fill : (i j r : _)
+              → _
+      help-inr''-fill i j r =
+        hfill (λ r → λ { (i = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr x) j) k
+                        ; (i = i1) → doubleWhiskFiller (ΠR-extend→Inl≡ A (x true true) (x false)) (coh-inr A x) refl r j
+                        ; (j = i0) → compPath-filler
+                                        (G-inler A (x true true) (x false) k)
+                                        (sym (ΠR-extend→Inl≡ A (x true true) (x false))) r i
+                        ; (j = i1) → G-inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A x k i})
+              (inS (G-coh-inr A x k i j))
+              r
 
-    GID : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (x : _)
+      help-inr'' :
+          SquareP (λ t s → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr x) s))
+             (λ s → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr x) s) k)
+             (ΠR-extend→Inl≡ A (x true true) (x false) ◁ coh-inr A x)
+             (G-inler A (x true true) (x false) k ∙ sym (ΠR-extend→Inl≡ A (x true true) (x false)))
+             (G-inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A x k)
+      help-inr'' i j = help-inr''-fill i j i1
+
+      help-inr'-fill : (i j r : _)
+              → _
+      help-inr'-fill i j r =
+        hfill (λ r → λ { (i = i0) →  G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr x) j) k
+                        ; (i = i1) → (ΠR-extend→Inl≡ A (x true true) (x false) ◁ coh-inr A x) j
+                        ; (j = i0) → GID-inl≡ A (x true true) (x false) k (~ r) i
+                        ; (j = i1) → G-inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A x k i})
+               (inS (help-inr'' i j))
+              r
+
+      help-inr' :
+         SquareP (λ t s → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr x) s))
+             (λ s → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr x) s) k)
+             (ΠR-extend→Inl≡ A (x true true) (x false) ◁ coh-inr A x)
+             (GID-inl (RP∞'· ℓ) true (RP∞'· ℓ) true A (x true true)
+              (x false) k)
+             (G-inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A x k)
+      help-inr' i j = help-inr'-fill i j i1
+
+    module _ (A : Bool → Bool → Type ℓ)
+            (k : Bool) (f : (i : Bool) → A i true) (g : (j : Bool) → A false j)
+            (p : g true ≡ f false) where
+
+      help-inl-inl-btm-fill : (i j r : _) → _
+      help-inl-inl-btm-fill i j r =
+        hfill (λ r → λ {(i = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A
+                                    (push (true , true , inl (inl (f , g , p))) j) k
+                     ; (i = i1) → doubleWhiskFiller
+                                    (ΠR-extend→Inl≡ A (f true) g)
+                                    (push-inl A f g p)
+                                    (sym (cong fst (inr-inl-inl*≡ (RP∞'· ℓ) A f))) r j
+                     ; (j = i0) → compPath-filler
+                                      (G-inler A (f true) g k)
+                                      (sym (ΠR-extend→Inl≡ A (f true) g)) r i
+                     ; (j = i1) → compPath-filler
+                                    (G-inr-inl-inl₁ (RP∞'· ℓ) A f k)
+                                    (λ i₁ → fst (inr-inl-inl*≡ (RP∞'· ℓ) A f (~ i₁))) r i
+                     })
+              (inS (G-push-inl A f g p k i j))
+              r
+            
+
+      help-inl-inl :
+             SquareP (λ t s → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                                (push (true , true , inl (inl (f , g , p))) s))
+                (λ s → G (RP∞'· ℓ) (RP∞'· ℓ) A
+                    (push (true , true , inl (inl (f , g , p))) s) k)
+                (cohr-b A (inl (inl (f , g , p))))
+                (GID-inl (RP∞'· ℓ) true (RP∞'· ℓ) true A (f true) g k)
+                (G-inr-inl-inl*-full (RP∞'· ℓ) (RP∞'· ℓ) true A f k .fst)
+      help-inl-inl i j =
+        hcomp (λ r → λ {(i = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A
+                                    (push (true , true , inl (inl (f , g , p))) j) k
+                     ; (i = i1) → cohr-b A (inl (inl (f , g , p))) j
+                     ; (j = i0) → GID-inl≡ A (f true) g k (~ r) i
+                     ; (j = i1) → G-inr-inl-inl*-full≡ (RP∞'· ℓ) A f k (~ r) .fst i})
+         (help-inl-inl-btm-fill i j i1)
+
+    help-inl-inr-TY : (A : Bool → Bool → Type ℓ) (k : Bool)
+      (e : Bool ≃ Bool) (pf : fst e true ≡ true)
+        → Type ℓ
+    help-inl-inr-TY A k e pf =
+      Σ[ h ∈ (
+        (f : (i : Bool) → A i (fst e i))
+        (g : (j : Bool) → A false j)
+        (p : g (fst e false) ≡ f false)
+        → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                             (push (true , true , inl (inr (e , pf , f , g , p))) j))
+                  (λ j → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (e , pf , f , g , p))) j) k)
+                  (push-inr* A e pf .fst f g p)
+                  (GID-inl (RP∞'· ℓ) true (RP∞'· ℓ) (fst e true) A (f true) g k)
+                  (G-inr-inl-inr*-full (RP∞'· ℓ) (RP∞'· ℓ) e A k .fst f)
+               ) ]
+          ((g : (i j : Bool) → A i j)
+          → (CubeP (λ j i l → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
+                (push (true , true , push (inr (e , pf , g)) i) l))
+                (λ i l → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inr (e , pf , g)) i) l) k)
+                (push-inr* A e pf .snd g) -- j = i1
+                (h (λ i₁ → g i₁ (fst e i₁)) (g false) refl)
+                (help-inr' A k g)
+                (λ j i → GID-inl (RP∞'· ℓ) true (RP∞'· ℓ) (pf i) A (g true (pf i)) (g (RP'.notI (RP∞'· ℓ) true)) k j)
+                (G-inr-inl-inr*-full (RP∞'· ℓ) (RP∞'· ℓ) e A k .snd (λ i₁ → g i₁ (fst e i₁)) g (λ _ → refl))))
+
+    help-inl-inr-id : (A : Bool → Bool → Type ℓ) (k : Bool)
+      → help-inl-inr-TY A k (idEquiv _) refl
+    fst (help-inl-inr-id A k) f g p i j =
+      hcomp (λ r → λ {(i = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , f , g , p))) j) k
+                     ; (i = i1) → push-inr*≡ A (~ r) .fst f g p j
+                     ; (j = i0) → GID-inl≡ A (f true) g k (~ r) i
+                     ; (j = i1) → G-inr-inl-inr*≡ (RP∞'· ℓ) A k (~ r) .fst f i})
+       (hcomp (λ r → λ {(i = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , f , g , p))) j) k
+                     ; (i = i1) → doubleWhiskFiller
+                                     (ΠR-extend→Inl≡ A (f true) g)
+                                     (coh-eq1 A f g p)
+                                     (cong fst (sym (inr-inl-inr*≡ (RP∞'· ℓ) A f)))
+                                     r j
+                     ; (j = i0) → compPath-filler (G-inler A (f true) g k) (sym (ΠR-extend→Inl≡ A (f true) g)) r i
+                     ; (j = i1) → compPath-filler (G-inr-inl-inr₁ (RP∞'· ℓ) A f k)
+                                    (λ i₁ → fst (inr-inl-inr*≡ (RP∞'· ℓ) A f (~ i₁)))
+                                    r i})
+              (G-coh-eq1 A f g p k i j))
+    snd (help-inl-inr-id A k) g j i l =
+      hcomp (λ r → λ {(i = i1) → help-inr'-fill A k g j l r
+                     ; (j = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inr (idEquiv Bool , refl , g)) i) l) k
+                     ; (j = i1) → push-inr*≡ A (~ r) .snd g i l
+                     ; (l = i0) → GID-inl≡ A (g true true) (g false) k (~ r) j
+                     ; (l = i1) → G-inr-inl-inr*≡ (RP∞'· ℓ) A k (~ r) .snd (λ i → g i i) g (λ _ → refl) j i
+                     })
+       (hcomp (λ r → λ {(i = i1) → help-inr''-fill A k g j l r
+                     ; (j = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inr (idEquiv Bool , refl , g)) i) l) k
+                     ; (j = i1) → push-inr*-bool-filler A g i l r
+                     ; (l = i0) → compPath-filler (G-inler A (g true true) (g false) k)
+                                                   (sym (ΠR-extend→Inl≡ A (g true true) (g false))) r j
+                     ; (l = i1) → G-inr-inl-inr*-diag-fill (RP∞'· ℓ) A (λ i → g i i) g (λ _ → refl) k j i r
+                     })
+             (G-coh-eq2 A g k j i l))
+
+    help-inl-inr : (A : Bool → Bool → Type ℓ) (k : Bool)
+      (e : Bool ≃ Bool) (pf : fst e true ≡ true)
+      → help-inl-inr-TY A k e pf
+    help-inl-inr A k = Bool≃Bool-elim-id _ (help-inl-inr-id A k)
+
+    help' : (A : Bool → Bool → Type ℓ)
+            (k : Bool)
+            (a : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
+         → SquareP (λ t s → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , a) s))
+                    (λ s → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , a) s) k)
+                    (cohr-b A a)
+                    (GID-inl (RP∞'· ℓ) true (RP∞'· ℓ)
+                      (fst (fst (TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true a))) A
+                      (snd (fst (TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true a)))
+                      (snd (TY→Lₗ (RP∞'· ℓ) (RP∞'· ℓ) A true true a)) k)
+                    (GID-inr (RP∞'· ℓ) k (RP∞'· ℓ) A
+                      (TY→R (RP∞'· ℓ) (RP∞'· ℓ) A true true a))
+    help' A k (inl (inl (f , g , p))) = help-inl-inl A k f g p
+    help' A k (inl (inr (e , pf , f , g , p))) = help-inl-inr A k e pf .fst f g p
+    help' A k (inr x) = help-inr' A k x
+    help' A k (push (inl g) i) j l =
+      hcomp (λ r → λ {(i = i1) → help-inr'-fill A k g j l r
+                    ; (j = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inl g) i) l) k
+                    ; (j = i1) → push-inl*-bool A g i l
+                    ; (l = i0) → GID-inl≡ A (g true true) (g false) k (~ r) j
+                    ; (l = i1) → G-inr-inl-inl*-full≡ (RP∞'· ℓ) A (λ i → g i true) k (~ r) .snd g (λ _ → refl) j i
+                    })
+            (hcomp (λ r → λ {
+                    (i = i0) → help-inl-inl-btm-fill A k (λ i → g i true) (g false) refl j l r
+                    ; (i = i1) → help-inr''-fill A k g j l r
+                    ; (j = i0) → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , push (inl g) i) l) k
+                    ; (l = i0) → help-inl-inl-btm-fill A k (λ i₁ → g i₁ true) (g false) (λ _ → g false true) j i0 r
+                    ; (l = i1) → G-inr-inl-inl*-bool-diag-fill (RP∞'· ℓ) A (λ i → g i true) k g (λ _ → refl) j i r
+                    }) 
+              (G-coh-eq-l A g k j i l))
+    help' A k (push (inr (e , pf , g)) i) j l = help-inl-inr A k e pf .snd g j i l
+
+    GID : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ)
+      (A : fst I → fst J → Type ℓ) (x : _)
       → G I J A x i ≡ ΠR-extend→ I J A x
     GID I k J A (inl (i , (j , a) , f)) = GID-inl I i J j A a f k 
-    GID I k J A (inr x) = {!x!}
-    GID I k J A (push a i₁) = {!!}
+    GID I k J A (inr x) = GID-inr I k J A x
+    GID I k J A (push (i , j , a) s) t = help I i J j A k a t s
+      where
+      cohr-id : (A : Bool → Bool → Type ℓ) (k : Bool)
+        (a : TY (RP∞'· ℓ) (RP∞'· ℓ) A true true)
+        → cohr (RP∞'· ℓ) true (RP∞'· ℓ) true A a
+        ≡ cohr-b A a
+      cohr-id A k a = (λ i → h i (RP∞'· ℓ) true A a)
+                     ∙ λ i → h2 i A a
+        where
+        h : cohr (RP∞'· ℓ) true ≡ cohr'
+        h = JRP∞'∙ cohr'
+
+        h2 : cohr' (RP∞'· ℓ) true ≡ cohr-b 
+        h2 = JRP∞'∙ cohr-b
+
+      help : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J)
+             (A : fst I → fst J → Type ℓ)
+             (k : fst I) (a : TY I J A i j)
+          → SquareP (λ t s → Targ I J A (push (i , j , a) s))
+                     (λ s → G I J A (push (i , j , a) s) k)
+                     (cohr I i J j A a)
+                     (GID-inl I i J (fst (fst (TY→Lₗ I J A i j a))) A
+                       (snd (fst (TY→Lₗ I J A i j a))) (snd (TY→Lₗ I J A i j a)) k)
+                     (GID-inr I k J A (TY→R I J A i j a))
+      help = JRP∞' (JRP∞' λ A k a → help' A k a ▷ sym (cohr-id A k a))
 
 
 -- BaseF : ∀ {ℓ} (I : RP∞' ℓ)
