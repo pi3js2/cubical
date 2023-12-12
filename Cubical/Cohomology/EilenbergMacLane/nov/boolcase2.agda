@@ -350,29 +350,33 @@ module _ {ℓ : Level} where
         (G-inrer I₁ I₁ A p i)
   G-inr-inl-inr₂ I A p = J> G-inr-inl-inr₂-refl I A p
 
-  G-push-inl : (A : Bool → Bool → Type ℓ)
-      (f : (i : fst (RP∞'· ℓ)) → A i true) (g : (j : Bool) → A false j)
-      (p : g true ≡ f false) (i : Bool) →
-      Square
-        (λ k → GB A (push (true , true , inl (inl (f , g , p))) k) i)
-        (push-inl A f g p)
-        (G-inler A (f true) g i)
-        (G-inr-inl-inl₁ (RP∞'· ℓ) A f i)
-  G-push-inl A f g p false i j =
-    push* (true , push* (false , f false) f refl i)
-      (λ x → help x i j)
-      (λ k → push* (false , p k) (CasesBoolId {f = CasesBool true (f true) (g true)} {g = f} refl p k) refl i) (~ j)
-      where
-      help : (x : Bool)
-        → Square (λ _ → inlR (false , g x))
-                  refl
-                  (λ i → G-inlerₗ A (f true) g i x)
-                  ((funExt⁻ (CasesBoolId {f = λ x → inlR (false , g x)} {g = pre-inler A (f true) g}
-                    (push* (false , g true) (CasesBool true (f true) (g true)) refl) refl) x))
-      help false = refl
-      help true i j = push* (false , g true) (CasesBool true (f true) (g true)) refl i
-  G-push-inl A f g p true i j = {!!}
-  
+  module _ (A : Bool → Bool → Type ℓ)
+           (f : (i : fst (RP∞'· ℓ)) → A i true) (g : (j : Bool) → A false j)
+           (p : g true ≡ f false) (i : Bool)
+    where
+    G-push-inl-coh : (x : Bool)
+      → Square (λ _ → inlR (false , g x))
+                refl
+                (λ i → G-inlerₗ A (f true) g i x)
+                ((funExt⁻ (CasesBoolId {f = λ x → inlR (false , g x)} {g = pre-inler A (f true) g}
+                  (push* (false , g true) (CasesBool true (f true) (g true)) refl) refl) x))
+    G-push-inl-coh false = refl
+    G-push-inl-coh true i j = push* (false , g true) (CasesBool true (f true) (g true)) refl i
+
+
+    G-push-inl : (A : Bool → Bool → Type ℓ)
+        (f : (i : fst (RP∞'· ℓ)) → A i true) (g : (j : Bool) → A false j)
+        (p : g true ≡ f false) (i : Bool) →
+        Square
+          (λ k → GB A (push (true , true , inl (inl (f , g , p))) k) i)
+          (push-inl A f g p)
+          (G-inler A (f true) g i)
+          (G-inr-inl-inl₁ (RP∞'· ℓ) A f i)
+    G-push-inl A f g p false i j =
+      push* (true , push* (false , f false) f refl i)
+        (λ x → help x i j)
+        (λ k → push* (false , p k) (CasesBoolId {f = CasesBool true (f true) (g true)} {g = f} refl p k) refl i) (~ j)
+    G-push-inl A f g p true i j = {!!}  
 
 
   module GG = ID G

@@ -853,6 +853,16 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
   leftFun*-full i (inr x) = leftFun-inr i x
   leftFun*-full i (push (i' , x) i₁) = leftFun-coh i' x i i₁
 
+  leftFun-cohₗ**-fill : (i' : fst I) (j : fst J) (e : fst I ≃ fst J)
+    (p : fst e i' ≡ j) (f : (i₁ : fst I) (j₁ : fst J) → A i₁ j₁)
+    → (i k r : _) → joinR-gen (fst J) (A i')
+  leftFun-cohₗ**-fill i' j e p f i k r =
+    hfill (λ r → λ {(i = i0) → inlR (p (~ r) , f i' (p (~ r)))
+                   ; (i = i1) → push* (j , f i' j) (f i') (λ _ → f i' j) k
+                   ; (k = i0) → inlR ((p (i ∨ ~ r)) , (f i' (p (i ∨ ~ r))))
+                   ; (k = i1) → push* (p (~ r) , f i' (p (~ r))) (f i') (λ i → f i' (p (~ r))) i})
+          (inS (push* (j , f i' j) (f i') (λ _ → f i' j) (i ∧ k)))
+          r
 
   leftFun-cohₗ** : (i' : fst I) (j : fst J) (a : TY I J A i' j)
     → inlR (TY→L I J A i' j a .snd .fst) ≡ leftFun-inr i' (TY→R I J A i' j a)
@@ -860,12 +870,7 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
   leftFun-cohₗ** i' j (inl (inr x)) = refl
   leftFun-cohₗ** i' j (inr x) = push* (j , (x i' j)) (x i') refl
   leftFun-cohₗ** i' j (push (inl x) i) k = push* (j , x i' j) (x i') (λ _ → x i' j) (i ∧ k)
-  leftFun-cohₗ** i' j (push (inr (e , p , f)) i) k =
-    hcomp (λ r → λ {(i = i0) → inlR (p (~ r) , f i' (p (~ r)))
-                   ; (i = i1) → push* (j , f i' j) (f i') (λ _ → f i' j) k
-                   ; (k = i0) → inlR ((p (i ∨ ~ r)) , (f i' (p (i ∨ ~ r))))
-                   ; (k = i1) → push* (p (~ r) , f i' (p (~ r))) (f i') (λ i → f i' (p (~ r))) i})
-          (push* (j , f i' j) (f i') (λ _ → f i' j) (i ∧ k))
+  leftFun-cohₗ** i' j (push (inr (e , p , f)) i) k = leftFun-cohₗ**-fill i' j e p f i k i1
 
   leftFun-cohᵣ** : (i' : fst I) (j : fst J) (a : TY I J A i' j)
     → inrR (TY→L I J A i' j a .snd .snd) ≡
@@ -881,7 +886,6 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
           f (fst (snd I .fst) i') (fst e (fst (snd I .fst) i')))
          (f (fst (snd I .fst) i'))
          (λ _ → f (fst (snd I .fst) i') (fst e (fst (snd I .fst) i'))) (i ∨ ~ k)
-
 
   leftFun-coh** : (i' : fst I) (j : fst J) (a : TY I J A i' j) (i : fst I)
     → leftFun'-inl I (fst J) A i' (TY→L I J A i' j a .snd .fst) (TY→L I J A i' j a .snd .snd) i
@@ -1237,11 +1241,6 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
                     (push (true , true , inl (inl (f , g , p))) k))
                   (inler A (f true) g)
                   (inr-inl-inl (RP∞'· ℓ) A f .fst))
-         (push-inr : (A : Bool → Bool → Type ℓ) (g : (i : fst (RP∞'· ℓ)) → A i i)
-           (p : (j : Bool) → A false j) (q : p false ≡ g false)
-           → PathP (λ k →  Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , g , p , q))) k))
-               (inler A (g true) p)
-               (inr-inl-inr (RP∞'· ℓ) A g .fst))
          (coh-inr : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j)
            → PathP (λ k → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr g) k))
                     (inler A (g true true) (g false)) (inr-inr (RP∞'· ℓ) (RP∞'· ℓ) A g))
@@ -1478,14 +1477,6 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
                          (push-inl A f g p)
                          (G-inler A (f true) g i)
                          (G-inr-inl-inl₁ (RP∞'·  ℓ) A f i))
-            (G-push-inr : (A : Bool → Bool → Type ℓ) (g : (i : fst (RP∞'· ℓ)) → A i i)
-               (p : (j : Bool) → A false j) (q : p false ≡ g false) (i : Bool)
-               → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A
-                                   (push (true , true , inl (inr (idEquiv Bool , refl , g , p , q))) j))
-                         (λ k → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inl (inr (idEquiv Bool , refl , g , p , q))) k) i)
-                         (push-inr A g p q)
-                         (G-inler A (g true) p i)
-                         (G-inr-inl-inr₁ (RP∞'· ℓ) A g i))
             (G-coh-inr : (A : Bool → Bool → Type ℓ) (g : (i j : Bool) → A i j) (i : Bool)
            → SquareP (λ i j → Targ (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr g) j))
                       (λ k → G (RP∞'· ℓ) (RP∞'· ℓ) A (push (true , true , inr g) k) i)
