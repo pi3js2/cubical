@@ -80,20 +80,6 @@ module Cubical.Cohomology.EilenbergMacLane.nov.final where
 open import Cubical.HITs.Join
 open import Cubical.Functions.FunExtEquiv
 
-mapone-l : {ℓ : Level} (I J : RP∞' ℓ)  (A : fst I → fst J → Type ℓ) (i : fst I)
-  → 2-elter.ΠR-base I (fst J) A → joinR-gen (fst J) (A i)
-mapone-l I J A i (inl x) = inlR (x i)
-mapone-l I J A i (inr x) = inrR (x i)
-mapone-l I J A i (push a i₁) = push* (fst a i) (snd a .fst i ) (snd a .snd i) i₁
-
-mapone : {ℓ : Level} (I J : RP∞' ℓ)  (A : fst I → fst J → Type ℓ) (i : fst I)
-  → 2-elter.ΠR-extend I (fst J) A → joinR-gen (fst J) (A i)
-mapone I J A i (inl (i'  , (j ,  a) , k)) = leftFun'-inl I (fst J) A i' (j , a) k i
-mapone I J A i (inr x) = mapone-l I J A i x
-mapone I J A i (push (i' , inl x) j) = {!!}
-mapone I J A i (push (i' , inr x) j) = {!!}
-mapone I J A i (push (i' , push a i₁) j) = {!!}
-
 module EZ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
   DOMTY : Type ℓ
   DOMTY = joinR-gen (fst I) λ i → joinR-gen (fst J) (A i)
@@ -117,30 +103,6 @@ module EZ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) wh
                → equivElim-lem C e ind (fst e a) ≡ ind a)
            λ ind a → transportRefl (ind a)
 
-  mainTY :  (f : TotΠ (λ i → Σ-syntax (fst J) (A i)))
-    → Type ℓ
-  mainTY f = Σ[ h ∈ ΠR-extend* I J A ]
-          ((g : (i₁ : fst I) (j : fst J) → A i₁ j)
-            (p : (i₁ : fst I) → g i₁ (f i₁ .fst) ≡ f i₁ .snd)
-          → h ≡ inr (inr g))
-
-  main-b : (x : _) → mainTY (Iso.inv (TotAIso I J {A}) x)
-  fst (main-b x) = inr (inl x)
-  snd (main-b x) g p k  = inr (push (x , (g , p)) k)
-
-  main : (f : TotΠ (λ i → Σ-syntax (fst J) (A i)))
-      → mainTY f
-  main = equivElim-lem mainTY
-          (invEquiv (isoToEquiv (TotAIso I J {A})))
-          main-b
-
-  mainId : (x : _)
-    → main (Iso.inv (TotAIso I J {A}) x) ≡ main-b x
-  mainId = equivElim-lem-id mainTY
-          (invEquiv (isoToEquiv (TotAIso I J {A})))
-          main-b
-
-
   megaty : (f : TotΠ (λ i → Σ-syntax (fst J) (A i))) → Type ℓ
   megaty f =
     Σ[ h ∈ ΠR-extend* I J A ]
@@ -163,15 +125,16 @@ module EZ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) wh
   fst (snd (snd (megaty-b f)) t) g q = push (t , (inl (f , g , q)))
   snd (snd (snd (megaty-b f)) t) g q i j = push (t , push (f , g , q) j) i
 
-  megaty-ba : (f : _) → megaty f
-  megaty-ba =
-    equivElim-lem megaty (invEquiv (isoToEquiv (TotAIso I J {A})))
-     megaty-b
+  abstract
+    megaty-ba : (f : _) → megaty f
+    megaty-ba =
+      equivElim-lem megaty (invEquiv (isoToEquiv (TotAIso I J {A})))
+       megaty-b
 
-  megaty-ba≡ : (f : _) → megaty-ba (Iso.inv (TotAIso I J {A}) f) ≡ megaty-b f
-  megaty-ba≡ =
-    equivElim-lem-id megaty (invEquiv (isoToEquiv (TotAIso I J {A})))
-      megaty-b
+    megaty-ba≡ : (f : _) → megaty-ba (Iso.inv (TotAIso I J {A}) f) ≡ megaty-b f
+    megaty-ba≡ =
+      equivElim-lem-id megaty (invEquiv (isoToEquiv (TotAIso I J {A})))
+        megaty-b
 
   L2-side : 2-elter.ΠR-extend I (fst J) A
           → ΠR-extend* I J A
@@ -189,51 +152,95 @@ module _ {ℓ : Level} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) where
 
   T = TotAIso (RP∞'· ℓ) J {A}
 
-  main-cohTY : (f : _) (m : mainTY f) → Type ℓ
-  main-cohTY f m = Σ[ h ∈ (inlR (f true) ≡ leftFun*-full (RP∞'· ℓ) J A true (m .fst)) ]
-               ((g : (i₁ : fst (RP∞'· ℓ)) (j : fst J) → A i₁ j)
-                      (p : (i₁ : fst (RP∞'· ℓ)) → g i₁ (f i₁ .fst) ≡ f i₁ .snd)
-                 → Square h (λ _ → inrR (g true))
-                             (push* (f true) (g true) (p true))
-                             λ i → leftFun*-full (RP∞'· ℓ) J A true (m .snd g p i))
+  L2-side-Bool-inl : (a : _)
+    → leftFun (fst J) A (inl a) ≡ leftFun*-fullBool J A true (EZ.L2-side (RP∞'· ℓ) J A (inl a))
+  L2-side-Bool-inl (false , snd₁) = refl
+  L2-side-Bool-inl (true , snd₁) = refl
 
-  main-cohTY-bb : (f : _) → main-cohTY (Iso.inv T f) (main-b f)
-  fst (main-cohTY-bb (inl x , p)) = refl
-  fst (main-cohTY-bb (inr x , p)) = refl
-  snd (main-cohTY-bb (inl x , p)) g q = λ i _ → push* (Iso.inv T (inl x , p) true) (g true) (q true) i
-  snd (main-cohTY-bb (inr x , p)) g q = {!!} -- i _ → push* (Iso.inv T (inl x , p) true) (g true) (q true) i
-
-  main-cohTY-b : (f : _) → main-cohTY (Iso.inv T f) (main (Iso.inv T f))
-  main-cohTY-b f = subst (main-cohTY (Iso.inv T f)) (sym (mainId f)) (main-cohTY-bb f)
-
-  main-coh : (f : _) → main-cohTY f (main f)
-  main-coh = equivElim-lem (λ f → main-cohTY f (main f))
-                          (invEquiv (isoToEquiv T))
-                          main-cohTY-b
+  L2-side-Bool-push-inr : (t : Bool) (x : 2-elter.left-push↑ᵣ (RP∞'· ℓ) (fst J) A t)
+    → Square (λ i → leftFun (fst J) A (push (t , inr x) i))
+              (λ i → leftFun*-fullBool J A true (push (t , inr x) i))
+              (L2-side-Bool-inl (t , fst x , fst (snd x) (not t)))
+              refl
+  L2-side-Bool-push-inr false x = refl
+  L2-side-Bool-push-inr true x = refl
 
   TYVM : (f : TotΠ (λ i → Σ-syntax (fst J) (A i))) (q : megaty f)
     → Type ℓ
   TYVM f q =
-    Σ[ p1 ∈ {!!} ]
-      {!!}
-  
+    Σ[ p1 ∈ inlR (f true) ≡ leftFun*-fullBool J A true (q .fst) ]
+      Σ[ p2 ∈ (((g : (i₁ : Bool) (j : fst J) → A i₁ j)
+                (p : (i₁ : fst (RP∞'· ℓ)) → g i₁ (f i₁ .fst) ≡ f i₁ .snd)
+             → Square p1 refl
+                      (push* (f true) (g true) (p true))
+                      (λ i → leftFun*-fullBool J A true (q .snd .fst g p i)))) ]
+        ((t : Bool)
+        → Σ[ p3 ∈ ((g : (j : fst J) → A (2-elter.notI (RP∞'· ℓ) (fst J) A t) j)
+                     (p : g (f (not t) .fst) ≡ f (not t) .snd)
+                → Square
+                    (L2-side-Bool-inl (t , 2-elter.PushTop→left-push (RP∞'· ℓ) (fst J) A (t , inl (f , g , p)) .snd))
+                    p1
+                    (cong (leftFun (fst J) A) (push (t , inl (f , g , p))))
+                    λ i → leftFun*-fullBool J A true (q .snd .snd t .fst g p i)) ]
+             ((g : (i₁ : Bool) (j₁ : fst J) → A i₁ j₁)
+               (p : (i₁ : Bool) → g i₁ (f i₁ .fst) ≡ f i₁ .snd)
+                → Cube (λ i j → leftFun (fst J) A (push (t , push (f , g , p) j) i))
+                        (λ i j → leftFun*-fullBool J A true (q .snd .snd t .snd g p i j))
+                        (λ k j → L2-side-Bool-inl (t , f t , g (2-elter.notI (RP∞'· ℓ) (fst J) A t)) k)
+                        (λ j i → p2 g p i j)
+                        (λ i j → p3 (g (not t)) (p (not t)) j i)
+                        (L2-side-Bool-push-inr t ((f t) , (g , p t)))))
+
+  abstract
+    TYVM-b : (f : _) → TYVM (Iso.inv T f) (megaty-b f)
+    fst (TYVM-b (inl x , p)) = refl
+    fst (TYVM-b (inr x , p)) = refl
+    fst (snd (TYVM-b (inl x , p))) g q i j =
+      push* (x , p true) (g true) (q true) i
+    fst (snd (snd (TYVM-b (inl x , p))) false) g q i j =
+      push* (x , p true) g q (~ i)
+    fst (snd (snd (TYVM-b (inl x , p))) true) g q i j =
+      inlR (x , p true)
+    snd (snd (snd (TYVM-b (inl x , p))) false) g q i j k =
+      push* (x , p true) (g true) (q true) (~ j ∨ k)
+    snd (snd (snd (TYVM-b (inl x , p))) true) g q i j k =
+      push* (x , p true) (g true) (q true) (k ∧ j)
+    fst (snd (TYVM-b (inr x , p))) g q i j =
+      push* (fst x true , p true) (g true) (q true) i
+    fst (snd (snd (TYVM-b (inr x , p))) false) g q i j =
+      push* (fst x true , p true) g q (~ i)
+    fst (snd (snd (TYVM-b (inr x , p))) true) g q i j =
+      inlR (fst x true , p true)
+    snd (snd (snd (TYVM-b (inr x , p))) false) g q = refl
+    snd (snd (snd (TYVM-b (inr x , p))) true) g q = refl
+
+    TYVM∙ : (f : _) → TYVM f (megaty-ba f)
+    TYVM∙ = equivElim-lem
+      (λ f → TYVM f (megaty-ba f))
+      (invEquiv (isoToEquiv T))
+      λ f → subst (TYVM (fst (invEquiv (isoToEquiv T)) f))
+                   (sym (megaty-ba≡ f))
+                   (TYVM-b f)
+
 
   L2-side-Bool : (a : _)
-    → leftFun (fst J) A a ≡ leftFun*-full (RP∞'· ℓ) J A true (EZ.L2-side (RP∞'· ℓ) J A a)
-  L2-side-Bool (inl (false , a)) = refl
-  L2-side-Bool (inl (true , a)) = refl
-  L2-side-Bool (inr (inl f)) = {!f!} -- main-coh f .fst
+    → leftFun (fst J) A a ≡ leftFun*-fullBool J A true (EZ.L2-side (RP∞'· ℓ) J A a)
+  L2-side-Bool (inl (t , a)) = L2-side-Bool-inl (t , a)
+  L2-side-Bool (inr (inl f)) = TYVM∙ f .fst
   L2-side-Bool (inr (inr x)) = refl
-  L2-side-Bool (inr (push (f , g , p) i)) = {!!} -- main-coh f .snd g p i
-  L2-side-Bool (push (t , x) i) = {!!}
+  L2-side-Bool (inr (push (f , g , p) i)) = TYVM∙ f .snd .fst g p i
+  L2-side-Bool (push (t , inl (f , g , p)) i) = TYVM∙ f .snd .snd t .fst g p i
+  L2-side-Bool (push (t , inr x) i) j = L2-side-Bool-push-inr t x j i
+  L2-side-Bool (push (t , push (f , g , p) j) i) k = TYVM∙ f .snd .snd t .snd g p k i j
 
 mainCoh : {ℓ : Level} (I : RP∞' ℓ) (t : fst I) (J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
   → (a : _)
   → snd (leftFunExt I (fst J) A (t , a))
   ≡ leftFun*-full I J A t (EZ.L2-side I J A a)
-mainCoh {ℓ = ℓ} = JRP∞' λ J A a
-   → (λ k → help k (fst J) A a)
+mainCoh {ℓ = ℓ} = JRP∞' λ J A a →
+    (λ k → help k (fst J) A a)
   ∙ L2-side-Bool J A a
+  ∙ sym (leftFunBool≡' J A true (EZ.L2-side (RP∞'· ℓ) J A a))
   where
   help :  leftFunExtCurry (RP∞'· ℓ) true ≡ leftFun
   help = JRP∞'∙ leftFun
@@ -252,3 +259,61 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
     where
     x' : joinR-Push' I (fst J) A
     x' = Iso.fun (FullIso₁ I J A) (Iso.fun (joinR-Equiv) x)
+
+joinR→join : ∀ {ℓ} {A : Bool → Type ℓ}
+  → joinR-gen Bool A → join (A true) (A false)
+joinR→join (inlR (false , a)) = inr a
+joinR→join (inlR (true , a)) = inl a
+joinR→join (inrR x) = inl (x true)
+joinR→join (push* (false , a) b x i) = push (b true) a (~ i)
+joinR→join (push* (true , a) b x i) = inl (x (~ i))
+
+join→joinR : ∀ {ℓ} {A : Bool → Type ℓ}
+  → join (A true) (A false)
+  → joinR-gen Bool A
+join→joinR (inl x) = inlR (true , x)
+join→joinR (inr x) = inlR (false , x)
+join→joinR (push a b i) =
+   (push* (true , a) (CasesBool true a b) refl
+  ∙ sym (push* (false , b) (CasesBool true a b) refl)) i
+
+join-joinR-iso : ∀ {ℓ} {A : Bool → Type ℓ}
+  → Iso (joinR-gen Bool A) (join (A true) (A false))
+Iso.fun join-joinR-iso = joinR→join
+Iso.inv join-joinR-iso = join→joinR
+Iso.rightInv join-joinR-iso (inl x) = refl
+Iso.rightInv join-joinR-iso (inr x) = refl
+Iso.rightInv (join-joinR-iso {A = A}) (push a b i) j = help j i
+  where
+  help : cong (joinR→join {A = A})
+               (push* (true , a) (CasesBool true a b) refl
+              ∙ sym (push* (false , b) (CasesBool true a b) refl))
+      ≡ push a b
+  help = cong-∙ joinR→join
+            (push* (true , a) (CasesBool true a b) refl)
+            (sym (push* (false , b) (CasesBool true a b) refl))
+       ∙ sym (lUnit (push a b))
+Iso.leftInv join-joinR-iso (inlR (false , y)) = refl
+Iso.leftInv join-joinR-iso (inlR (true , y)) = refl
+Iso.leftInv join-joinR-iso (inrR x) = push* (true , x true) x refl
+Iso.leftInv (join-joinR-iso {A = A}) (push* (false , x) b p i) j =  h x p j i
+  where
+  h : (x : A false) (p : b false ≡ x)
+    → Square {A = joinR-gen Bool A}
+             (sym (push* (true , b true) (CasesBool true (b true) x) refl
+               ∙ sym (push* (false , x) (CasesBool true (b true) x) refl)))
+             (push* (false , x) b p)
+             refl
+             (push* (true , b true) b refl)
+  h = J> ((λ s → sym (push* (true , b true) (CasesBoolη b s) refl
+                ∙ sym (push* (false , b false) (CasesBoolη b s) refl)))
+        ◁ λ i j → compPath-filler'
+                    (push* (true , b true) b refl)
+                    (sym (push* (false , b false) b refl)) (~ i) (~ j))
+Iso.leftInv (join-joinR-iso {A = A}) (push* (true , x) b p i) j = h x p j i
+  where
+  h : (x : _) (p : b true ≡ x)
+    → Square {A = joinR-gen Bool A}
+              (λ i → inlR (true , p (~ i))) (push* (true , x) b p )
+              refl (push* (true , b true) b (λ _ → b true))
+  h = J> λ i j → push* (true , b true) b refl (i ∧ j)
