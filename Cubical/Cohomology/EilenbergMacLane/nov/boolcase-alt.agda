@@ -418,13 +418,9 @@ G-inr-inl-inr*₁ I A f i = push* (i , (inlR (i , f i))) (λ j → inlR (j , f j
 
 module _ (I₁ : RP∞' ℓ) (A : fst I₁ → fst I₁ → Type ℓ)
       (p : (i₁ j : fst I₁) → A i₁ j) (i : fst I₁) where
-  G-inr-inl-inr*₂-b :
-    Square (λ k → push* (i , inlR (i , p i i)) (λ v → inlR (i , p i v)) refl k)
-            (λ k → inrR (λ i₁ → push* (i₁ , p i₁ i₁) (λ j → p j i₁) refl k))
-            (G-inr-inl-inr*₁ I₁ A (λ x → p x x) i)
-            (G-inr-inr* I₁ I₁ A p i)
-  G-inr-inl-inr*₂-b j k =
-    hcomp (λ r → λ {(j = i0) → push* (i , inlR (i , p i i))
+  G-inr-inl-inr*₂-b-fill : (j k r : _) →  GOALTY I₁ I₁ A
+  G-inr-inl-inr*₂-b-fill j k r =
+    hfill (λ r → λ {(j = i0) → push* (i , inlR (i , p i i))
                                         (λ s → push* (i , p i s) (λ t → p t s) refl (~ r))
                                         (λ t → push* (i , p i i) (λ t → p t i) refl (~ r ∧ ~ t)) k
                    ; (j = i1) → inrR (λ v → push* (v , p v v) (λ a → p a v) (λ _ → p v v) (~ r ∨ k))
@@ -432,10 +428,19 @@ module _ (I₁ : RP∞' ℓ) (A : fst I₁ → fst I₁ → Type ℓ)
                                        (λ x → push* (x , p x x) (λ a → p a x) refl (~ r))
                                        (λ j → push* (i , p i i) (λ a → p a i) refl (~ r ∧ ~ j)) j
                    ; (k = i1) → inrR (λ v → push* (i , p i v) (λ t → p t v) refl (~ r ∨ j))})
-           (push* (i , inlR (i , p i i))
+           (inS (push* (i , inlR (i , p i i))
              (λ v → inrR (λ a → p a v))
              (sym (push* (i , p i i) (λ a → p a i) refl))
-             (j ∨ k))
+             (j ∨ k)))
+           r
+
+  G-inr-inl-inr*₂-b :
+    Square (λ k → push* (i , inlR (i , p i i)) (λ v → inlR (i , p i v)) refl k)
+            (λ k → inrR (λ i₁ → push* (i₁ , p i₁ i₁) (λ j → p j i₁) refl k))
+            (G-inr-inl-inr*₁ I₁ A (λ x → p x x) i)
+            (G-inr-inr* I₁ I₁ A p i)
+  G-inr-inl-inr*₂-b j k = G-inr-inl-inr*₂-b-fill j k i1
+
   G-inr-inl-inr*₂ :
         (f : (i : fst I₁) → A i i) (q : (λ x → p x x) ≡ f) →
         Square
@@ -621,6 +626,192 @@ module Sol {ℓ : Level} (A : Bool → Bool → Type ℓ) where
           (push* (true , g true) (g true , f true) refl (~ j) , inlR (false , p j))
           (λ k → push* (true , g true) (g true , f true) refl (~ j ∧ ~ k)) i
 
+  G-coh-eq2-main :  (g : (i j : Bool) → A i j)
+      (x : Bool) →
+      Cube
+      (λ i _ → G-inler (g true true) (g false) x i)
+      (λ s t →
+         GFUN A
+         (G-inr-inl-inr*₂-b (RP∞'· ℓ) A g x s t))
+      (λ i j → GFUN A
+         (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A
+          (x , leftMapBool (RP∞'· ℓ) A x
+           (push (true , true , push (inr (idEquiv Bool , refl , g)) j) i)))) -- ()
+      (λ i j → coh-eq2 g j i) -- (G-coh-inr g x)
+      (λ i j → G-coh-eq1 (λ i → g i i) (g false) refl x j i)
+      λ i j → G-coh-inr g x j i
+  G-coh-eq2-main g false k i j =
+    hcomp (λ r → λ {(i = i0) → push* (false , inlR (false , g false false))
+                                        (inlR (false , g false true) , inlR (false , g false false))
+                                        (λ i₁ → inlR (false , g false false)) ((~ k ∨ j) ∧ r)
+                   ; (i = i1) → push* (false , inlR (false , g false false))
+                                       ((push* (true , g true true) (g true true , g false true) refl (j ∨ ~ k))
+                                      , (push* (false , g false false) (g true false , g false false) refl (j ∧ k)))
+                                       (λ s → push* (false , g false false) (g true false , g false false) refl (j ∧ k ∧ ~ s)) r
+                   ; (j = i0) → G-coh-eq1-fill (λ i → g i i) (g false) refl i k r
+                   ; (j = i1) → push* (false , inlR (false , g false false))
+                                       ((push* (false , g false true) (g true true , g false true) refl i)
+                                      , (push* (false , g false false) (g true false , g false false) refl (i ∧ k)))
+                                       (λ s → push* (false , g false false) (g true false , g false false) refl (i ∧ k ∧ ~ s)) r
+                   ; (k = i0) → push* (false , inlR (false , g false false))
+                                       ((push* (false , g false true) (g true true , g false true) refl i)
+                                      , (inlR (false , g false false)))
+                                       refl r
+                   ; (k = i1) → h r i j
+                   })
+            (inlR (false , inlR (false , g false false)))
+    where
+    hah : ∀ {ℓ} {A : Type ℓ} {x : A} (y : A) (p : x ≡ y) -- s k j
+      → Cube (λ k j → p (~ k ∨ j)) (λ _ _ → x)
+              (λ s j → p (~ s)) (λ s j → p (j ∧ ~ s))
+              (λ s k → p (~ s ∧ ~ k)) λ i _ → p (~ i)
+    hah = J> refl 
+  
+    h : Cube (λ _ _ → inlR (false , inlR (false , g false false)))
+             (λ i j → GFUN A (G-inr-inl-inr*₂-b-fill (RP∞'· ℓ) A g false i j i1))
+             (λ r j → push* (false , inlR (false , g false false))
+                             (inlR (false , g false true) , inlR (false , g false false))
+                             refl (j ∧ r))
+             (λ r j → push* (false , inlR (false , g false false))
+                             (push* (true , g true true) (g true true , g false true) refl j
+                            , push* (false , g false false) (g true false , g false false) refl j)
+                            (λ s →  push* (false , g false false) (g true false , g false false) refl (j ∧ ~ s))
+                            r)
+             (λ r i → G-coh-eq1-fill (λ i₁ → g i₁ i₁) (g false) refl i i1 r)
+             λ r i → push* (false , inlR (false , g false false))
+                            (push* (false , g false true) (g true true , g false true) refl i
+                           , push* (false , g false false) (g true false , g false false) refl i)
+                            (λ s →  push* (false , g false false) (g true false , g false false) refl (i ∧ ~ s))
+                            r
+    h r i j =
+        hcomp (λ k → λ {(i = i0) → push* (false , inlR (false , g false false))
+                                          ((push* (false , g false true) (g true true , g false true) refl (~ k))
+                                         , (push* (false , g false false) (g true false , g false false) refl (~ k)))
+                                          (λ s → push* (false , g false false) (g true false , g false false) refl (~ k ∧ ~ s)) (r ∧ j)
+                   ; (i = i1) → push* (false , inlR (false , g false false))
+                                       ((push* (true , g true true) (g true true , g false true) refl (~ k ∨ j))
+                                      , (push* (false , g false false) (g true false , g false false) refl (~ k ∨ j)))
+                                       (λ s → hah _ (push* (false , g false false) (g true false , g false false) refl) s k j) r
+                   ; (j = i0) → push* (false , inlR (false , g false false))
+                                       ((push* (true , g true true) (g true true , g false true) refl (~ k))
+                                       , (push* (false , g false false) (g true false , g false false) refl (~ k)))
+                                       (λ t → push* (false , g false false) (g true false , g false false) refl (~ k ∧ ~ t)) (i ∧ r)
+                   ; (j = i1) → push* (false , inlR (false , g false false))
+                                       ((push* (false , g false true) (g true true , g false true) refl (~ k ∨ i))
+                                       , (push* (false , g false false) (g true false , g false false) refl (~ k ∨ i)))
+                                       (λ s → hah _ (push* (false , g false false) (g true false , g false false) refl) s k i) r
+                   ; (r = i0) → inlR (false , inlR (false , g false false))
+                   ; (r = i1) → GFUN A (G-inr-inl-inr*₂-b-fill (RP∞'· ℓ) A g false i j k)
+                   })
+           (push* (false , inlR (false , g false false))
+          (inrR (g true true , g false true) ,
+           inrR (g true false , g false false))
+          (sym (push* (false , g false false) (g true false , g false false) refl))
+          ((i ∨ j) ∧ r))
+  G-coh-eq2-main g true k i j =
+    hcomp (λ r → λ {(i = i0) → GFUN A (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A
+                                  (true , leftFun-cohₗ**-fill (RP∞'· _) (RP∞'· _) A true true (idEquiv Bool) refl g j k r))
+                   ; (i = i1) → inrR ((push* (true , g true true) (g true true , g false true) refl (j ∨ ~ k)
+                               , push* (false , g false false) (g true false , g false false) refl (j ∧ k)))
+                   ; (j = i0) → push* (true , inlR (true , g true true))
+                                        (push* (true , g true true) (g true true , g false true) refl (~ k)
+                                        , inlR (false , g false false))
+                                       (λ s → push* (true , g true true) (g true true , g false true)
+                                          (λ _ → g true true) (~ k ∧ ~ s)) i
+                   ; (j = i1) → cong-GFUN r i k
+                   ; (k = i0) → push* (true , inlR (true , g true true))
+                                       (inrR (g true true , g false true) , inlR (false , g false false))
+                                       (sym (push* (true , g true true) (g true true , g false true) refl)) i
+                   ; (k = i1) → GFUN A (G-inr-inl-inr*₂-b-fill (RP∞'· ℓ) A g true i j i1)
+                   })
+       (hcomp (λ r → λ {(i = i0) → push* (true , inlR (true , g true true))
+                                            (inlR (true , g true true) , inlR (true , g true false))
+                                            (λ i₁ → inlR (true , g true true)) (j ∧ (k ∧ r))
+                   ; (i = i1) → push* (true , inlR (true , g true true))
+                                       ((push* (true , g true true) (g true true , g false true)
+                                               refl (j ∨ ~ k))
+                                      , (push* (false , g false false) (g true false , g false false) refl (j ∧ k)))
+                                       (λ s → push* (true , g true true) (g true true , g false true)
+                                                     refl ((~ k ∨ j) ∧ (~ s))) r
+                   ; (j = i0) → push* (true , inlR (true , g true true))
+                                       (push* (true , g true true) (g true true , g false true)
+                                        refl (~ k)
+                                        , inlR (false , g false false))
+                                       (λ s → push* (true , g true true) (g true true , g false true)
+                                                     refl (~ k ∧ ~ s))
+                                       (i ∧ r)
+                   ; (j = i1) → G-coh-inr-t-fill g i k r
+                   ; (k = i0) → push* (true , inlR (true , g true true))
+                                       (inrR (g true true , g false true) , inlR (false , g false false))
+                                       (sym (push* (true , g true true) (g true true , g false true) refl))
+                                       (i ∧ r)
+                   ; (k = i1) → F2 r i j
+                   })
+              (inlR (true , inlR (true , g true true))))
+    where -- r i j
+    F2 : Cube (λ _ _ → inlR (true , inlR (true , g true true)))
+              (λ i j → GFUN A (G-inr-inl-inr*₂-b-fill (RP∞'· ℓ) A g true i j i1))
+              (λ r j → push* (true , inlR (true , g true true))
+                              (inlR (true , g true true) , inlR (true , g true false))
+                              refl (j ∧ r))
+              (λ r j → push* (true , inlR (true , g true true))
+                              (push* (true , g true true) (g true true , g false true) refl j
+                             , push* (false , g false false) (g true false , g false false) refl j)
+                              (λ s → push* (true , g true true) (g true true , g false true) refl (j ∧ ~ s)) r)
+              (λ r i → push* (true , inlR (true , g true true))
+                              (inlR (true , g true true) , inlR (false , g false false))
+                              refl (i ∧ r))
+              λ r i → G-coh-inr-t-fill g i i1 r
+    F2 r i j =
+      hcomp (λ k → λ {(i = i0) → push* (true , inlR (true , g true true))
+                                          (push* (true , g true true) (g true true , g false true) refl (~ k)
+                                        , push* (true , g true false) (g true false , g false false) refl (~ k))
+                                          (λ i₂ → push* (true , g true true)
+                                                         (g true true , g false true) refl (~ k ∧ ~ i₂)) (r ∧ j)
+                   ; (i = i1) →  push* (true , inlR (true , g true true))
+                                        ((push* (true , g true true) (g true true , g false true) refl (~ k ∨ j))
+                                       , (push* (false , g false false) (g true false , g false false) refl (~ k ∨ j)))
+                                        (λ t → push* (true , g true true) (g true true , g false true) refl ((j ∨ ~ k) ∧ (~ t))) r
+                   ; (j = i0) → push* (true , inlR (true , g true true))
+                                       ((push* (true , g true true) (g true true , g false true) refl (~ k))
+                                       , (push* (false , g false false) (g true false , g false false) refl (~ k)))
+                                       (λ i → push* (true , g true true) (g true true , g false true) refl (~ i ∧ ~ k))
+                                       (r ∧ i)
+                   ; (j = i1) → push* (true , inlR (true , g true true))
+                                       ((push* (true , g true true) (g true true , g false true) refl (~ k ∨ i))
+                                     , (push* (true , g true false) (g true false , g false false) refl (~ k ∨ i)))
+                                       (λ t → push* (true , g true true) (g true true , g false true) refl (~ t ∧ (i ∨ ~ k))) r
+                   ; (r = i0) → inlR (true , inlR (true , g true true))
+                   ; (r = i1) → GFUN A (G-inr-inl-inr*₂-b-fill (RP∞'· ℓ) A g true i j k)
+                   })
+                  (push* (true , inlR (true , g true true))
+                         (inrR (g true true , g false true)
+                        , inrR (g true false , g false false))
+                         (sym (push* (true , g true true) (g true true , g false true) refl))
+                         (r ∧ (i ∨ j)))
+
+    cong-GFUN : Cube (λ i k → G-coh-inr-t-fill g i k i1)
+                     (λ i k → G-coh-inr-t-fill g i k i1)
+                     (λ r k → push* (true , inlR (true , g true true))
+                                      (inlR (true , g true true) , inlR (true , g true false))
+                                      refl k)
+                     (λ r k → inrR (inrR (g true true , g false true)
+                             , push* (false , g false false) (g true false , g false false) refl k))
+                     (λ r i → push* (true , inlR (true , g true true))
+                                       (inrR (g true true , g false true) , inlR (false , g false false))
+                                       (sym (push* (true , g true true) (g true true , g false true) refl)) i)
+                     λ r i → inrR (push* (true , g true true) (g true true , g false true) refl i
+                            , push* (true , g true false) (g true false , g false false) refl i)
+    cong-GFUN r i k =
+      hcomp (λ j → λ {(r = i0) → G-coh-inr-t-fill g i k j
+                   ; (r = i1) → G-coh-inr-t-fill g i k j
+                   ; (i = i0) → G-coh-inr-t-fill g i k j
+                   ; (i = i1) → G-coh-inr-t-fill g i k j
+                   ; (k = i0) → G-coh-inr-t-fill g i k j
+                   ; (k = i1) → G-coh-inr-t-fill g i k j
+                   })
+              (inlR (true , inlR (true , g true true)))
+
   G-coh-eq2 : (g : (i j : Bool) → A i j)
       (x : Bool) →
       Cube
@@ -635,76 +826,39 @@ module Sol {ℓ : Level} (A : Bool → Bool → Type ℓ) where
       (λ i j → coh-eq2 g j i) -- (G-coh-inr g x)
       (λ i j → G-coh-eq1 (λ i → g i i) (g false) refl x j i)
       λ i j → G-coh-inr g x j i
-{-
-(λ i j → GFUN A
-         (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A
-          (x , leftMapBool (RP∞'· ℓ) A x
-           (push (true , true , push (inr (idEquiv Bool , refl , g)) i) j))))
-      (coh-eq2 g)
--}
   G-coh-eq2 g x =
-    {!h!}
+    G-coh-eq2-main g x
     ▷ λ a s t → GFUN A (G-inr-inl-inr*₂-refl (RP∞'· ℓ) A g x (~ a) s t)
 
---   G-coh-eq2 g false = {!!}
---   G-coh-eq2 g true i j k =
---     hcomp (λ r → λ {(i = i0) → GFUN A (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (true
---                                , leftFun-cohₗ**-fill (RP∞'· _) (RP∞'· _) A true true (idEquiv Bool) refl g j k r ))
---                    ; (i = i1) → {!!}
---                    ; (j = i0) → {!!}
---                    ; (j = i1) → {!G-coh-inr-t-fill g  k r!}
---                    ; (k = i0) → {!!}
---                    ; (k = i1) → {!!}})
---           {!!}
---     {-
---     k = i0 ⊢ push* (true , inlR (true , g true true))
---          (inrR (g true true , g false true) , inlR (false , g false false))
---          (λ i₁ →
---             push* (true , g true true) (g true true , g false true)
---             (λ _ → g true true) (~ i₁))
---          i
--- k = i1 ⊢ G-coh-eq2 g true i j i1
--- j = i0 ⊢ push* (true , inlR (true , g true true))
---          (push* (true , g true true) (g true true , g false true)
---           (λ _ → g true true) (~ k)
---           , inlR (false , refl k))
---          (λ k₁ →
---             push* (true , g true true) (g true true , g false true)
---             (λ _ → g true true) (~ k ∧ ~ k₁))
---          i
--- j = i1 ⊢
--- j = i0
---     -}
+open 𝕄
+𝕄inst· : ∀ {ℓ} → 𝕄inst {ℓ = ℓ}
+inler 𝕄inst· = Sol.inler
+inr-inr 𝕄inst· = inrerr
+inr-inl-inl 𝕄inst· = inr-inl-inl*
+inr-inl-inr 𝕄inst· = inr-inl-inr*
+push-inl 𝕄inst· = Sol.push-inl
+coh-inr 𝕄inst· = Sol.coh-inr
+coh-eq1 𝕄inst· = Sol.coh-eq1
+coh-eq2 𝕄inst· = Sol.coh-eq2
+coh-eq-l 𝕄inst· = Sol.coh-eq-l
+G-inler 𝕄inst· = Sol.G-inler
+G-inr-inr 𝕄inst· = G-inr-inr*
+G-inr-inl-inl₁ 𝕄inst· = G-inr-inl-inl*₁
+G-inr-inl-inl₂ 𝕄inst· = G-inr-inl-inl*₂
+G-inr-inl-inr₁ 𝕄inst· = G-inr-inl-inr*₁
+G-inr-inl-inr₂ 𝕄inst· I A f p q i = G-inr-inl-inr*₂ I A p i f (funExt q)
+G-push-inl 𝕄inst· = Sol.G-push-inl
+G-coh-inr 𝕄inst· = Sol.G-coh-inr
+G-coh-eq1 𝕄inst· = Sol.G-coh-eq1
+G-coh-eq2 𝕄inst· A g x i j k = Sol.G-coh-eq2 A g x k i j
+G-coh-eq-l 𝕄inst· = {!!}
 
--- -- open 𝕄
--- -- 𝕄inst· : ∀ {ℓ} → 𝕄inst {ℓ = ℓ}
--- -- inler 𝕄inst· = Sol.inler
--- -- inr-inr 𝕄inst· = inrerr
--- -- inr-inl-inl 𝕄inst· = inr-inl-inl*
--- -- inr-inl-inr 𝕄inst· = inr-inl-inr*
--- -- push-inl 𝕄inst· = Sol.push-inl
--- -- coh-inr 𝕄inst· = Sol.coh-inr
--- -- coh-eq1 𝕄inst· = Sol.coh-eq1
--- -- coh-eq2 𝕄inst· = Sol.coh-eq2
--- -- coh-eq-l 𝕄inst· = Sol.coh-eq-l
--- -- G-inler 𝕄inst· = Sol.G-inler
--- -- G-inr-inr 𝕄inst· = G-inr-inr*
--- -- G-inr-inl-inl₁ 𝕄inst· = G-inr-inl-inl*₁
--- -- G-inr-inl-inl₂ 𝕄inst· = G-inr-inl-inl*₂
--- -- G-inr-inl-inr₁ 𝕄inst· = G-inr-inl-inr*₁
--- -- G-inr-inl-inr₂ 𝕄inst· I A f p q i = G-inr-inl-inr*₂ I A p i f (funExt q)
--- -- G-push-inl 𝕄inst· = Sol.G-push-inl
--- -- G-coh-inr 𝕄inst· = Sol.G-coh-inr
--- -- G-coh-eq1 𝕄inst· = Sol.G-coh-eq1
--- -- G-coh-eq2 𝕄inst· = Sol.G-coh-eq2
--- -- G-coh-eq-l 𝕄inst· = {!!}
-
--- -- TheId : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
--- --   → Better! I J A → GOALTY I J A
--- -- TheId {ℓ = ℓ} I J A = elimPushout (btm-map I J A) (FF I J A .fst) λ {(i , x) → FF I J A .snd i x}
--- --   where
--- --   FF = MEGA-inst (λ I J A _ → GOALTY I J A) (λ A _ → GOALTY' A) (λ A _ → GFUNEq A)
--- --                  (λ I J A x i → btm-map I J A (i , leftMap** I J A i x))
--- --                  (λ A x a j → GFUN A (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (a , leftMapBool (RP∞'· ℓ) A a (push x j))))
--- --                  (λ t A x y i → GFUN A (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (y , leftMapBool≡ (RP∞'· ℓ) A y (push x i) (~ t))))
--- --                  𝕄inst·
+TheId : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
+  → Better! I J A → GOALTY I J A
+TheId {ℓ = ℓ} I J A = elimPushout (btm-map I J A) (FF I J A .fst) λ {(i , x) → FF I J A .snd i x}
+  where
+  FF = MEGA-inst (λ I J A _ → GOALTY I J A) (λ A _ → GOALTY' A) (λ A _ → GFUNEq A)
+                 (λ I J A x i → btm-map I J A (i , leftMap** I J A i x))
+                 (λ A x a j → GFUN A (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (a , leftMapBool (RP∞'· ℓ) A a (push x j))))
+                 (λ t A x y i → GFUN A (btm-map (RP∞'· ℓ) (RP∞'· ℓ) A (y , leftMapBool≡ (RP∞'· ℓ) A y (push x i) (~ t))))
+                 𝕄inst·
