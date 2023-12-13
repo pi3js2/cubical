@@ -1,5 +1,7 @@
 {-
+
 Definition of the circle as a HIT with a proof that Ω(S¹) ≡ ℤ
+
 -}
 {-# OPTIONS --safe #-}
 module Cubical.HITs.S1.Base where
