@@ -16,6 +16,11 @@ open import Cubical.Foundations.Equiv.Properties
 open import Cubical.Foundations.Isomorphism
 open import Cubical.Foundations.Univalence
 open import Cubical.Foundations.HLevels
+open import Cubical.Foundations.Pointed
+open import Cubical.Foundations.Pointed.Homogeneous
+
+open import Cubical.Relation.Nullary
+
 open import Cubical.Functions.Bundle
 
 open import Cubical.Foundations.SIP
@@ -48,14 +53,67 @@ data RP² : Type₀ where
   line : point ≡ point
   square : line ≡ sym line
 
+-- RP²-lemmas
+RP²Fun : (a : A) (p : a ≡ a) (p∼p⁻¹ : p ≡ sym p)
+  → RP² → A
+RP²Fun a p p∼p⁻¹ point = a
+RP²Fun a p p∼p⁻¹ (line i) = p i
+RP²Fun a p p∼p⁻¹ (square i i₁) = p∼p⁻¹ i i₁
+
+elimSetRP² : {A : RP² → Type ℓ} → ((x : RP²) → isSet (A x))
+  → (point* : A point)
+  → PathP (λ i → A (line i)) point* point*
+  → (x : RP²) → A x
+elimSetRP² set point* p point = point*
+elimSetRP² set point* p (line i) = p i
+elimSetRP² {A = A} set point* p (square i j) =
+  isOfHLevel→isOfHLevelDep 2 {B = A} set point* point* p (symP p) square i j
+
+elimPropRP² : {A : RP² → Type ℓ} → ((x : RP²) → isProp (A x))
+  → (point* : A point)
+  → (x : RP²) → A x
+elimPropRP² pr point* =
+  elimSetRP² (λ x → isProp→isSet (pr _))
+    point* (isProp→PathP (λ _ → pr _) _ _)
+
+characRP²Fun : ∀ {ℓ} {A : Type ℓ} (f : RP² → A)
+  → RP²Fun (f point) (cong f line) (λ i j → f (square i j)) ≡ f
+characRP²Fun f =
+  funExt λ { point → refl ; (line i) → refl ; (square i i₁) → refl}
+
 -- Definition II.1 in [BR17], see also Cubical.Functions.Bundle
 
 2-EltType₀    = TypeEqvTo    ℓ-zero Bool -- Σ[ X ∈ Type₀ ] ∥ X ≃ Bool ∥
 2-EltPointed₀ = PointedEqvTo ℓ-zero Bool -- Σ[ X ∈ Type₀ ] X × ∥ X ≃ Bool ∥
 
+RP∞ = 2-EltType₀
+
 Bool* : 2-EltType₀
 Bool* = Bool , ∣ idEquiv _ ∣₁
 
+ua-2-EltType₀ : (X Y : RP∞) → fst X ≃ fst Y → X ≡ Y
+ua-2-EltType₀ X Y p = Σ≡Prop (λ _ → squash₁) (ua p)
+
+ua-2-EltType₀-idEquiv : (X : RP∞) → ua-2-EltType₀ X X (idEquiv (fst X)) ≡ refl
+ua-2-EltType₀-idEquiv X =
+  ΣSquareSet (λ _ → isProp→isSet squash₁) uaIdEquiv
+
+2-EltType₀→Prop : {B : RP∞ → Type ℓ}
+  → ((x : _) → isProp (B x))
+  → B Bool*
+  → (x : _) → B x
+2-EltType₀→Prop {B = B} p b =
+  uncurry λ X → PropTrunc.elim (λ _ → p _)
+    λ x → subst B (ua-2-EltType₀ Bool* (X , ∣ x ∣₁) (invEquiv x)) b
+
+2-EltType₀→Propβ : {B : RP∞ → Type ℓ}
+  → (pr : (x : _) → isProp (B x))
+  → (b : B Bool*)
+  → 2-EltType₀→Prop {B = B} pr b Bool* ≡ b
+2-EltType₀→Propβ {B = B} p q =
+    (λ i → subst B (ua-2-EltType₀ Bool* Bool* (invEquivIdEquiv Bool i)) q)
+  ∙ (λ i → subst B (ua-2-EltType₀-idEquiv Bool* i) q)
+  ∙ transportRefl q
 
 -- Our first goal is to 'lift' `_⊕_ : Bool → Bool ≃ Bool` to a function `_⊕_ : A → A ≃ Bool`
 --  for any 2-element type (A, ∣e∣).
@@ -320,31 +378,368 @@ RP1≡S1 = Pushout {A = Total (cov⁻¹ 0)} {B = RP 0} (pr (cov⁻¹ 0)) (λ _ �
                           (λ _ → tt)
         ii = λ j → Pushout {A = ua (TotalCov≃Sn 0) j} (λ _ → tt) (λ _ → tt)
 
+-- properties of RP∞
+≡RP∞-charac : (X Y : RP∞) → Iso (fst X ≡ fst Y) (X ≡ Y)
+Iso.fun (≡RP∞-charac X Y) p = Σ≡Prop (λ _ → squash₁) p
+Iso.inv (≡RP∞-charac X Y) = cong fst
+Iso.rightInv (≡RP∞-charac X Y) p =
+  ΣSquareSet (λ _ → isProp→isSet squash₁) λ _ i → p i .fst
+Iso.leftInv (≡RP∞-charac X Y) p = refl
 
--- RP²-lemmas
-RP²Fun : (a : A) (p : a ≡ a) (p∼p⁻¹ : p ≡ sym p)
-  → RP² → A
-RP²Fun a p p∼p⁻¹ point = a
-RP²Fun a p p∼p⁻¹ (line i) = p i
-RP²Fun a p p∼p⁻¹ (square i i₁) = p∼p⁻¹ i i₁
+isGroupoidRP∞ : isGroupoid RP∞
+isGroupoidRP∞ =
+ uncurry λ X → PropTrunc.elim (λ _ → isPropΠ λ _ → isPropIsSet)
+  (EquivJ (λ X x → (b : RP∞) → isSet (Path RP∞ (X , ∣ x ∣₁) b))
+    (uncurry λ Y → PropTrunc.elim (λ _ → isPropIsSet)
+      (EquivJ (λ Y x → isSet (Path RP∞ (Bool , ∣ idEquiv Bool ∣₁) (Y , ∣ x ∣₁)))
+        (isOfHLevelRetractFromIso 2
+          (compIso (invIso (≡RP∞-charac Bool* Bool*))
+            (compIso (equivToIso univalence) Bool≃Charac)) isSetBool))))
 
-elimSetRP² : {A : RP² → Type ℓ} → ((x : RP²) → isSet (A x))
-  → (point* : A point)
-  → PathP (λ i → A (line i)) point* point*
-  → (x : RP²) → A x
-elimSetRP² set point* p point = point*
-elimSetRP² set point* p (line i) = p i
-elimSetRP² {A = A} set point* p (square i j) =
-  isOfHLevel→isOfHLevelDep 2 {B = A} set point* point* p (symP p) square i j
+isSet-2elt : (X : RP∞) → isSet (fst X)
+isSet-2elt = 2-EltType₀→Prop (λ _ → isPropIsSet) isSetBool
 
-elimPropRP² : {A : RP² → Type ℓ} → ((x : RP²) → isProp (A x))
-  → (point* : A point)
-  → (x : RP²) → A x
-elimPropRP² pr point* =
-  elimSetRP² (λ x → isProp→isSet (pr _))
-    point* (isProp→PathP (λ _ → pr _) _ _)
+isContrTotalRP∞ : isContr (Σ[ X ∈ RP∞ ] fst X)
+fst isContrTotalRP∞ = Bool* , true
+snd isContrTotalRP∞ = isContr→isProp isC _
+  where
+  totIso : Iso (Σ[ X ∈ RP∞ ] fst X) 2-EltPointed₀
+  totIso = compIso Σ-assoc-Iso (Σ-cong-iso-snd λ X → Σ-swap-Iso)
 
-characRP²Fun : ∀ {ℓ} {A : Type ℓ} (f : RP² → A)
-  → RP²Fun (f point) (cong f line) (λ i j → f (square i j)) ≡ f
-characRP²Fun f =
-  funExt λ { point → refl ; (line i) → refl ; (square i i₁) → refl}
+  isC : isContr (Σ[ X ∈ RP∞ ] fst X)
+  isC = isOfHLevelRetractFromIso 0 totIso isContr-2-EltPointed
+
+JRP∞ : ∀ {ℓ} (A : (X : RP∞) (x : fst X) → Type ℓ)
+  → A Bool* true
+  → {X : _} {x : _} → A X x
+JRP∞ A t {X = X} {x = x} = A'Sec (X , x)
+  where
+  A' : Σ[ X ∈ RP∞ ] (fst X) → Type _
+  A' (X , x) = A X x
+
+  A'Sec : (m : Σ[ X ∈ RP∞ ] (fst X)) → A' m
+  A'Sec m = subst A' (isContrTotalRP∞ .snd m) t
+
+-- direct construction of involution for two element types
+notRP∞Equiv : (X : RP∞) → Σ[ e ∈ (fst X ≃ fst X) ] ¬ e ≡ idEquiv (fst X)
+notRP∞Equiv =
+  2-EltType₀→Prop isPropNegRP∞
+    (notEquiv , (λ p → true≢false (funExt⁻ (cong fst p) false)))
+  where
+  isPropNegBool : isProp (Σ[ e ∈ (Bool ≃ Bool) ] ¬ e ≡ idEquiv Bool)
+  isPropNegBool = isContr→isProp help
+    where
+    help : isContr (Σ[ e ∈ (Bool ≃ Bool) ] ¬ e ≡ idEquiv Bool)
+    fst help = notEquiv , (λ p → true≢false (funExt⁻ (cong fst p) false))
+    snd help (e , g) =
+      Σ≡Prop (λ _ → isProp¬ _)
+        (⊎.rec (λ p → ⊥.rec (g (sym (Iso.leftInv Bool≃Charac e)
+                      ∙ cong (Iso.inv Bool≃Charac) p)))
+                (λ p → sym (cong (Iso.inv Bool≃Charac) p)
+                          ∙ (Iso.leftInv Bool≃Charac e))
+                (dichotomyBool (fst e true)))
+
+  isPropNegRP∞ : (X : RP∞) → isProp (Σ[ e ∈ (fst X ≃ fst X) ] ¬ e ≡ idEquiv (fst X))
+  isPropNegRP∞ = 2-EltType₀→Prop (λ _ → isPropIsProp) isPropNegBool
+
+notRP∞ : (X : RP∞) → fst X → fst X
+notRP∞ X = fst (fst (notRP∞Equiv X))
+
+notRP∞-notConst : (X : RP∞) → ¬ ((x : fst X) → notRP∞ X x ≡ x)
+notRP∞-notConst =
+  uncurry λ X → PropTrunc.elim (λ _ → isProp¬ _)
+    (EquivJ (λ X x → ¬ ((x₁ : X) → notRP∞ (X , ∣ x ∣₁) x₁ ≡ x₁))
+      λ p → true≢false (p false))
+
+-- Direct construction of the elimination principle for two element types
+
+-- setup
+private
+  RP∞-elim-ty' : (X : RP∞) (x : fst X) (A : fst X → Type ℓ) → Type ℓ
+  RP∞-elim-ty' X x A =
+    Σ[ f ∈ ((a : A x) (b : A (notRP∞ X x)) → (x : _) → A x) ]
+     ((a : _) (b : _) → (f a b x ≡ a) × (f a b (notRP∞ X x) ≡ b))
+
+  RP∞-elim-ty : (X : RP∞) (A : fst X → Type ℓ) → Type ℓ
+  RP∞-elim-ty X A = (x : fst X) → RP∞-elim-ty' X x A
+
+  isPropRP∞-elim-ty : (X : RP∞) (A : fst X → Type ℓ) → isProp (RP∞-elim-ty X A)
+  isPropRP∞-elim-ty {ℓ = ℓ} X A = isPropΠ λ x
+    → JRP∞ (λ X x → (A : fst X → Type ℓ) → isProp (RP∞-elim-ty' X x A))
+            (λ A → isContr→isProp CasesBool*) {X = X} {x} A
+    where
+    CasesBool* : {A : Bool → Type ℓ}
+      → isContr (Σ[ f ∈ (A true → A false → (x : _) → A x) ]
+          ((a : A true) (b : A false) → (f a b true ≡ a) × (f a b false ≡ b)))
+    fst (fst CasesBool*) a b false = b
+    fst (fst CasesBool*) a b true = a
+    snd (fst CasesBool*) a b = refl , refl
+    fst (snd CasesBool* (f , p) i) a b false = p a b .snd (~ i)
+    fst (snd CasesBool* (f , p) i) a b true = p a b .fst (~ i)
+    fst (snd (snd CasesBool* (f , p) i) a b) j = p a b .fst (~ i ∨ j)
+    snd (snd (snd CasesBool* (f , p) i) a b) j = p a b .snd (~ i ∨ j)
+
+  CasesRP' : (X : RP∞) (A : fst X → Type ℓ) → RP∞-elim-ty X A
+  CasesRP' {ℓ = ℓ} =
+    uncurry λ X
+    → PropTrunc.elim (λ x → isPropΠ (isPropRP∞-elim-ty (X , x)))
+        (CasesRP-base X)
+    where
+    CasesRP-base : (X : Type) (x : X ≃ Bool) (A : X → Type ℓ)
+      → RP∞-elim-ty (X , ∣ x ∣₁) A
+    CasesRP-base X =
+      EquivJ (λ X x → (A : X → Type ℓ) → RP∞-elim-ty (X , ∣ x ∣₁) A)
+              λ A g → CasesBool {A = A} g , CasesBoolβ {A = A} g
+
+-- elimination
+CasesRP : ∀ {ℓ} (X : RP∞) {A : fst X → Type ℓ} (x₀ : fst X)
+  → A x₀ → A (notRP∞ X x₀) → (x : _) → A x
+CasesRP X {A = A} x₀ = CasesRP' X A x₀ .fst
+
+CasesRPβ : ∀ {ℓ} (X : RP∞) {A : fst X → Type ℓ} (x₀ : fst X)
+  → (l : A x₀) (r : A (notRP∞ X x₀))
+  → (CasesRP X {A = A} x₀ l r x₀ ≡ l)
+   × (CasesRP X {A = A} x₀ l r (notRP∞ X x₀) ≡ r)
+CasesRPβ X x₀ = CasesRP' X _ x₀ .snd
+
+-- alternative definition of RP∞, useful to get strict
+-- computation rules
+is2Type : (ℓ' : Level) (X : Type) → Type (ℓ-suc ℓ')
+is2Type ℓ' X =
+  Σ[ neg ∈ (X → X) ]
+    (¬ ((x : X) → neg x ≡ x)) × (((B : X → Type ℓ')
+      → Σ[ elim ∈ ((x : X) (a : B x) (a' : B (neg x)) → (x : _) → B x) ]
+         ((x : X) (a : B x) (a' : B (neg x))
+           → (elim x a a' x ≡ a) × (elim x a a' (neg x) ≡ a'))))
+
+isRP∞ : (ℓ : Level) → (X : Type) → Type (ℓ-suc ℓ)
+isRP∞ ℓ X = is2Type ℓ X × ∥ X ∥₁
+
+RP∞' : (ℓ : Level) → Type (ℓ-suc ℓ)
+RP∞' ℓ = Σ[ X ∈ Type ] isRP∞ ℓ X
+
+isRP∞→≃Bool : (ℓ : Level) (X : Type) → is2Type ℓ X → X → X ≃ Bool
+isRP∞→≃Bool ℓ X f x = compEquiv (isoToEquiv (theIs f x)) (invEquiv LiftEquiv)
+  where
+  module _ (f : is2Type ℓ X) (x : X) where
+    help : X → Lift Bool
+    help = fst (f .snd .snd (λ _ → Lift Bool)) x (lift true)
+      (lift false)
+
+    LiftB→X : Lift Bool → X
+    LiftB→X (lift false) = fst f x
+    LiftB→X (lift true) = x
+
+    theIs : Iso X (Lift Bool)
+    Iso.fun theIs = help
+    Iso.inv theIs = LiftB→X
+    Iso.rightInv theIs (lift false) =
+      f .snd .snd (λ _ → Lift Bool) .snd x (lift true) (lift false) .snd
+    Iso.rightInv theIs (lift true) =
+      f .snd .snd (λ _ → Lift Bool) .snd x (lift true) (lift false) .fst
+    Iso.leftInv theIs x' = cong (invEq (LiftEquiv {ℓ' = ℓ})) (liftEq x')
+      where
+      liftEq : (x' : X) → lift (LiftB→X (help x')) ≡ lift x'
+      liftEq =  f .snd .snd _ .fst x
+        (cong lift (cong LiftB→X
+          (f .snd .snd (λ _ → Lift Bool) .snd x (lift true) (lift false) .fst)))
+        (cong lift (cong LiftB→X (f .snd .snd (λ _ → Lift Bool) .snd
+          x (lift true) (lift false) .snd)))
+
+-- instances
+is2TypeBool : (ℓ : Level) → is2Type ℓ Bool
+fst (is2TypeBool ℓ) = not
+fst (snd (is2TypeBool ℓ)) = notRP∞-notConst Bool*
+fst (snd (snd (is2TypeBool ℓ)) B) = CasesBool
+snd (snd (snd (is2TypeBool ℓ)) B) = CasesBoolβ
+
+RP∞'∙ : (ℓ : Level) → RP∞' ℓ
+RP∞'∙ ℓ = Bool , ((is2TypeBool ℓ) , ∣ true ∣₁)
+
+-- Every (X : RP∞ is a 2-type)
+RP∞-2Type : (ℓ : Level) (X : RP∞) → is2Type ℓ (fst X)
+fst (RP∞-2Type ℓ X) = notRP∞ X
+fst (snd (RP∞-2Type ℓ X)) = notRP∞-notConst X
+fst (snd (snd (RP∞-2Type ℓ X)) B) = CasesRP X
+snd (snd (snd (RP∞-2Type ℓ X)) B) = CasesRPβ X {B}
+
+isPropis2Type : ∀ {ℓ} (X : RP∞) → isProp (is2Type ℓ (fst X))
+isPropis2Type {ℓ = ℓ} =
+  2-EltType₀→Prop (λ _ → isPropIsProp) (isContr→isProp isContrIs2TypeBool)
+  where
+  isContrIs2TypeBool : isContr (is2Type ℓ Bool)
+  fst isContrIs2TypeBool = is2TypeBool _
+  snd isContrIs2TypeBool (f , (n , p)) =
+    ΣPathP ((sym f≡not) , isProp→PathP (λ j → isProp× (isProp¬ _)
+      (isPropΠ λ B
+      → transport (λ k → isProp
+        (Σ ((x : Bool) → B x → B (f≡not (~ j ∨ ~ k) x)
+                       → (a : Bool) → B a)
+         (λ elim₁ → (x : Bool) (a : B x) (a' : B (f≡not (~ j ∨ ~ k) x))
+          → (elim₁ x a a' x ≡ a) × (elim₁ x a a' (f≡not (~ j ∨ ~ k) x) ≡ a'))))
+              (isPr B))) _ _)
+    where
+    isPr : (B : Bool → Type ℓ) → isProp _
+    isPr B (f , p) (g , q) i =
+        (λ x a b y → id1 x a b y i)
+      , (λ x a a' → id2 x a a' i)
+      where
+      id1 : (x : Bool) (a : _) (b : _) (y : Bool) → f x a b y ≡ g x a b y
+      id1 false a b false = p false a b .fst  ∙∙ refl ∙∙ sym (q false a b .fst)
+      id1 false a b true = p false a b .snd ∙∙ refl ∙∙ sym (q false a b .snd)
+      id1 true a b false = p true a b .snd ∙∙ refl ∙∙ sym (q true a b .snd)
+      id1 true a b true = p true a b .fst ∙∙ refl ∙∙ sym (q true a b .fst)
+
+      id2 : (x : Bool) (a : B x) (a' : B (not x))
+        → PathP (λ i → (id1 x a a' x i ≡ a) × (id1 x a a' (not x) i ≡ a'))
+                 (p x a a') (q x a a')
+      fst (id2 false a a' i) j =
+        doubleCompPath-filler (fst (p false a a')) refl (sym (fst (q false a a'))) (~ j) i
+      snd (id2 false a a' i) j =
+        doubleCompPath-filler (snd (p false a a')) refl (sym (snd (q false a a'))) (~ j) i
+      fst (id2 true a a' i) j =
+        doubleCompPath-filler (fst (p true a a')) refl (sym (fst (q true a a'))) (~ j) i
+      snd (id2 true a a' i) j =
+        doubleCompPath-filler (snd (p true a a')) refl (sym (snd (q true a a'))) (~ j) i
+
+    notConst : ¬ (f false ≡ f true)
+    notConst r = true≢false (isContr→isProp isContrBool _ _)
+      where
+      Lift→ : ∀ {ℓ'} {A : Type} → Lift {ℓ-zero} {ℓ'} A → A
+      Lift→ (lift lower₁) = lower₁
+
+      main : (x : _) → f false ≡ x → (z : Bool) → z ≡ f false
+      main false ha x = cong (Lift→ {ℓ})
+        (p (λ x → lift x ≡ lift (f false)) .fst false (cong lift (sym ha)) refl x)
+      main true ha x = cong (Lift→ {ℓ})
+        (p _ .fst true (cong lift (sym ha)) (cong lift (sym r)) x)
+
+      isContrBool : isContr Bool
+      isContrBool = (f false) , sym ∘ main (f false) refl
+
+    lem : (y y' : Bool) → f true ≡ y → f false ≡ y' → (x : _) → f x ≡ not x
+    lem false false p q = ⊥.rec (notConst (q ∙ sym p))
+    lem false true p q = λ { false → q ; true → p}
+    lem true false p q = ⊥.rec (n λ { false → q ; true → p})
+    lem true true p q = ⊥.rec (notConst (q ∙ sym p))
+
+    f≡not : f ≡ not
+    f≡not = funExt (lem (f true) (f false) refl refl)
+
+isPropIsRP∞ : ∀ (ℓ) (X : Type) → isProp (isRP∞ ℓ X)
+isPropIsRP∞ ℓ X (totY , y) (totY' , y') =
+  isPropΣ (isPropis2Type (X , PropTrunc.map (isRP∞→≃Bool ℓ X totY) y')) (λ _ → squash₁) _ _
+
+-- The two definitions are equivalent
+RP∞'≃RP∞ : (ℓ : Level) → RP∞' ℓ ≃ RP∞
+RP∞'≃RP∞ ℓ =
+  isoToEquiv
+    (iso
+     (λ X → fst X , PropTrunc.map (isRP∞→≃Bool ℓ (fst X) (snd X .fst)) (snd X .snd))
+     (λ X → (fst X) , (PropTrunc.rec (isPropΣ (isPropis2Type X) (λ _ → squash₁))
+       ((λ x → fst x , ∣ x .snd ∣₁)
+       ∘ (≃Bool→isRP∞ ℓ (fst X))) (snd X)))
+     (λ X → Σ≡Prop (λ _ → squash₁) refl)
+     λ X → Σ≡Prop (isPropIsRP∞ ℓ) refl)
+  where
+  ≃Bool→isRP∞ : (ℓ : Level) (X : Type) → X ≃ Bool → is2Type ℓ X × X
+  fst (≃Bool→isRP∞ ℓ X eq) = help eq
+    where
+    help : X ≃ Bool → is2Type ℓ X
+    help = EquivJ (λ X _ → is2Type ℓ X) (is2TypeBool _)
+  snd (≃Bool→isRP∞ ℓ X eq) = invEq eq true
+
+isContrSiglRP∞' : (ℓ : Level) → isContr (Σ[ I ∈ RP∞' ℓ ] fst I)
+fst (isContrSiglRP∞' ℓ) = RP∞'∙ ℓ , true
+snd (isContrSiglRP∞' ℓ) (I , i) = ΣPathP ((lem I i)
+  , (toPathP λ j → transp (λ _ → fst I) j i))
+  where
+  lem : (I : RP∞' ℓ) (i : fst I) → RP∞'∙ ℓ ≡ I
+  lem I i =
+    Σ≡Prop (λ _ → isPropIsRP∞ _ _)
+     (ua (invEquiv (isRP∞→≃Bool ℓ (fst I) (snd I .fst) i)))
+
+-- J for RP∞'
+module _ {ℓ ℓ' : Level} {B : (I : RP∞' ℓ) → fst I → Type ℓ'} (c : B (RP∞'∙ _) true) where
+  private
+    B* : Σ[ I ∈ RP∞' ℓ ] fst I → Type ℓ'
+    B* (I , i) = B I i
+
+    JRP∞'-c : (x : _) → B* x
+    JRP∞'-c p = subst B* (isContrSiglRP∞' ℓ .snd p) c
+
+  JRP∞' : (I : RP∞' ℓ) (i : fst I) → B I i
+  JRP∞' I i = JRP∞'-c (I , i)
+
+  JRP∞'∙ : JRP∞' (RP∞'∙ _) true ≡ c
+  JRP∞'∙ = (λ i → subst B* (isProp→isSet (isContr→isProp (isContrSiglRP∞' ℓ)) _ _
+    (isContrSiglRP∞' ℓ .snd (RP∞'∙ _ , true)) refl i) c) ∙ transportRefl c
+
+≡RP∞'-charac : {ℓ : Level} (I J : RP∞' ℓ) → Iso (I ≡ J) (fst I ≃ fst J)
+≡RP∞'-charac {ℓ} I J =
+  (iso (λ p → pathToEquiv (cong fst p ))
+       (λ p → Σ≡Prop (isPropIsRP∞ ℓ) (ua p))
+       (λ p → Σ≡Prop (λ _ → isPropIsEquiv _)
+                 (funExt λ a → transportRefl (fst p a)))
+       λ p → ΣSquareSet (λ _ → isProp→isSet (isPropIsRP∞ ℓ _))
+               (retEq univalence (cong fst p)))
+
+-- EquivJ for RP'∞
+module _ {ℓ ℓ' : Level} (I : RP∞' ℓ)
+         {B : (J : RP∞' ℓ) → fst I ≃ fst J → Type ℓ'}
+         (c : B I (idEquiv _)) where
+  private
+    isContrTot : isContr (Σ[ J ∈ RP∞' ℓ ] fst I ≃ fst J)
+    isContrTot =
+      isOfHLevelRetractFromIso 0
+        (Σ-cong-iso-snd (λ J → invIso (≡RP∞'-charac I J))) (isContrSingl I)
+
+    B* : Σ[ J ∈ RP∞' ℓ ] fst I ≃ fst J → Type _
+    B* (J , e) = B J e
+
+  EquivJRP∞' : (J : RP∞' ℓ) (i : fst I ≃ fst J) → B J i
+  EquivJRP∞' J i =
+    subst B* (isContr→isProp isContrTot (I , idEquiv (fst I)) (J , i)) c
+
+  EquivJRP∞'-idEquiv : EquivJRP∞' I (idEquiv (fst I)) ≡ c
+  EquivJRP∞'-idEquiv =
+    (λ i → subst B* (isProp→isSet (isContr→isProp isContrTot) _ _
+                     (isContr→isProp isContrTot
+                       (I , idEquiv (fst I)) (I , idEquiv (fst I))) refl i) c)
+   ∙ transportRefl c
+
+-- prop elimination for RP∞'
+module _  {ℓ ℓ'} {B : (I : RP∞' ℓ) → Type ℓ'}
+  (pr : (x : _) → isProp (B x))
+  (c : B (RP∞'∙ ℓ)) where
+  private
+    contr : (X : RP∞' ℓ) (x : fst X) → fst X ≡ Bool
+    contr X x = ua (isRP∞→≃Bool _ (fst X) (snd X .fst) x)
+
+    isRP∞→≃Bool∙ : (isRP∞→≃Bool _ Bool (fst (snd (RP∞'∙ ℓ))) true) ≡ idEquiv Bool
+    isRP∞→≃Bool∙ = Σ≡Prop (λ _ → isPropIsEquiv _) (funExt (CasesBool true refl refl))
+
+    contr' : (X : RP∞' ℓ) (x : fst X) → X ≡ RP∞'∙ ℓ
+    contr' X x = Σ≡Prop (λ x → isPropIsRP∞ _ x) (contr X x)
+
+    contr≡ : contr' (RP∞'∙ ℓ) true ≡ refl
+    contr≡ = ΣSquareSet (λ _ → isProp→isSet (isPropIsRP∞ _ _))
+             (cong ua isRP∞→≃Bool∙ ∙ uaIdEquiv)
+
+    abstract
+      inder : (X : RP∞' ℓ) (x : fst X) → B (RP∞'∙ ℓ) → B X
+      inder X x = subst B (sym (contr' X x))
+
+      help' : inder (RP∞'∙ ℓ) true ≡ idfun _
+      help' = cong (subst B) (cong sym contr≡) ∙ funExt transportRefl
+
+  RP∞'pt→Prop : (x : _) → B x
+  RP∞'pt→Prop =
+    uncurry λ X
+    → uncurry λ 2t
+    → PropTrunc.elim (λ _ → pr _)
+        (λ x → inder (X , 2t , ∣ x ∣₁) x c)
+
+  RP∞'pt→Propβ :
+      RP∞'pt→Prop (RP∞'∙ ℓ) ≡ c
+  RP∞'pt→Propβ j = help' j c

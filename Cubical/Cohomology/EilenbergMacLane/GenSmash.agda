@@ -361,6 +361,7 @@ CasesRP-full = uncurry λ X
        λ e A x → (λ t1 t2 r → {!!}) , {!!}
 -}
 
+
 CasesBool-true : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
   → A true → A false → A x₀
 CasesBool-true false p q = q
@@ -377,6 +378,7 @@ CasesBoolβ : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
    × (CasesBool {A = A} x₀ l r (not* Bool* x₀) ≡ r)
 CasesBoolβ {A = A} false l r = refl , refl
 CasesBoolβ {A = A} true l r = refl , refl
+
 
 CasesRP-base : ∀ {ℓ} (X : Type) (x : X ≃ Bool) (A : X → Type ℓ) → T2 (X , ∣ x ∣₁) A
 CasesRP-base {ℓ = ℓ} X =
@@ -408,32 +410,6 @@ CasesRP≡ : ∀ {ℓ} (X : RP∞) {A : fst X → Type ℓ} (x₀ : fst X)
   {x x' : A x₀} {y y' : A (not* X x₀)} (a : _)
   → x ≡ x' → y ≡ y' → CasesRP X {A = A} x₀ x y a ≡ CasesRP X {A = A} x₀ x' y' a
 CasesRP≡ X {A = A} x₀ a p q i = CasesRP X {A = A} x₀ (p i) (q i) a
-
-{-
-CasesRPβ : ∀ {ℓ} (X : RP∞) {A : fst X → Type ℓ} (x₀ : fst X)
-  → (l : A x₀) (r : A (not* X x₀))
-  → (CasesRP X {A = A} x₀ l r x₀ ≡ l)
-   × (CasesRP X {A = A} x₀ l r (not* X x₀) ≡ r)
-fst (CasesRPβ X x₀ l r) =
-  cong (preCasesRP X x₀ l r x₀)
-    (isPropDec (isSetRPpt X _ _) (decPt X x₀ x₀) (yes refl))
-    ∙ transportRefl l
-snd (CasesRPβ X {A = A} x₀ l r) =
-    cong (preCasesRP X x₀ l r (not* X x₀))
-    (isPropDec (isSetRPpt X _ _) (decPt X x₀ (not* X x₀))
-      (no (¬not≡id X x₀)))
-  ∙ (λ i → subst A (isSetRPpt X _ _ (sym (not-charac X (not* X x₀) x₀
-                     (λ x → ¬not≡id X x₀ (λ i₁ → x (~ i₁))))) refl i) r)
-  ∙ transportRefl r
- -}
-
-Bool→BoolIso : Iso (Bool → Bool) (Bool × Bool)
-Iso.fun Bool→BoolIso f = f true , f false
-Iso.inv Bool→BoolIso (t , f) false = f
-Iso.inv Bool→BoolIso (t , f) true = t
-Iso.rightInv Bool→BoolIso (t , f) = refl
-Iso.leftInv Bool→BoolIso x = funExt λ { false → refl ; true → refl}
-
 
 CasesRPβ' : ∀ {ℓ} (X : RP∞) {A : fst X → Type ℓ} (x₀ : fst X)
   → (f : (x : fst X) → A x)

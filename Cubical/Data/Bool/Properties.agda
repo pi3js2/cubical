@@ -409,3 +409,73 @@ Iso-⊤⊎⊤-Bool .rightInv false = refl
 
 separatedBool : Separated Bool
 separatedBool = Discrete→Separated _≟_
+
+Bool≃Charac : Iso (Bool ≃ Bool) Bool
+Bool≃Charac = iso F G
+  (λ { false → refl ; true → refl})
+  λ e → Σ≡Prop isPropIsEquiv (funExt (F→G→F e))
+  where
+  F : Bool ≃ Bool → Bool
+  F e = fst e true
+
+  G : Bool → Bool ≃ Bool
+  G false = notEquiv
+  G true = idEquiv Bool
+
+  F→G→F : (e : Bool ≃ Bool) (x : Bool) → G (F e) .fst x ≡ e .fst x
+  F→G→F e with (dichotomyBool (fst e true))
+               | (dichotomyBool (fst e false))
+  ... | inl p | inl q = Empty.rec
+    (true≢false (sym (retEq e true)
+               ∙∙ cong (invEq e) (p ∙ sym q)
+               ∙∙ retEq e false))
+  ... | inl p | inr q =
+    λ { false → (λ i → G (p i) .fst false) ∙ sym q
+      ; true → (λ i → G (p i) .fst true) ∙ sym p}
+  ... | inr p | inl q =
+    λ { false → (λ i → G (p i) .fst false) ∙ sym q
+      ; true → (λ i → G (p i) .fst true) ∙ sym p}
+  ... | inr p | inr q =
+    Empty.rec (true≢false  (sym (retEq e true)
+                      ∙∙ cong (invEq e) (p ∙ sym q)
+                      ∙∙ retEq e false))
+
+¬Const-not : (a : Bool) → ¬ (a ≡ not a)
+¬Const-not false p = false≢true p
+¬Const-not true p = false≢true (sym p)
+
+CasesBool-true : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
+  → A true → A false → A x₀
+CasesBool-true false p q = q
+CasesBool-true true p q = p
+
+CasesBool : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
+  → A x₀ → A (not x₀) → (x : _) → A x
+CasesBool {A = A} false p q y = CasesBool-true {A = A} y q p
+CasesBool {A = A} true p q y = CasesBool-true {A = A} y p q
+
+CasesBoolβ : ∀ {ℓ} {A : Bool → Type ℓ} (x₀ : Bool)
+  → (l : A x₀) (r : A (not x₀))
+  → (CasesBool {A = A} x₀ l r x₀ ≡ l)
+   × (CasesBool {A = A} x₀ l r (not x₀) ≡ r)
+CasesBoolβ {A = A} false l r = refl , refl
+CasesBoolβ {A = A} true l r = refl , refl
+
+CasesBoolη : ∀ {ℓ} {A : Bool → Type ℓ} (f : (x : Bool) → A x)
+  → CasesBool {A = A} true (f true) (f false) ≡ f
+CasesBoolη f i false = f false
+CasesBoolη f i true = f true
+
+ΠBool→× : ∀ {ℓ} {A : Bool → Type ℓ} → ((x : _) → A x) → A true × A false
+ΠBool→× f = f true , f false
+
+×→ΠBool : ∀ {ℓ} {A : Bool → Type ℓ} → A true × A false → ((x : _) → A x)
+×→ΠBool (a , b) = CasesBool true a b
+
+ΠBool×Iso : ∀ {ℓ} {A : Bool → Type ℓ}
+  → Iso ((x : _) → A x) (A true × A false)
+Iso.fun ΠBool×Iso = ΠBool→×
+Iso.inv ΠBool×Iso = ×→ΠBool
+Iso.rightInv ΠBool×Iso a = refl
+Iso.leftInv ΠBool×Iso a i false = a false
+Iso.leftInv ΠBool×Iso a i true = a true
