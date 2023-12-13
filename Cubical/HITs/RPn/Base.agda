@@ -518,6 +518,13 @@ isRP∞ ℓ X = is2Type ℓ X × ∥ X ∥₁
 RP∞' : (ℓ : Level) → Type (ℓ-suc ℓ)
 RP∞' ℓ = Σ[ X ∈ Type ] isRP∞ ℓ X
 
+module RP∞'-fields {ℓ} (I : RP∞' ℓ) where
+  notRP∞' = snd I .fst .fst
+  elimRP∞' : {B : fst I → Type ℓ} → _
+  elimRP∞' {B = B} = snd I .fst .snd .snd B .fst
+  elimRP∞'β : {B : fst I → Type ℓ} → _
+  elimRP∞'β {B = B} = snd I .fst .snd .snd B .snd
+
 isRP∞→≃Bool : (ℓ : Level) (X : Type) → is2Type ℓ X → X → X ≃ Bool
 isRP∞→≃Bool ℓ X f x = compEquiv (isoToEquiv (theIs f x)) (invEquiv LiftEquiv)
   where

@@ -141,3 +141,33 @@ module _ {ℓ₁ ℓ₂ ℓ₃ : Level} {A : Type ℓ₁} {B : Type ℓ₂} {C :
   leftInv IsoPushoutPushoutGen (inl x) = refl
   leftInv IsoPushoutPushoutGen (inr x) = refl
   leftInv IsoPushoutPushoutGen (push a i) j = rUnit (push a) (~ j) i
+
+-- relational pushout
+module _ {ℓ ℓ' ℓ'' : Level} (A : Type ℓ) (B : Type ℓ') (R : A → B → Type ℓ'') where
+  data PushoutR : Type (ℓ-max ℓ (ℓ-max ℓ' ℓ'')) where
+    inlR : A → PushoutR
+    inrR : B → PushoutR
+    pushR : (a : A) (b : B) → R a b → inlR a ≡ inrR b
+
+  PushoutR' : Type _
+  PushoutR' = Pushout {A = Σ[ a ∈ A ] Σ[ b ∈ B ] R a b} fst (fst ∘ snd)
+
+  PushoutR→Pushout : PushoutR → PushoutR'
+  PushoutR→Pushout (inlR x) = inl x
+  PushoutR→Pushout (inrR x) = inr x
+  PushoutR→Pushout (pushR a b x i) = push (a , b , x) i
+
+  Pushout→PushoutR : PushoutR' → PushoutR
+  Pushout→PushoutR (inl x) = inlR x
+  Pushout→PushoutR (inr x) = inrR x
+  Pushout→PushoutR (push (a , b , x) i) = pushR a b x i
+
+  Iso-PushoutR-Pushout : Iso PushoutR PushoutR'
+  Iso.fun Iso-PushoutR-Pushout = PushoutR→Pushout
+  Iso.inv Iso-PushoutR-Pushout = Pushout→PushoutR
+  Iso.rightInv Iso-PushoutR-Pushout (inl x) = refl
+  Iso.rightInv Iso-PushoutR-Pushout (inr x) = refl
+  Iso.rightInv Iso-PushoutR-Pushout (push a i) = refl
+  Iso.leftInv Iso-PushoutR-Pushout (inlR x) = refl
+  Iso.leftInv Iso-PushoutR-Pushout (inrR x) = refl
+  Iso.leftInv Iso-PushoutR-Pushout (pushR a b x i) = refl

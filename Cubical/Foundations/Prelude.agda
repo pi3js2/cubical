@@ -490,6 +490,25 @@ Square :
   → Type _
 Square a₀₋ a₁₋ a₋₀ a₋₁ = PathP (λ i → a₋₀ i ≡ a₋₁ i) a₀₋ a₁₋
 
+CubeP : ∀ {ℓ} (A : I → I → I → Type ℓ)
+  {a₀₀₀ : A i0 i0 i0} {a₀₀₁ : A i0 i0 i1} {a₀₀₋ : PathP (λ i → A i0 i0 i) a₀₀₀ a₀₀₁}
+  {a₀₁₀ : A i0 i1 i0} {a₀₁₁ : A i0 i1 i1} {a₀₁₋ : PathP (λ i → A i0 i1 i) a₀₁₀ a₀₁₁}
+  {a₀₋₀ : PathP (λ j → A i0 j i0) a₀₀₀ a₀₁₀} {a₀₋₁ : PathP (λ j → A i0 j i1) a₀₀₁ a₀₁₁}
+  (a₀₋₋ : SquareP (λ j k → A i0 j k) a₀₀₋ a₀₁₋ a₀₋₀ a₀₋₁)
+  {a₁₀₀ : A i1 i0 i0} {a₁₀₁ : A i1 i0 i1}  {a₁₀₋ : PathP (λ k → A i1 i0 k) a₁₀₀ a₁₀₁}
+  {a₁₁₀ : A i1 i1 i0} {a₁₁₁ : A i1 i1 i1} {a₁₁₋ : PathP (λ k → A i1 i1 k) a₁₁₀ a₁₁₁}
+  {a₁₋₀ : PathP (λ j → A i1 j i0) a₁₀₀ a₁₁₀} {a₁₋₁ : PathP (λ j → A i1 j i1) a₁₀₁ a₁₁₁}
+  (a₁₋₋ : SquareP (λ j k → A i1 j k) a₁₀₋ a₁₁₋ a₁₋₀ a₁₋₁)
+  {a₋₀₀ : PathP (λ i → A i i0 i0) a₀₀₀ a₁₀₀} {a₋₀₁ : PathP (λ i → A i i0 i1) a₀₀₁ a₁₀₁}
+  (a₋₀₋ : SquareP (λ i k → A i i0 k) a₀₀₋ a₁₀₋ a₋₀₀ a₋₀₁)
+  {a₋₁₀ : PathP (λ i → A i i1 i0) a₀₁₀ a₁₁₀} {a₋₁₁ : PathP (λ i → A i i1 i1) a₀₁₁ a₁₁₁}
+  (a₋₁₋ : SquareP (λ i k → A i i1 k) a₀₁₋ a₁₁₋ a₋₁₀ a₋₁₁)
+  (a₋₋₀ : SquareP (λ i j → A i j i0) a₀₋₀ a₁₋₀ a₋₀₀ a₋₁₀)
+  (a₋₋₁ : SquareP (λ i j → A i j i1) a₀₋₁ a₁₋₁ a₋₀₁ a₋₁₁)
+  → Type ℓ
+CubeP A a₀₋₋ a₁₋₋ a₋₀₋ a₋₁₋ a₋₋₀ a₋₋₁ =
+  PathP (λ i → SquareP (λ j k → A i j k) (a₋₀₋ i) (a₋₁₋ i) (a₋₋₀ i) (a₋₋₁ i)) a₀₋₋ a₁₋₋
+
 Cube :
   {a₀₀₀ a₀₀₁ : A} {a₀₀₋ : a₀₀₀ ≡ a₀₀₁}
   {a₀₁₀ a₀₁₁ : A} {a₀₁₋ : a₀₁₀ ≡ a₀₁₁}

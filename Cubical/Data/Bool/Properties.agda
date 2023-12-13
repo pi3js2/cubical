@@ -479,3 +479,22 @@ Iso.inv ΠBool×Iso = ×→ΠBool
 Iso.rightInv ΠBool×Iso a = refl
 Iso.leftInv ΠBool×Iso a i false = a false
 Iso.leftInv ΠBool×Iso a i true = a true
+
+private
+  Bool≃Bool-elim' : ∀ {ℓ} (A : Bool ≃ Bool → Type ℓ)
+    → (a : A (idEquiv _)) (b : A notEquiv)
+    → Σ[ f ∈ ((a : Bool) → A (Iso.inv Bool≃Charac a)) ]
+         (f true ≡ a) × (f false ≡ b)
+  fst (Bool≃Bool-elim' A a b) false = b
+  fst (Bool≃Bool-elim' A a b) true = a
+  snd (Bool≃Bool-elim' A a b) = refl , refl
+
+Bool≃Bool-elim : ∀ {ℓ} (A : Bool ≃ Bool → Type ℓ)
+  → (a : A (idEquiv _)) (b : A notEquiv)
+  → Σ[ f ∈ ((e : _ ) → A e) ] (f (idEquiv _) ≡ a) × (f notEquiv ≡ b)
+Bool≃Bool-elim  {ℓ} =
+  transport (λ i → (A : isoToPath Bool≃Charac (~ i) → Type ℓ)
+                   (a : A (ua-gluePt (isoToEquiv Bool≃Charac) (~ i) (idEquiv _)))
+                   (b : A (ua-gluePt (isoToEquiv Bool≃Charac) (~ i) (notEquiv)))
+                → Σ[ f ∈ ((e : _ ) → A e)  ] (f _ ≡ a) × (f _ ≡ b))
+            λ A a b → (CasesBool true a b) , (refl , refl)
