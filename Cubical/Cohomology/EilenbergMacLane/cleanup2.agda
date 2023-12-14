@@ -59,6 +59,7 @@ open import Cubical.Algebra.Ring
 open import Cubical.Algebra.CommRing
 
 open import Cubical.HITs.RPn
+open import Cubical.HITs.RPn.Unordered
 open import Cubical.Homotopy.EilenbergMacLane.Order2
 
 open import Cubical.Relation.Nullary
@@ -69,9 +70,6 @@ open import Cubical.Data.Empty as ⊥
 open import Cubical.HITs.SmashProduct
 
 open import Cubical.Foundations.Univalence
-
-
-open import Cubical.Cohomology.EilenbergMacLane.cleanup1
 
 module Cubical.Cohomology.EilenbergMacLane.cleanup2 where
 open import Cubical.HITs.Join
@@ -98,31 +96,25 @@ module _ {ℓ} (A : (e : Bool ≃ Bool) (p : fst e true ≡ true) → Type ℓ)
                            (isSetBool true true refl refl) refl)
                      ∙ transportRefl a
 
--- move to RPn
-joinR-Push : ∀ {ℓ ℓ'} (A : Type ℓ) (B : A → Type ℓ') → Type _
-joinR-Push A B =
-  Pushout {A = A × ((a : A) → B a)}
-          (λ a → fst a , snd a (fst a)) snd
-
 module _ {ℓ ℓ'} {A : Type ℓ} {B : A → Type ℓ'} where
   private
-    F : joinR-Push A B → joinR-gen A B
+    F : UnordJoin-gen A B → UnordJoinR-gen A B
     F (inl x) = inlR x
     F (inr x) = inrR x
     F (push (i' , a) i) = pushR (i' , a i') a refl i
 
-  joinR-Equiv : Iso (joinR-gen A B) (joinR-Push A B)
-  Iso.fun joinR-Equiv (inlR x) = inl x
-  Iso.fun joinR-Equiv (inrR x) = inr x
-  Iso.fun joinR-Equiv (pushR a b x i) =
+  UnordJoinIso : Iso (UnordJoinR-gen A B) (UnordJoin-gen A B)
+  Iso.fun UnordJoinIso (inlR x) = inl x
+  Iso.fun UnordJoinIso (inrR x) = inr x
+  Iso.fun UnordJoinIso (pushR a b x i) =
     ((λ i → inl (fst a , x (~ i))) ∙ push (fst a , b)) i
-  Iso.inv joinR-Equiv = F
-  Iso.rightInv joinR-Equiv (inl x) = refl
-  Iso.rightInv joinR-Equiv (inr x) = refl
-  Iso.rightInv joinR-Equiv (push a i) j = lUnit (push a) (~ j) i
-  Iso.leftInv joinR-Equiv (inlR x) = refl
-  Iso.leftInv joinR-Equiv (inrR x) = refl
-  Iso.leftInv joinR-Equiv (pushR a b x i) j =
+  Iso.inv UnordJoinIso = F
+  Iso.rightInv UnordJoinIso (inl x) = refl
+  Iso.rightInv UnordJoinIso (inr x) = refl
+  Iso.rightInv UnordJoinIso (push a i) j = lUnit (push a) (~ j) i
+  Iso.leftInv UnordJoinIso (inlR x) = refl
+  Iso.leftInv UnordJoinIso (inrR x) = refl
+  Iso.leftInv UnordJoinIso (pushR a b x i) j =
     hcomp (λ k → λ{(i = i0) → inlR (fst a , x k)
                   ; (i = i1) → inrR b
                   ; (j = i0) → F (compPath-filler' (λ i → inl (fst a , x (~ i)))
@@ -131,14 +123,14 @@ module _ {ℓ ℓ'} {A : Type ℓ} {B : A → Type ℓ'} where
           (pushR (fst a , b (fst a)) b (λ _ → b (fst a)) i)
 
 doubleJoin : ∀ {ℓ} (I : RP∞' ℓ) (J : Type) (A : fst I → J → Type ℓ) → Type ℓ
-doubleJoin I J A = joinR-Push (fst I) λ i → joinR-gen J (A i)
+doubleJoin I J A = UnordJoin-gen (fst I) λ i → UnordJoinR-gen J (A i)
 
 module _ {ℓ : Level} (I : RP∞' ℓ) (J : Type) (A : fst I → J → Type ℓ) where
   open ΠJoinR₁ I J A
-  leftFun'-inl : (i' : fst I) → Σ J (A i') → ((j : J) → A (RP∞'-fields.notRP∞' I i') j) → (i : fst I) → joinR-gen J (A i)
-  leftFun'-inl i' t p = RP∞'-fields.elimRP∞' I {B = λ i → joinR-gen J (A i)} i' (inlR t) (inrR p)
+  leftFun'-inl : (i' : fst I) → Σ J (A i') → ((j : J) → A (RP∞'-fields.notRP∞' I i') j) → (i : fst I) → UnordJoinR-gen J (A i)
+  leftFun'-inl i' t p = RP∞'-fields.elimRP∞' I {B = λ i → UnordJoinR-gen J (A i)} i' (inlR t) (inrR p)
 
-  leftFun'-inr : (i : fst I) → ΠJoinR₁.ΠR-base I J A → joinR-gen J (A i)
+  leftFun'-inr : (i : fst I) → ΠJoinR₁.ΠR-base I J A → UnordJoinR-gen J (A i)
   leftFun'-inr i (inl x) = inlR (x i)
   leftFun'-inr i (inr x) = inrR (x i)
   leftFun'-inr i (push (t , s , q) k) = pushR (t i) (s i) (q i) k
@@ -175,13 +167,13 @@ module _ {ℓ : Level} (I : RP∞' ℓ) (J : Type) (A : fst I → J → Type ℓ
                                      (PushTop→left-push' i' x .snd) .snd
                   ∙ leftFun'-pushᵣ i' x)
 
-  leftFun' :  (i : fst I) → ΠJoinR₁.ΠR-extend I J A → joinR-gen J (A i)
+  leftFun' :  (i : fst I) → ΠJoinR₁.ΠR-extend I J A → UnordJoinR-gen J (A i)
   leftFun' i (inl (i' , t , p)) = leftFun'-inl i' t p i
   leftFun' i (inr x) = leftFun'-inr i x
   leftFun' i (push (i' , x) k) = leftFun'-push i' x i k
 
 module _ {ℓ : Level} (J : Type) (A : Bool → J → Type ℓ) where
-  leftFun : ΠJoinR₁.ΠR-extend (RP∞'∙ ℓ) J A → joinR-gen J (A true)
+  leftFun : ΠJoinR₁.ΠR-extend (RP∞'∙ ℓ) J A → UnordJoinR-gen J (A true)
   leftFun (inl (false , t , p)) = inrR p
   leftFun (inl (true , t , p)) = inlR t
   leftFun (inr (inl x)) = inlR (x true)
@@ -243,16 +235,16 @@ module _ {ℓ : Level} (J : Type) (A : Bool → J → Type ℓ) where
 
 leftFunExtCurry : {ℓ : Level} (I : RP∞' ℓ) (i : fst I)
   (J : Type) (A : fst I → J → Type ℓ)
-  → ΠJoinR₁.ΠR-extend I J A → joinR-gen J (A i)
+  → ΠJoinR₁.ΠR-extend I J A → UnordJoinR-gen J (A i)
 leftFunExtCurry = JRP∞' leftFun
 
 
 module _ {ℓ : Level} (I : RP∞' ℓ) (J : Type) (A : fst I → J → Type ℓ) where
-  leftFunExt' : (i : fst I) → ΠJoinR₁.ΠR-extend I J A → joinR-gen J (A i)
+  leftFunExt' : (i : fst I) → ΠJoinR₁.ΠR-extend I J A → UnordJoinR-gen J (A i)
   leftFunExt' i = leftFunExtCurry I i J A
 
   leftFunExt :  fst I × ΠJoinR₁.ΠR-extend I J A
-             → Σ[ i ∈ fst I ] (joinR-gen J (A i))
+             → Σ[ i ∈ fst I ] (UnordJoinR-gen J (A i))
   leftFunExt (i , p) = i , leftFunExt' i p
 
 leftFunExtId : {ℓ : Level} (J : Type) (A : Bool → J → Type ℓ)
@@ -262,30 +254,30 @@ leftFunExtId {ℓ = ℓ} J A i = lem i J A
   lem : leftFunExtCurry (RP∞'∙ ℓ) true ≡ leftFun
   lem = JRP∞'∙ leftFun
 
-joinR-Push' : ∀ {ℓ} (I : RP∞' ℓ) (J : Type) (A : fst I → J → Type ℓ) → Type ℓ
-joinR-Push' I J A = Pushout {A = fst I × ΠJoinR₁.ΠR-extend I J A} (leftFunExt I J A) snd
+UnordJoin-gen' : ∀ {ℓ} (I : RP∞' ℓ) (J : Type) (A : fst I → J → Type ℓ) → Type ℓ
+UnordJoin-gen' I J A = Pushout {A = fst I × ΠJoinR₁.ΠR-extend I J A} (leftFunExt I J A) snd
 
 module _ {ℓ ℓ' : Level} (J : Type) (B : (I : RP∞' ℓ) (A : fst I → J → Type ℓ) → Type ℓ')
   (lef : (I : RP∞' ℓ) (A : fst I → J → Type ℓ) → ΠJoinR₁.ΠR-extend I J A → B I A)
-  (ri : (A : Bool → J → Type ℓ) → joinR-gen J (A true) → B (RP∞'∙ ℓ) A)
+  (ri : (A : Bool → J → Type ℓ) → UnordJoinR-gen J (A true) → B (RP∞'∙ ℓ) A)
   (coh : ((A : Bool → J → Type ℓ) (x : _) → lef (RP∞'∙ ℓ) A x ≡ ri A (leftFun J A x)))
   where
   inder : (I : RP∞' ℓ) (i : fst I) (A : fst I → J → Type ℓ)
-    → Σ[ F ∈ (joinR-gen J (A i) → B I A) ]
+    → Σ[ F ∈ (UnordJoinR-gen J (A i) → B I A) ]
               ((f : _) → F (leftFunExt I J A (i , f) .snd) ≡ lef I A f)
   inder = JRP∞' λ A → ri A , λ f → cong (ri A) (funExt⁻ (leftFunExtId J A) f) ∙ sym (coh A f)
 
-  joinR-Push'-rec : (I : RP∞' ℓ) (A : fst I → J → Type ℓ) → joinR-Push' I J A → B I A
-  joinR-Push'-rec I A (inl (i , t)) = inder I i A .fst t
-  joinR-Push'-rec I A (inr x) = lef I A x
-  joinR-Push'-rec I A (push (i , t) k) = inder I i A .snd t k
+  UnordJoin-gen'-rec : (I : RP∞' ℓ) (A : fst I → J → Type ℓ) → UnordJoin-gen' I J A → B I A
+  UnordJoin-gen'-rec I A (inl (i , t)) = inder I i A .fst t
+  UnordJoin-gen'-rec I A (inr x) = lef I A x
+  UnordJoin-gen'-rec I A (push (i , t) k) = inder I i A .snd t k
 
 FullIso₁ : ∀ {ℓ} (I J : RP∞' ℓ)
   (A : fst I → fst J → Type ℓ)
-  → Iso (doubleJoin I (fst J) A) (joinR-Push' I (fst J) A)
+  → Iso (doubleJoin I (fst J) A) (UnordJoin-gen' I (fst J) A)
 FullIso₁ {ℓ = ℓ} I J A =
   pushoutIso _ _ _ _
-    (Σ-cong-equiv-snd λ _ → invEquiv (_ , ΠR-extend→Π-equiv I J A))
+    (Σ-cong-equiv-snd λ _ → invEquiv (ΠR-extend≃ΠUnordJoinR I J A))
      (idEquiv _)
      (invEquiv (_ , ΠR-extend→Π-equiv I J A))
      (funExt (λ {(i , f) → ΣPathP (refl , help J I i A f)}))
@@ -293,8 +285,8 @@ FullIso₁ {ℓ = ℓ} I J A =
   where
   help : (J I : RP∞' ℓ) (i : fst I)
     (A : fst I → fst J → Type ℓ)
-    (f : (i₁ : fst I) → joinR-gen (fst J) (A i₁))
-    → f i ≡ leftFunExt' I (fst J) A i (invEq (_ , ΠR-extend→Π-equiv I J A) f)
+    (f : (i₁ : fst I) → UnordJoinR-gen (fst J) (A i₁))
+    → f i ≡ leftFunExt' I (fst J) A i (invEq (ΠR-extend≃ΠUnordJoinR I J A) f)
   help J = JRP∞' λ A f
     → main J A (f true , f false)
     ∙ cong (leftFun (fst J) A) (sym (funExt⁻ (help' J A) f))
@@ -302,10 +294,10 @@ FullIso₁ {ℓ = ℓ} I J A =
     where
     module _ (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) where
       open ΠR-extend→Π-equiv-base-lemmas J A
-      help' : invEq (ΠJoinR₁.ΠR-extend→Π (RP∞'∙ ℓ) (fst J) A , ΠR-extend→Π-equiv (RP∞'∙ ℓ) J A)
+      help' : invEq (ΠR-extend≃ΠUnordJoinR (RP∞'∙ ℓ) J A)
             ≡ invEq alt
       help' = cong invEq (Σ≡Prop (λ _ → isPropIsEquiv _)
-               (funExt λ f → funExt λ t → sym (ΠR-extend→Π-alt≡ A f t)
+               (funExt λ f → funExt λ t → sym (ΠR-extend→Π-Bool≡ A f t)
               ∙ funExt⁻ (funExt⁻ (sym altid) f) t))
 
       pre-main : (f : _) → ΠR-extend→× J A f .fst ≡ leftFun (fst J) A f
@@ -321,20 +313,27 @@ FullIso₁ {ℓ = ℓ} I J A =
       pre-main (push (true , inr x) i) = refl
       pre-main (push (true , push a i₁) i) = refl
 
-      main : (f : joinR-gen (fst J) (A true) × joinR-gen (fst J) (A false))
+      main : (f : UnordJoinR-gen (fst J) (A true) × UnordJoinR-gen (fst J) (A false))
            → fst f
             ≡ leftFun (fst J) A (×→ΠR-extend J A f)
       main f = cong fst (sym (×→ΠR-extend→× {J = J} A f))
              ∙ pre-main (×→ΠR-extend J A f)
 
 -- TODO --verify is iso
-
 module ΠJoinR₂ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
   open ΠJoinR-gen I (fst J) A
          (Σ[ x ∈ fst J ⊎ (fst I ≃ fst J) ]
-           ((i : fst I) → A i (fst (eval⊎≃Equiv {I = I} {J = J}) x i)))
-         (λ i p → Iso.inv (TotAIso I J {A}) p i .fst)
-         (λ i x → Iso.inv (TotAIso I J {A}) x i .snd)
+           ((i : fst I) → A i (fst (eval⊎≃Equiv I J) x i)))
+         (λ i p → Iso.inv (UnordΠUnordΣ-charac I J {A}) p i .fst)
+         (λ i x → Iso.inv (UnordΠUnordΣ-charac I J {A}) x i .snd)
+       public
+
+module ΠJoinR₃ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
+  open ΠJoinR-gen I (fst J) A
+         (Σ[ x ∈ fst J ⊎ (fst I ≃ fst J) ]
+           ((i : fst I) → A i (fst (eval⊎≃Equiv I J) x i)))
+         (λ i p → Iso.inv (UnordΠUnordΣ-charac I J {A}) p i .fst)
+         (λ i x → Iso.inv (UnordΠUnordΣ-charac I J {A}) x i .snd)
        public
 
   module _ (i : fst I) (j : fst J) where
@@ -446,8 +445,8 @@ module ΠJoinR₂ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) wh
 
 -- more general
 module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
-  open ΠJoinR₂ I J A
-  leftFun-inr : (i : fst I) → ΠR-base → joinR-gen (fst J) (A i)
+  open ΠJoinR₃ I J A
+  leftFun-inr : (i : fst I) → ΠR-base → UnordJoinR-gen (fst J) (A i)
   leftFun-inr i (inl (inl x , y)) = inlR (x , y i)
   leftFun-inr i (inl (inr x , y)) = inlR (fst x i , y i)
   leftFun-inr i (inr x) = inrR (x i)
@@ -494,14 +493,14 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
          (PushTop→left-push' i' x .snd) .snd
      ∙ leftFun-cohᵣ i' x)
 
-  leftFun*-full : (i : fst I) → ΠR-extend → joinR-gen (fst J) (A i)
+  leftFun*-full : (i : fst I) → ΠR-extend → UnordJoinR-gen (fst J) (A i)
   leftFun*-full i (inl (i' , a , b)) = leftFun'-inl I (fst J) A i' a b i
   leftFun*-full i (inr x) = leftFun-inr i x
   leftFun*-full i (push (i' , x) i₁) = leftFun-coh i' x i i₁
 
   leftFun-cohₗ**-fill : (i' : fst I) (j : fst J) (e : fst I ≃ fst J)
     (p : fst e i' ≡ j) (f : (i₁ : fst I) (j₁ : fst J) → A i₁ j₁)
-    → (i k r : _) → joinR-gen (fst J) (A i')
+    → (i k r : _) → UnordJoinR-gen (fst J) (A i')
   leftFun-cohₗ**-fill i' j e p f i k r =
     hfill (λ r → λ {(i = i0) → inlR (p (~ r) , f i' (p (~ r)))
                    ; (i = i1) → pushR (j , f i' j) (f i') (λ _ → f i' j) k
@@ -544,14 +543,14 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
       ∙ leftFun-cohᵣ** i' j a)
 
   leftMap** : (i : fst I)
-    → ΠR-extend** → joinR-gen (fst J) (A i)
+    → ΠR-extend** → UnordJoinR-gen (fst J) (A i)
   leftMap** i (inl (i' , a , b)) = leftFun'-inl I (fst J) A i' a b i
   leftMap** i (inr x) = leftFun-inr i x
   leftMap** i (push (i' , j , a) k) = leftFun-coh** i' j a i k
 
 leftMapBool : ∀ {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ)
   → (i : Bool)
-  → ΠJoinR₂.ΠR-extend** (RP∞'∙ ℓ) J A → joinR-gen (fst J) (A i)
+  → ΠJoinR₃.ΠR-extend** (RP∞'∙ ℓ) J A → UnordJoinR-gen (fst J) (A i)
 leftMapBool J A i (inl (i' , a , b)) = leftFun'-inl (RP∞'∙ _) (fst J) A i' a b i
 leftMapBool J A i (inr x) = leftFun-inr (RP∞'∙ _) J A i x
 leftMapBool J A false (push (false , j , a) k) = leftFun-cohₗ** (RP∞'∙ _) J A false j a k
@@ -560,7 +559,7 @@ leftMapBool J A true (push (false , j , a) k) = leftFun-cohᵣ** (RP∞'∙ _) J
 leftMapBool J A true (push (true , j , a) k) = leftFun-cohₗ** (RP∞'∙ _) J A true j a k
 
 leftMapBool≡ : ∀ {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ)
-  → (i : Bool) (x : ΠJoinR₂.ΠR-extend** (RP∞'∙ ℓ) J A)
+  → (i : Bool) (x : ΠJoinR₃.ΠR-extend** (RP∞'∙ ℓ) J A)
   → leftMapBool J A i x ≡ leftMap** (RP∞'∙ _) J A i x
 leftMapBool≡ J A i (inl x) = refl
 leftMapBool≡ J A i (inr x) = refl
@@ -570,7 +569,7 @@ leftMapBool≡ J A false (push (true , j , a) i₁) k = lUnit (leftFun-cohᵣ** 
 leftMapBool≡ J A true (push (true , j , a) i₁) k = lUnit (leftFun-cohₗ** (RP∞'∙ _) J A true j a) k i₁
 
 leftFun*-fullBool : ∀ {ℓ} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) (i : Bool)
-  → ΠJoinR₂.ΠR-extend (RP∞'∙ ℓ) J A → joinR-gen (fst J) (A i)
+  → ΠJoinR₂.ΠR-extend (RP∞'∙ ℓ) J A → UnordJoinR-gen (fst J) (A i)
 leftFun*-fullBool J A i (inl (i' , a , b)) = leftFun'-inl (RP∞'∙ _) (fst J) A i' a b i
 leftFun*-fullBool J A i (inr x) = leftFun-inr (RP∞'∙ _) J A i x
 leftFun*-fullBool J A false (push (false , a) k) = leftFun-cohₗ (RP∞'∙ _) J A false a k
@@ -590,21 +589,21 @@ leftFunBool≡' J A true (push (true , a) k) j = lUnit (leftFun-cohₗ (RP∞'�
 
 Better! : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → Type ℓ
 Better! I J A =
-  Pushout {A = fst I × ΠJoinR₂.ΠR-extend** I J A}
-  {B = Σ[ i ∈ fst I ] joinR-gen (fst J) (A i)}
-  {C = ΠJoinR₂.ΠR-extend** I J A}
+  Pushout {A = fst I × ΠJoinR₃.ΠR-extend** I J A}
+  {B = Σ[ i ∈ fst I ] UnordJoinR-gen (fst J) (A i)}
+  {C = ΠJoinR₃.ΠR-extend** I J A}
   (λ x → fst x , leftMap** I J A (fst x) (snd x)) snd
 
 module _ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
-  btm-map :  (Σ[ i ∈ fst I ] (joinR-gen (fst J) (A i)))
-    → joinR-gen (fst J) λ j → joinR-gen (fst I) λ i → A i j
+  btm-map :  (Σ[ i ∈ fst I ] (UnordJoinR-gen (fst J) (A i)))
+    → UnordJoinR-gen (fst J) λ j → UnordJoinR-gen (fst I) λ i → A i j
   btm-map (i , inlR x) = inlR (fst x , inlR (i , snd x))
   btm-map (i , inrR x) = inrR λ j → inlR (i , x j)
   btm-map (i , pushR a b x i₁) = pushR (fst a , inlR (i , snd a)) (λ j → inlR (i , b j)) (λ t → inlR (i , x t)) i₁
 
 leftMapsAgree : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
   (i : fst I) (x : ΠJoinR₂.ΠR-extend I J A)
-  → leftMap** I J A i (ΠJoinR₂.ΠR-extend→New I J A x) ≡ leftFun*-full I J A i x
+  → leftMap** I J A i (ΠJoinR₃.ΠR-extend→New I J A x) ≡ leftFun*-full I J A i x
 leftMapsAgree I J A i (inl x) = refl
 leftMapsAgree I J A i (inr x) = refl
 leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
@@ -643,35 +642,35 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
                (f : (i : Bool) → A i x) (q : (λ j → p j x) ≡ f)
             → Cube (λ j k → pushR (x , f false)  (p false) (funExt⁻ q false) (~ k))
                     (fill1 x p (f true) (funExt⁻ q true))
-                    (λ i k → leftMapBool J A false (ΠJoinR₂.push-case (RP∞'∙ ℓ) J A true (push ((inl x , f) , p , (funExt⁻ q)) i) k))
+                    (λ i k → leftMapBool J A false (ΠJoinR₃.push-case (RP∞'∙ ℓ) J A true (push ((inl x , f) , p , (funExt⁻ q)) i) k))
                     (λ i k → pushR (x , f false)  (p false) (funExt⁻ q false) (~ k ∨ i))
                     (λ _ _ → inrR (p false)) λ i j → pushR (x , f false) (p false) (funExt⁻ q false) i
     fill-inl x p = J> ((λ i j k → leftMapBool J A false
-                        (ΠJoinR₂.push-case-filler-inl (RP∞'∙ _) J A true x _ p (λ _ → refl) i k (~ j)))
+                        (ΠJoinR₃.push-case-filler-inl (RP∞'∙ _) J A true x _ p (λ _ → refl) i k (~ j)))
                      ▷ sym (fill1-refl≡ x p))
 
     fill-inr : (x : Bool ≃ fst J) (p : (i : Bool) (j : fst J) → A i j)
                (f : (i : Bool) → A i (fst x i)) (q : (λ j → p j (fst x j)) ≡ f)
             → Cube (λ j k → pushR (fst x false , f false)  (p false) (funExt⁻ q false) (~ k))
                     (fill1 (fst x true) p (f true) (funExt⁻ q true))
-                    (λ i k → leftMapBool J A false (ΠJoinR₂.push-case (RP∞'∙ ℓ) J A true (push ((inr x , f) , p , (funExt⁻ q)) i) k))
+                    (λ i k → leftMapBool J A false (ΠJoinR₃.push-case (RP∞'∙ ℓ) J A true (push ((inr x , f) , p , (funExt⁻ q)) i) k))
                     (λ i k → pushR (fst x false , f false)  (p false) (funExt⁻ q false) (~ k ∨ i))
                     (λ _ _ → inrR (p false))
                     λ i j → pushR (fst x false , f false) (p false) (funExt⁻ q false) i
-    fill-inr x p = J> ((λ i j k → leftMapBool J A false (ΠJoinR₂.push-case-filler-inr (RP∞'∙ _) J A true x _ p (λ _ → refl) i k (~ j)))
+    fill-inr x p = J> ((λ i j k → leftMapBool J A false (ΠJoinR₃.push-case-filler-inr (RP∞'∙ _) J A true x _ p (λ _ → refl) i k (~ j)))
                       ▷ sym (fill1-refl≡ (fst x true) p))
 
     fill2-inl : (x : fst J) (p : (i : Bool) (j : fst J) → A i j)
                (f : (i : Bool) → A i x) (q : (λ j → p j x) ≡ f)
             → Cube (λ j k → inlR (x , f true))
                     (fill2 x p (f true) (funExt⁻ q true))
-                    (λ i k → leftMapBool J A true (ΠJoinR₂.push-case (RP∞'∙ ℓ) J A true (push ((inl x , f) , p , (funExt⁻ q)) i) k))
+                    (λ i k → leftMapBool J A true (ΠJoinR₃.push-case (RP∞'∙ ℓ) J A true (push ((inl x , f) , p , (funExt⁻ q)) i) k))
                     (λ i k → pushR (x , f true)  (p true) (funExt⁻ q true) (k ∧ i))
                     (λ i j → inlR (x , f true))
                     λ i j → pushR (x , f true) (p true) (funExt⁻ q true) i
     fill2-inl x p =
       J> ((λ i j k → leftMapBool J A true
-           (ΠJoinR₂.push-case-filler-inl (RP∞'∙ _) J A true x
+           (ΠJoinR₃.push-case-filler-inl (RP∞'∙ _) J A true x
              _ p (λ _ → refl) i k (~ j)))
       ▷ sym (fill2-refl≡ x p))
 
@@ -679,7 +678,7 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
                (f : (i : Bool) → A i (fst x i)) (q : (λ j → p j (fst x j)) ≡ f)
             → Cube (λ j k → inlR (fst x true , f true))
                     (fill2 (fst x true) p (f true) (funExt⁻ q true))
-                    (λ i k → leftMapBool J A true (ΠJoinR₂.push-case (RP∞'∙ ℓ) J A true (push ((inr x , f) , p , (funExt⁻ q)) i) k))
+                    (λ i k → leftMapBool J A true (ΠJoinR₃.push-case (RP∞'∙ ℓ) J A true (push ((inr x , f) , p , (funExt⁻ q)) i) k))
                     (λ i k → pushR (fst x true , f true)  (p true) (funExt⁻ q true) (k ∧ i))
                     (λ i j → inlR (fst x true , f true))
                     λ i j → pushR (fst x true , f true) (p true) (funExt⁻ q true) i
@@ -692,7 +691,7 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
         hcomp (λ r → λ {(i = i0) → inlR (fst x true , p true (fst x true))
                    ; (i = i1) → leftMapBool J A true (compPath-filler' refl (push (true , (fst x true) , (inr p))) (~ j ∧ r) k)
                    ; (j = i0) → leftMapBool J A true
-                                  (ΠJoinR₂.push-case-filler-inr (RP∞'∙ ℓ) J A true x
+                                  (ΠJoinR₃.push-case-filler-inr (RP∞'∙ ℓ) J A true x
                                     (λ i → p i (fst x i)) p (λ _ → refl) i k r)
                    ; (j = i1) → pushR (fst x true , p true (fst x true)) (p true) refl (k ∧ i)
                    ; (k = i0) → inlR (fst x true , p true (fst x true))
@@ -705,7 +704,7 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
                    (pushR (fst x true , p true (fst x true)) (p true) refl (k ∧ i)))
 
     mainₗ : (x : _)
-      → cong (leftMapBool J A false) (ΠJoinR₂.push-case (RP∞'∙ ℓ) J A true x)
+      → cong (leftMapBool J A false) (ΠJoinR₃.push-case (RP∞'∙ ℓ) J A true x)
       ≡ leftFun-cohᵣ (RP∞'∙ ℓ) J A true x
     mainₗ (inl ((inl x , snd₂) , snd₁)) = refl
     mainₗ  (inl ((inr x , snd₂) , snd₁)) = refl
@@ -714,7 +713,7 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
     mainₗ (push ((inr x , f) , p , q) i) j k = fill-inr x p f (funExt q) i j k
 
     mainᵣ : (x : _)
-      → cong (leftMapBool J A true) (ΠJoinR₂.push-case (RP∞'∙ ℓ) J A true x)
+      → cong (leftMapBool J A true) (ΠJoinR₃.push-case (RP∞'∙ ℓ) J A true x)
       ≡ leftFun-cohₗ (RP∞'∙ ℓ) J A true x
     mainᵣ (inl ((inl x , snd₂) , snd₁)) = refl
     mainᵣ  (inl ((inr x , snd₂) , snd₁)) = refl
@@ -724,7 +723,7 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
 
 
     main : (k : _) (x : _)
-      → cong (leftMapBool J A k) (ΠJoinR₂.push-case (RP∞'∙ ℓ) J A true x)
+      → cong (leftMapBool J A k) (ΠJoinR₃.push-case (RP∞'∙ ℓ) J A true x)
       ≡ cong (leftFun*-full (RP∞'∙ ℓ) J A k) (push (true , x))
     main false x = mainₗ x ∙ lUnit _
     main  true x = mainᵣ x ∙ lUnit _
@@ -732,10 +731,10 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
   h1 : (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) (k : _) → leftMapBool J A k ≡ leftMap** (RP∞'∙ _) J A k
   h1 J A k = funExt (leftMapBool≡ J A k)
   help : (I : RP∞' ℓ) (i' : fst I) (A : fst I → fst J → Type ℓ) (i : fst I) (a : _)
-    → cong (leftMap** I J A i) (cong (ΠJoinR₂.ΠR-extend→New I J A) (push (i' , a)))
+    → cong (leftMap** I J A i) (cong (ΠJoinR₃.ΠR-extend→New I J A) (push (i' , a)))
      ≡ cong (leftFun*-full I J A i) (push (i' , a))
   help = JRP∞' λ A k x → (λ j → cong (h1 J A k (~ j))
-      (cong (ΠJoinR₂.ΠR-extend→New (RP∞'∙ ℓ) J A) (push (true , x))))
+      (cong (ΠJoinR₃.ΠR-extend→New (RP∞'∙ ℓ) J A) (push (true , x))))
       ∙ main J A k x
 
 ΠR-pushout→Better! : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
@@ -743,12 +742,12 @@ leftMapsAgree {ℓ = ℓ} I J A i (push (i' , a) k) l = help I i' A i a l k
        (λ i → fst i , leftFun*-full I J A (fst i) (snd i)) snd
   → Better! I J A
 ΠR-pushout→Better! I J A (inl x) = inl x
-ΠR-pushout→Better! I J A (inr x) = inr (ΠJoinR₂.ΠR-extend→New I J A x)
+ΠR-pushout→Better! I J A (inr x) = inr (ΠJoinR₃.ΠR-extend→New I J A x)
 ΠR-pushout→Better! I J A (push a i) =
   ((λ t → inl (fst a , leftMapsAgree I J A (fst a) (snd a) (~ t)))
-  ∙ push (fst a , ΠJoinR₂.ΠR-extend→New I J A (snd a))) i
+  ∙ push (fst a , ΠJoinR₃.ΠR-extend→New I J A (snd a))) i
 
-module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₂.ΠR-extend** I J A → Type ℓ}
+module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₃.ΠR-extend** I J A → Type ℓ}
          (inler : (A : Bool → Bool → Type ℓ) (a : A true true) (b : (t : Bool) → A false t)
          → Targ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inl (true , (true , a) , b)))
          (inr-inr : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (t : (i : fst I) (j : fst J) → A i j)
@@ -850,7 +849,7 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
       h' = JRP∞'∙ inler
 
 
-  ΠR-extend→Inr : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (x : ΠJoinR₂.ΠR-base I J A)
+  ΠR-extend→Inr : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (x : ΠJoinR₃.ΠR-base I J A)
     → Targ I J A (inr x)
   ΠR-extend→Inr I J A (inl (inl j , f)) = inr-inl-inl* I J j A f .fst
   ΠR-extend→Inr I J A (inl (inr e , f)) = inr-inl-inr* I J e A f .fst
@@ -935,11 +934,11 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
     push-inr*≡ A = Bool≃Bool-elim-idβ _ (push-inr*-bool A)
 
   cohr-b : (A : Bool → Bool → Type ℓ)
-      (x : ΠJoinR₂.TY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true)
+      (x : ΠJoinR₃.TY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true)
         → PathP (λ k → Targ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (push (true , true , x) k))
-         (ΠR-extend→Inl (RP∞'∙ ℓ) true (RP∞'∙ ℓ) (fst (fst (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x))) A
-           (snd (fst (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x))) (snd (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x)))
-         (ΠR-extend→Inr (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (ΠJoinR₂.TY→R (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x))
+         (ΠR-extend→Inl (RP∞'∙ ℓ) true (RP∞'∙ ℓ) (fst (fst (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x))) A
+           (snd (fst (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x))) (snd (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x)))
+         (ΠR-extend→Inr (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (ΠJoinR₃.TY→R (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true x))
   cohr-b A (inl (inl (f , g , p))) =
       ΠR-extend→Inl≡ A (f true) g
     ◁ push-inl A f g p
@@ -951,21 +950,21 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
 
   abstract
     cohr' : (J : RP∞' ℓ) (j : fst J) (A : Bool → fst J → Type ℓ)
-      → (x : ΠJoinR₂.TY (RP∞'∙ ℓ) J A true j) → PathP (λ k → Targ (RP∞'∙ ℓ) J A (push (true , j , x) k))
-           (ΠR-extend→Inl (RP∞'∙ ℓ) true J (fst (fst (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ)  J A true j x))) A
-             (snd (fst (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) J A true j x))) (snd (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) J A true j x)))
-           (ΠR-extend→Inr (RP∞'∙ ℓ) J A (ΠJoinR₂.TY→R (RP∞'∙ ℓ) J A true j x))
+      → (x : ΠJoinR₃.TY (RP∞'∙ ℓ) J A true j) → PathP (λ k → Targ (RP∞'∙ ℓ) J A (push (true , j , x) k))
+           (ΠR-extend→Inl (RP∞'∙ ℓ) true J (fst (fst (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ)  J A true j x))) A
+             (snd (fst (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) J A true j x))) (snd (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) J A true j x)))
+           (ΠR-extend→Inr (RP∞'∙ ℓ) J A (ΠJoinR₃.TY→R (RP∞'∙ ℓ) J A true j x))
     cohr' = JRP∞' cohr-b
 
     cohr : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J) (A : fst I → fst J → Type ℓ)
-      → (x : ΠJoinR₂.TY I J A i j) → PathP (λ k → Targ I J A (push (i , j , x) k))
-           (ΠR-extend→Inl I i J (fst (fst (ΠJoinR₂.TY→Lₗ I J A i j x))) A
-             (snd (fst (ΠJoinR₂.TY→Lₗ I J A i j x))) (snd (ΠJoinR₂.TY→Lₗ I J A i j x)))
-           (ΠR-extend→Inr I J A (ΠJoinR₂.TY→R I J A i j x))
+      → (x : ΠJoinR₃.TY I J A i j) → PathP (λ k → Targ I J A (push (i , j , x) k))
+           (ΠR-extend→Inl I i J (fst (fst (ΠJoinR₃.TY→Lₗ I J A i j x))) A
+             (snd (fst (ΠJoinR₃.TY→Lₗ I J A i j x))) (snd (ΠJoinR₃.TY→Lₗ I J A i j x)))
+           (ΠR-extend→Inr I J A (ΠJoinR₃.TY→R I J A i j x))
     cohr = JRP∞' cohr'
 
     cohr-id : (A : Bool → Bool → Type ℓ) (k : Bool)
-      (a : ΠJoinR₂.TY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true)
+      (a : ΠJoinR₃.TY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true)
       → cohr (RP∞'∙ ℓ) true (RP∞'∙ ℓ) true A a
       ≡ cohr-b A a
     cohr-id A k a = (λ i → h i (RP∞'∙ ℓ) true A a)
@@ -977,12 +976,12 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
       h2 : cohr' (RP∞'∙ ℓ) true ≡ cohr-b
       h2 = JRP∞'∙ cohr-b
 
-  ΠR-extend→ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₂.ΠR-extend** I J A) → Targ I J A x
+  ΠR-extend→ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₃.ΠR-extend** I J A) → Targ I J A x
   ΠR-extend→ I J A (inl (f , (j , a) , b)) = ΠR-extend→Inl I f J j A a b
   ΠR-extend→ I J A (inr x) = ΠR-extend→Inr I J A x
   ΠR-extend→ I J A (push (i , j , x) k) = cohr I i J j A x k
 
-  module ID (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₂.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
+  module ID (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₃.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
             (G-inler : (A : Bool → Bool → Type ℓ) (a : A true true) (b : (t : Bool) → A false t) (i : Bool)
                     → G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inl (true , (true , a) , b)) i ≡ inler A a b)
             (G-inr-inr : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) (t : (i : fst I) (j : fst J) → A i j)
@@ -1358,16 +1357,16 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
 
     help' : (A : Bool → Bool → Type ℓ)
             (k : Bool)
-            (a : ΠJoinR₂.TY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true)
+            (a : ΠJoinR₃.TY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true)
          → SquareP (λ t s → Targ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (push (true , true , a) s))
                     (λ s → G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (push (true , true , a) s) k)
                     (cohr-b A a)
                     (GID-inl (RP∞'∙ ℓ) true (RP∞'∙ ℓ)
-                      (fst (fst (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a))) A
-                      (snd (fst (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a)))
-                      (snd (ΠJoinR₂.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a)) k)
+                      (fst (fst (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a))) A
+                      (snd (fst (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a)))
+                      (snd (ΠJoinR₃.TY→Lₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a)) k)
                     (GID-inr (RP∞'∙ ℓ) k (RP∞'∙ ℓ) A
-                      (ΠJoinR₂.TY→R (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a))
+                      (ΠJoinR₃.TY→R (RP∞'∙ ℓ) (RP∞'∙ ℓ) A true true a))
     help' A k (inl (inl (f , g , p))) = help-inl-inl A k f g p
     help' A k (inl (inr (e , pf , f , g , p))) = help-inl-inr A k e pf .fst f g p
     help' A k (inr x) = help-inr' A k x
@@ -1397,13 +1396,13 @@ module MEGA {ℓ : Level} {Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
       where
       help : (I : RP∞' ℓ) (i : fst I) (J : RP∞' ℓ) (j : fst J)
              (A : fst I → fst J → Type ℓ)
-             (k : fst I) (a : ΠJoinR₂.TY I J A i j)
+             (k : fst I) (a : ΠJoinR₃.TY I J A i j)
           → SquareP (λ t s → Targ I J A (push (i , j , a) s))
                      (λ s → G I J A (push (i , j , a) s) k)
                      (cohr I i J j A a)
-                     (GID-inl I i J (fst (fst (ΠJoinR₂.TY→Lₗ I J A i j a))) A
-                       (snd (fst (ΠJoinR₂.TY→Lₗ I J A i j a))) (snd (ΠJoinR₂.TY→Lₗ I J A i j a)) k)
-                     (GID-inr I k J A (ΠJoinR₂.TY→R I J A i j a))
+                     (GID-inl I i J (fst (fst (ΠJoinR₃.TY→Lₗ I J A i j a))) A
+                       (snd (fst (ΠJoinR₃.TY→Lₗ I J A i j a))) (snd (ΠJoinR₃.TY→Lₗ I J A i j a)) k)
+                     (GID-inr I k J A (ΠJoinR₃.TY→R I J A i j a))
       help = JRP∞' (JRP∞' λ A k a → help' A k a ▷ sym (cohr-id A k a))
 
 
@@ -1427,15 +1426,15 @@ EquivJ* {ℓ = ℓ} C {T1 = T1} {P = P} q T2 e =
           (isContrSingl {A = (A : Bool → Bool → Type ℓ) → C A → Type ℓ} T1)
 
 
-record 𝕄 {ℓ : Level} (Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₂.ΠR-extend** I J A → Type ℓ)
-        (Targ' : (A : Bool → Bool → Type ℓ) → ΠJoinR₂.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A → Type ℓ)
-        (e : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₂.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A)
+record 𝕄 {ℓ : Level} (Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₃.ΠR-extend** I J A → Type ℓ)
+        (Targ' : (A : Bool → Bool → Type ℓ) → ΠJoinR₃.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A → Type ℓ)
+        (e : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₃.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A)
           → Targ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x ≃ Targ' A x)
-        (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₂.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
-        (pushG : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₂.newBack (RP∞'∙ ℓ) (RP∞'∙ ℓ) A) (a : Bool)
+        (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₃.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
+        (pushG : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₃.newBack (RP∞'∙ ℓ) (RP∞'∙ ℓ) A) (a : Bool)
           → PathP (λ i → Targ' A (push x i))
-                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inl (ΠJoinR₂.newBack→ₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a))
-                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inr (ΠJoinR₂.newBack→ᵣ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a))) : Type (ℓ-suc ℓ)
+                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inl (ΠJoinR₃.newBack→ₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a))
+                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inr (ΠJoinR₃.newBack→ᵣ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a))) : Type (ℓ-suc ℓ)
         where
   field
     inler : (A : Bool → Bool → Type ℓ) (a : A true true) (b : (t : Bool) → A false t)
@@ -1551,8 +1550,8 @@ record 𝕄 {ℓ : Level} (Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Ty
                (λ i _ → G-inler A (g true true) (g false) x i)
                λ s t → fst (e A _) (G-inr-inl-inl₂ (RP∞'∙ ℓ) A (λ i → g i true) x g (λ _ → refl) s t)
 
-MEGA-inst↓ : ∀ {ℓ} (Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₂.ΠR-extend** I J A → Type ℓ)
-        (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₂.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
+MEGA-inst↓ : ∀ {ℓ} (Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₃.ΠR-extend** I J A → Type ℓ)
+        (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₃.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
      → 𝕄 Targ (Targ _ _) (λ _ _ → idEquiv _) G (λ A e a i → G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (push e i) a)
      →  (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
      → Σ[ f ∈ ((x : _) → Targ I J A x) ] ((i : fst I) (x : _) → G _ _ A x i ≡ f x)
@@ -1566,20 +1565,20 @@ MEGA-inst↓ Targ G M I J A = (ΠR-extend→ I J A) , (λ i → G.GID I i J A)
   module G = ID G G-inler G-inr-inr G-inr-inl-inl₁ G-inr-inl-inl₂ G-inr-inl-inr₁ G-inr-inl-inr₂
                    G-push-inl G-coh-inr G-coh-eq1 G-coh-eq2 G-coh-eq-l
 MEGA-inst :
-  ∀ {ℓ} (Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₂.ΠR-extend** I J A → Type ℓ)
-        (Targ' : (A : Bool → Bool → Type ℓ) → ΠJoinR₂.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A → Type ℓ)
-        (e : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₂.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A)
+  ∀ {ℓ} (Targ : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → ΠJoinR₃.ΠR-extend** I J A → Type ℓ)
+        (Targ' : (A : Bool → Bool → Type ℓ) → ΠJoinR₃.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A → Type ℓ)
+        (e : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₃.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A)
           → Targ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x ≃ Targ' A x)
-        (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₂.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
-        (pushG : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₂.newBack (RP∞'∙ ℓ) (RP∞'∙ ℓ) A) (a : Bool)
+        (G : (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → (x : ΠJoinR₃.ΠR-extend** I J A) → (i : fst I) → Targ I J A x)
+        (pushG : (A : Bool → Bool → Type ℓ) (x : ΠJoinR₃.newBack (RP∞'∙ ℓ) (RP∞'∙ ℓ) A) (a : Bool)
           → PathP (λ i → Targ' A (push x i))
-                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inl (ΠJoinR₂.newBack→ₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a))
-                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inr (ΠJoinR₂.newBack→ᵣ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a)))
+                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inl (ΠJoinR₃.newBack→ₗ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a))
+                   (fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (inr (ΠJoinR₃.newBack→ᵣ (RP∞'∙ ℓ) (RP∞'∙ ℓ) A x)) a)))
      → ((λ A x a i → fst (e A _) (G (RP∞'∙ ℓ) (RP∞'∙ ℓ) A (push x i) a)) ≡ pushG)
      → 𝕄 Targ Targ' e G pushG
      → (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ)
      → Σ[ f ∈ ((x : _) → Targ I J A x) ] ((i : fst I) (x : _) → G _ _ A x i ≡ f x)
-MEGA-inst {ℓ = ℓ} Targ = EquivJ* (λ A → ΠJoinR₂.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A)
+MEGA-inst {ℓ = ℓ} Targ = EquivJ* (λ A → ΠJoinR₃.ΠR-extend** (RP∞'∙ ℓ) (RP∞'∙ ℓ) A)
   λ G → J> MEGA-inst↓ _ _
 
 
@@ -1588,40 +1587,40 @@ MEGA-inst {ℓ = ℓ} Targ = EquivJ* (λ A → ΠJoinR₂.ΠR-extend** (RP∞'�
 ΣBool→ (true , a) (b , c) = b ≡ a
 
 
-joinR-gen' : ∀ {ℓ} (A : Bool → Type ℓ) → Type ℓ
-joinR-gen' A = PushoutR  (Σ Bool A) (A true × A false) ΣBool→
+UnordJoinR-gen' : ∀ {ℓ} (A : Bool → Type ℓ) → Type ℓ
+UnordJoinR-gen' A = PushoutR  (Σ Bool A) (A true × A false) ΣBool→
 
-joinR→ : ∀ {ℓ} (A : Bool → Type ℓ) →  joinR-gen Bool A → joinR-gen' A
-joinR→ A (inlR x) = inlR x
-joinR→ A (inrR x) = inrR (x true , x false)
-joinR→ A (pushR (false , a) b x i) = pushR (false , a) (b true , b false) x i
-joinR→ A (pushR (true , a) b x i) = pushR (true , a) (b true , b false) x i
+UnordJoinR→ : ∀ {ℓ} (A : Bool → Type ℓ) →  UnordJoinR-gen Bool A → UnordJoinR-gen' A
+UnordJoinR→ A (inlR x) = inlR x
+UnordJoinR→ A (inrR x) = inrR (x true , x false)
+UnordJoinR→ A (pushR (false , a) b x i) = pushR (false , a) (b true , b false) x i
+UnordJoinR→ A (pushR (true , a) b x i) = pushR (true , a) (b true , b false) x i
 
-joinRIso : ∀ {ℓ} (A : Bool → Type ℓ) → Iso (joinR-gen Bool A) (joinR-gen' A)
-Iso.fun (joinRIso A) = joinR→ A
-Iso.inv (joinRIso A) (inlR x) = inlR x
-Iso.inv (joinRIso A) (inrR (a , b)) = inrR (CasesBool true a b)
-Iso.inv (joinRIso A) (pushR (false , a) (b , c) x i) = pushR (false , a) (CasesBool true b c) x i
-Iso.inv (joinRIso A) (pushR (true , a) (b , c) x i) = pushR (true , a) (CasesBool true b c) x i
-Iso.rightInv (joinRIso A) (inlR x) = refl
-Iso.rightInv (joinRIso A) (inrR x) = refl
-Iso.rightInv (joinRIso A) (pushR (false , a) b x i) = refl
-Iso.rightInv (joinRIso A) (pushR (true , a) b x i) = refl
-Iso.leftInv (joinRIso A) (inlR x) = refl
-Iso.leftInv (joinRIso A) (inrR x) = cong inrR (CasesBoolη x)
-Iso.leftInv (joinRIso A) (pushR (false , a) f x i) j = pushR (false , a) (CasesBoolη f j) x i
-Iso.leftInv (joinRIso A) (pushR (true , a) f x i) j = pushR (true , a) (CasesBoolη f j) x i
+UnordJoinRIso : ∀ {ℓ} (A : Bool → Type ℓ) → Iso (UnordJoinR-gen Bool A) (UnordJoinR-gen' A)
+Iso.fun (UnordJoinRIso A) = UnordJoinR→ A
+Iso.inv (UnordJoinRIso A) (inlR x) = inlR x
+Iso.inv (UnordJoinRIso A) (inrR (a , b)) = inrR (CasesBool true a b)
+Iso.inv (UnordJoinRIso A) (pushR (false , a) (b , c) x i) = pushR (false , a) (CasesBool true b c) x i
+Iso.inv (UnordJoinRIso A) (pushR (true , a) (b , c) x i) = pushR (true , a) (CasesBool true b c) x i
+Iso.rightInv (UnordJoinRIso A) (inlR x) = refl
+Iso.rightInv (UnordJoinRIso A) (inrR x) = refl
+Iso.rightInv (UnordJoinRIso A) (pushR (false , a) b x i) = refl
+Iso.rightInv (UnordJoinRIso A) (pushR (true , a) b x i) = refl
+Iso.leftInv (UnordJoinRIso A) (inlR x) = refl
+Iso.leftInv (UnordJoinRIso A) (inrR x) = cong inrR (CasesBoolη x)
+Iso.leftInv (UnordJoinRIso A) (pushR (false , a) f x i) j = pushR (false , a) (CasesBoolη f j) x i
+Iso.leftInv (UnordJoinRIso A) (pushR (true , a) f x i) j = pushR (true , a) (CasesBoolη f j) x i
 
-joinR'Funct : ∀ {ℓ} {A B : Bool → Type ℓ} → ((x : Bool) → A x → B x) → joinR-gen' A → joinR-gen' B
-joinR'Funct f (inlR (i , x)) = inlR (i , f i x)
-joinR'Funct f (inrR (a , b)) = inrR (f true a , f false b)
-joinR'Funct f (pushR (false , a) (b , c) x i) = pushR (false , f false a) (f true b , f false c) (cong (f false) x) i
-joinR'Funct f (pushR (true , a) (b , c) x i) = pushR (true , f true a) (f true b , f false c) (cong (f true) x) i
+UnordJoinR'Funct : ∀ {ℓ} {A B : Bool → Type ℓ} → ((x : Bool) → A x → B x) → UnordJoinR-gen' A → UnordJoinR-gen' B
+UnordJoinR'Funct f (inlR (i , x)) = inlR (i , f i x)
+UnordJoinR'Funct f (inrR (a , b)) = inrR (f true a , f false b)
+UnordJoinR'Funct f (pushR (false , a) (b , c) x i) = pushR (false , f false a) (f true b , f false c) (cong (f false) x) i
+UnordJoinR'Funct f (pushR (true , a) (b , c) x i) = pushR (true , f true a) (f true b , f false c) (cong (f true) x) i
 
-joinR'Funct'isEq : ∀ {ℓ} {A B : Bool → Type ℓ} → (e : (x : Bool) → A x ≃ B x)
-  → section (joinR'Funct (fst ∘ e)) (joinR'Funct (invEq ∘ e))
-  × retract (joinR'Funct (fst ∘ e)) (joinR'Funct (invEq ∘ e))
-joinR'Funct'isEq {ℓ = ℓ} {A} {B} e = subst TYP (isContr→isProp help _ (B , e)) main
+UnordJoinR'Funct'isEq : ∀ {ℓ} {A B : Bool → Type ℓ} → (e : (x : Bool) → A x ≃ B x)
+  → section (UnordJoinR'Funct (fst ∘ e)) (UnordJoinR'Funct (invEq ∘ e))
+  × retract (UnordJoinR'Funct (fst ∘ e)) (UnordJoinR'Funct (invEq ∘ e))
+UnordJoinR'Funct'isEq {ℓ = ℓ} {A} {B} e = subst TYP (isContr→isProp help _ (B , e)) main
   where
   help : isContr (Σ[ B ∈ (Bool → Type ℓ) ] ((x : Bool) → A x ≃ B x))
   help = isOfHLevelRetractFromIso 0
@@ -1630,8 +1629,8 @@ joinR'Funct'isEq {ℓ = ℓ} {A} {B} e = subst TYP (isContr→isProp help _ (B ,
            (isContrSingl A)
 
   TYP : (Σ[ B ∈ (Bool → Type ℓ) ] ((x : Bool) → A x ≃ B x)) → Type ℓ
-  TYP (B , e) = section (joinR'Funct (fst ∘ e)) (joinR'Funct (invEq ∘ e))
-              × retract (joinR'Funct (fst ∘ e)) (joinR'Funct (invEq ∘ e))
+  TYP (B , e) = section (UnordJoinR'Funct (fst ∘ e)) (UnordJoinR'Funct (invEq ∘ e))
+              × retract (UnordJoinR'Funct (fst ∘ e)) (UnordJoinR'Funct (invEq ∘ e))
 
   main : TYP (A , λ x → idEquiv (A x))
   fst main (inlR x) = refl
@@ -1643,26 +1642,26 @@ joinR'Funct'isEq {ℓ = ℓ} {A} {B} e = subst TYP (isContr→isProp help _ (B ,
   snd main (pushR (false , a) b x i) = refl
   snd main (pushR (true , a) b x i) = refl
 
-joinR'FunctIso : ∀ {ℓ} {A B : Bool → Type ℓ} (e : (x : Bool) → A x ≃ B x)
-  → Iso (joinR-gen' A) (joinR-gen' B)
-Iso.fun (joinR'FunctIso e) = joinR'Funct (fst ∘ e)
-Iso.inv (joinR'FunctIso e) = joinR'Funct (invEq ∘ e)
-Iso.rightInv (joinR'FunctIso e) = joinR'Funct'isEq e .fst
-Iso.leftInv (joinR'FunctIso e) = joinR'Funct'isEq e .snd
+UnordJoinR'FunctIso : ∀ {ℓ} {A B : Bool → Type ℓ} (e : (x : Bool) → A x ≃ B x)
+  → Iso (UnordJoinR-gen' A) (UnordJoinR-gen' B)
+Iso.fun (UnordJoinR'FunctIso e) = UnordJoinR'Funct (fst ∘ e)
+Iso.inv (UnordJoinR'FunctIso e) = UnordJoinR'Funct (invEq ∘ e)
+Iso.rightInv (UnordJoinR'FunctIso e) = UnordJoinR'Funct'isEq e .fst
+Iso.leftInv (UnordJoinR'FunctIso e) = UnordJoinR'Funct'isEq e .snd
 
-joinRIso≃ : ∀ {ℓ} (A : Bool → Type ℓ) → joinR-gen Bool A ≃ joinR-gen' A
-joinRIso≃ A = isoToEquiv (joinRIso A)
+UnordJoinRIso≃ : ∀ {ℓ} (A : Bool → Type ℓ) → UnordJoinR-gen Bool A ≃ UnordJoinR-gen' A
+UnordJoinRIso≃ A = isoToEquiv (UnordJoinRIso A)
 
 GOALTY : ∀ {ℓ} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) → Type ℓ
-GOALTY I J A = joinR-gen (fst J) λ j → joinR-gen (fst I) λ i → A i j
+GOALTY I J A = UnordJoinR-gen (fst J) λ j → UnordJoinR-gen (fst I) λ i → A i j
 
 GOALTY' : ∀ {ℓ} (A : Bool → Bool → Type ℓ) → Type ℓ
-GOALTY' A = joinR-gen' λ a → joinR-gen' λ b → A b a
+GOALTY' A = UnordJoinR-gen' λ a → UnordJoinR-gen' λ b → A b a
 
 GOALTY≃ : ∀ {ℓ} (A : Bool → Bool → Type ℓ)
   → Iso (GOALTY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A) (GOALTY' A)
-GOALTY≃ A = compIso (joinRIso (λ y → joinR-gen Bool λ x → A x y))
-                    (joinR'FunctIso λ y → isoToEquiv (joinRIso (λ x → A x y)))
+GOALTY≃ A = compIso (UnordJoinRIso (λ y → UnordJoinR-gen Bool λ x → A x y))
+                    (UnordJoinR'FunctIso λ y → isoToEquiv (UnordJoinRIso (λ x → A x y)))
 
 GFUN : ∀ {ℓ} (A : Bool → Bool → Type ℓ)
   → GOALTY (RP∞'∙ ℓ) (RP∞'∙ ℓ) A → GOALTY' A
@@ -2334,7 +2333,7 @@ TheId {ℓ = ℓ} I J A = elimPushout (btm-map I J A) (FF I J A .fst) λ {(i , x
 
 module EZ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
   DOMTY : Type ℓ
-  DOMTY = joinR-gen (fst I) λ i → joinR-gen (fst J) (A i)
+  DOMTY = UnordJoinR-gen (fst I) λ i → UnordJoinR-gen (fst J) (A i)
 
   equivElim-lem : ∀ {ℓ} {A B : Type ℓ}
                (C : B → Type ℓ)
@@ -2371,7 +2370,7 @@ module EZ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) wh
                     (one (g (RP∞'-fields.notRP∞' I t)) (p _))
                     (push (t , inr (f t , g , p t))))))
 
-  megaty-b : (f : _) → megaty (Iso.inv (TotAIso I J {A}) f)
+  megaty-b : (f : _) → megaty (Iso.inv (UnordΠUnordΣ-charac I J {A}) f)
   fst (megaty-b f) = inr (inl f)
   fst (snd (megaty-b f)) g p k = inr (push (f , (g , p)) k)
   fst (snd (snd (megaty-b f)) t) g q = push (t , (inl (f , g , q)))
@@ -2380,12 +2379,12 @@ module EZ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) wh
   abstract
     megaty-ba : (f : _) → megaty f
     megaty-ba =
-      equivElim-lem megaty (invEquiv (isoToEquiv (TotAIso I J {A})))
+      equivElim-lem megaty (invEquiv (isoToEquiv (UnordΠUnordΣ-charac I J {A})))
        megaty-b
 
-    megaty-ba≡ : (f : _) → megaty-ba (Iso.inv (TotAIso I J {A}) f) ≡ megaty-b f
+    megaty-ba≡ : (f : _) → megaty-ba (Iso.inv (UnordΠUnordΣ-charac I J {A}) f) ≡ megaty-b f
     megaty-ba≡ =
-      equivElim-lem-id megaty (invEquiv (isoToEquiv (TotAIso I J {A})))
+      equivElim-lem-id megaty (invEquiv (isoToEquiv (UnordΠUnordΣ-charac I J {A})))
         megaty-b
 
   L2-side : ΠJoinR₁.ΠR-extend I (fst J) A
@@ -2402,7 +2401,7 @@ module EZ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) wh
 module _ {ℓ : Level} (J : RP∞' ℓ) (A : Bool → fst J → Type ℓ) where
   open EZ (RP∞'∙ ℓ) J A
 
-  T = TotAIso (RP∞'∙ ℓ) J {A}
+  T = UnordΠUnordΣ-charac (RP∞'∙ ℓ) J {A}
 
   L2-side-Bool-inl : (a : _)
     → leftFun (fst J) A (inl a) ≡ leftFun*-fullBool J A true (EZ.L2-side (RP∞'∙ ℓ) J A (inl a))
@@ -2501,7 +2500,7 @@ mainCoh {ℓ = ℓ} = JRP∞' λ J A a →
 
 module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) where
   open EZ I J A
-  L2 : joinR-Push' I (fst J) A → Pushout (λ i → fst i , leftFun*-full I J A (fst i) (snd i)) snd
+  L2 : UnordJoin-gen' I (fst J) A → Pushout (λ i → fst i , leftFun*-full I J A (fst i) (snd i)) snd
   L2 (inl x) = inl x
   L2 (inr x) = inr (L2-side x)
   L2 (push (t , a) i) = ((λ k → inl (t , mainCoh I t J A a k)) ∙ push (t , L2-side a)) i
@@ -2509,63 +2508,5 @@ module _ {ℓ : Level} (I J : RP∞' ℓ) (A : fst I → fst J → Type ℓ) whe
   mainComm : DOMTY → GOALTY I J A
   mainComm x = TheId I J A (ΠR-pushout→Better! I J A (L2 x'))
     where
-    x' : joinR-Push' I (fst J) A
-    x' = Iso.fun (FullIso₁ I J A) (Iso.fun (joinR-Equiv) x)
-
-joinR→join : ∀ {ℓ} {A : Bool → Type ℓ}
-  → joinR-gen Bool A → join (A true) (A false)
-joinR→join (inlR (false , a)) = inr a
-joinR→join (inlR (true , a)) = inl a
-joinR→join (inrR x) = inl (x true)
-joinR→join (pushR (false , a) b x i) = push (b true) a (~ i)
-joinR→join (pushR (true , a) b x i) = inl (x (~ i))
-
-join→joinR : ∀ {ℓ} {A : Bool → Type ℓ}
-  → join (A true) (A false)
-  → joinR-gen Bool A
-join→joinR (inl x) = inlR (true , x)
-join→joinR (inr x) = inlR (false , x)
-join→joinR (push a b i) =
-   (pushR (true , a) (CasesBool true a b) refl
-  ∙ sym (pushR (false , b) (CasesBool true a b) refl)) i
-
-join-joinR-iso : ∀ {ℓ} {A : Bool → Type ℓ}
-  → Iso (joinR-gen Bool A) (join (A true) (A false))
-Iso.fun join-joinR-iso = joinR→join
-Iso.inv join-joinR-iso = join→joinR
-Iso.rightInv join-joinR-iso (inl x) = refl
-Iso.rightInv join-joinR-iso (inr x) = refl
-Iso.rightInv (join-joinR-iso {A = A}) (push a b i) j = help j i
-  where
-  help : cong (joinR→join {A = A})
-               (pushR (true , a) (CasesBool true a b) refl
-              ∙ sym (pushR (false , b) (CasesBool true a b) refl))
-      ≡ push a b
-  help = cong-∙ joinR→join
-            (pushR (true , a) (CasesBool true a b) refl)
-            (sym (pushR (false , b) (CasesBool true a b) refl))
-       ∙ sym (lUnit (push a b))
-Iso.leftInv join-joinR-iso (inlR (false , y)) = refl
-Iso.leftInv join-joinR-iso (inlR (true , y)) = refl
-Iso.leftInv join-joinR-iso (inrR x) = pushR (true , x true) x refl
-Iso.leftInv (join-joinR-iso {A = A}) (pushR (false , x) b p i) j =  h x p j i
-  where
-  h : (x : A false) (p : b false ≡ x)
-    → Square {A = joinR-gen Bool A}
-             (sym (pushR (true , b true) (CasesBool true (b true) x) refl
-               ∙ sym (pushR (false , x) (CasesBool true (b true) x) refl)))
-             (pushR (false , x) b p)
-             refl
-             (pushR (true , b true) b refl)
-  h = J> ((λ s → sym (pushR (true , b true) (CasesBoolη b s) refl
-                ∙ sym (pushR (false , b false) (CasesBoolη b s) refl)))
-        ◁ λ i j → compPath-filler'
-                    (pushR (true , b true) b refl)
-                    (sym (pushR (false , b false) b refl)) (~ i) (~ j))
-Iso.leftInv (join-joinR-iso {A = A}) (pushR (true , x) b p i) j = h x p j i
-  where
-  h : (x : _) (p : b true ≡ x)
-    → Square {A = joinR-gen Bool A}
-              (λ i → inlR (true , p (~ i))) (pushR (true , x) b p )
-              refl (pushR (true , b true) b (λ _ → b true))
-  h = J> λ i j → pushR (true , b true) b refl (i ∧ j)
+    x' : UnordJoin-gen' I (fst J) A
+    x' = Iso.fun (FullIso₁ I J A) (Iso.fun (UnordJoinIso) x)

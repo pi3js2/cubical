@@ -750,3 +750,79 @@ module _  {ℓ ℓ'} {B : (I : RP∞' ℓ) → Type ℓ'}
   RP∞'pt→Propβ :
       RP∞'pt→Prop (RP∞'∙ ℓ) ≡ c
   RP∞'pt→Propβ j = help' j c
+
+-- understanding mapping spaces (I → J) where I, J : RP∞'
+eval⊎≃ : ∀ {ℓ ℓ'} {A : Type ℓ} {B : Type ℓ'} → B ⊎ (A ≃ B) → A → B
+eval⊎≃ (inl x) _ = x
+eval⊎≃ (inr x) = fst x
+
+eval⊎≃Equiv : ∀ {ℓ} (I J : RP∞' ℓ)
+  → (fst J ⊎ (fst I ≃ fst J)) ≃ (fst I → fst J)
+eval⊎≃Equiv {ℓ} I J = eval⊎≃ ,
+  RP∞'pt→Prop {B = λ I → isEquiv {A = fst J ⊎ (fst I ≃ fst J)} eval⊎≃}
+    (λ _ → isPropIsEquiv _)
+    (isoToIsEquiv (invIso iso₂)) I
+  where
+  f₁ : (J : RP∞' ℓ) → Lift (fst J ⊎ (Bool ≃ fst J)) → _
+  f₁ J = invEq LiftEquiv
+
+  f₂ : (J : RP∞' ℓ) → fst J × fst J → Lift (fst J ⊎ (Bool ≃ fst J))
+  f₂ J = uncurry λ j
+   → RP∞'-fields.elimRP∞' J j
+       (lift (inl j))
+       (lift (inr (invEquiv (isRP∞→≃Bool _ (fst J) (snd J .fst) j))))
+
+  βs : (J : RP∞' ℓ) → (j : fst J) → _
+  βs J j = RP∞'-fields.elimRP∞'β J
+    {B = λ _ → Lift (fst J ⊎ (Bool ≃ fst J))} j
+    (lift (inl j))
+    (lift (inr (invEquiv (isRP∞→≃Bool _ (fst J) (snd J .fst) j))))
+
+  inr* : Bool ≃ Bool → Bool ⊎ (Bool ≃ Bool)
+  inr* = inr
+
+  iso₁ : Iso (fst J × fst J) (fst J ⊎ (Bool ≃ fst J))
+  Iso.fun iso₁ = f₁ J ∘ (f₂ J)
+  Iso.inv iso₁ f = Iso.fun ΠBool×Iso (eval⊎≃ f)
+  Iso.rightInv iso₁ (inl j) =
+    cong (invEq (LiftEquiv {ℓ' = ℓ})) (βs J j .fst)
+  Iso.rightInv iso₁ (inr eq) =
+    EquivJRP∞' (RP∞'∙ ℓ) {B = λ J eq
+      → invEq LiftEquiv (f₂ J (ΠBool→× (fst eq))) ≡ inr eq}
+      (cong inr* (Σ≡Prop (λ _ → isPropIsEquiv _)
+        (funExt (CasesBool true refl refl)))) J eq
+  Iso.leftInv iso₁ =
+    uncurry (JRP∞' {B = λ J x → (y : fst J)
+                → ΠBool→× (eval⊎≃ (f₁ J (f₂ J (x , y)))) ≡ (x , y)}
+      (CasesBool true refl refl) J)
+
+  iso₂ : Iso (Bool → fst J) (fst J ⊎ (Bool ≃ fst J))
+  Iso.fun iso₂ = f₁ J ∘ f₂ J ∘ Iso.fun ΠBool×Iso
+  Iso.inv iso₂ = eval⊎≃
+  Iso.rightInv iso₂ x = Iso.rightInv iso₁ x
+  Iso.leftInv iso₂ x =
+    (sym (Iso.leftInv ΠBool×Iso (eval⊎≃ (f₁ J (f₂ J (x true , x false)))))
+    ∙ cong (Iso.inv ΠBool×Iso) (Iso.leftInv iso₁ (x true , x false)))
+    ∙ funExt (CasesBool true refl refl)
+
+-- elimination principle for (I → J)
+private
+  eval⊎≃Equiv-elim' : ∀ {ℓ ℓ'} {A B : Type ℓ} {C : B → Type ℓ'} (e : A ≃ B)
+    → (ind : (a : A) → C (fst e a))
+    → (x : _) → subst C (secEq e _) (ind (invEq e (fst e x))) ≡ ind x
+  eval⊎≃Equiv-elim' {A = A} {B = B} {C = C} =
+    EquivJ (λ A e → (ind : (a : A) → C (fst e a))
+      → (x : _) → subst C (secEq e _) (ind (invEq e (fst e x))) ≡ ind x)
+      λ ind x → transportRefl (ind x)
+
+module _ {ℓ : Level} {I J : RP∞' ℓ} {A : (fst I → fst J) → Type ℓ}
+  (ind : (x : _) → A (fst (eval⊎≃Equiv I J) x)) where
+  eval⊎≃Equiv-elim : (x : _) → A x
+  eval⊎≃Equiv-elim f =
+    subst A (secEq (eval⊎≃Equiv I J) f)
+            (ind (invEq (eval⊎≃Equiv I J) f))
+
+  eval⊎≃Equiv-elim-coh : (x : _)
+    → eval⊎≃Equiv-elim (fst (eval⊎≃Equiv I J) x) ≡ ind x
+  eval⊎≃Equiv-elim-coh =
+    eval⊎≃Equiv-elim' {C = A} (eval⊎≃Equiv I J) ind
