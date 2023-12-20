@@ -170,13 +170,26 @@ EquivJ : {A B : Type ℓ} (P : (A : Type ℓ) → (e : A ≃ B) → Type ℓ')
        → (r : P B (idEquiv B)) → (e : A ≃ B) → P A e
 EquivJ P r e = subst (λ x → P (x .fst) (x .snd)) (contrSinglEquiv e) r
 
+EquivJ>_ : ∀ {ℓ ℓ'} {A : Type ℓ} {P : (B : Type ℓ) → A ≃ B → Type ℓ'}
+           → P A (idEquiv A)
+           → (B : Type ℓ) (e : A ≃ B) → P B e
+EquivJ>_ {A = A} {P = P} p∙ B e =
+  subst (P B)
+    (λ i → fst e , isPropIsEquiv _ (snd (invEquiv (invEquiv e))) (snd e) i)
+    (EquivJ (λ A e → P A (invEquiv e))
+      (subst (P A)
+        (λ i → (idfun A)
+              , isPropIsEquiv _
+                  (idIsEquiv A) (snd (invEquiv (idEquiv A))) i) p∙)
+      (invEquiv e))
+
 EquivJ-idEquiv : {A B : Type ℓ} (P : (A : Type ℓ) → (e : A ≃ B) → Type ℓ')
        → (r : P B (idEquiv B)) → EquivJ P r (idEquiv B) ≡ r
 EquivJ-idEquiv {B = B} P r =
   (λ i → subst (λ x → P (x .fst) (x .snd)) (contrSinglEquiv≡refl i) r)
   ∙ transportRefl r
   where
-  contrSinglEquiv≡refl : contrSinglEquiv (idEquiv B) ≡ refl 
+  contrSinglEquiv≡refl : contrSinglEquiv (idEquiv B) ≡ refl
   contrSinglEquiv≡refl = isProp→isSet (isContr→isProp (EquivContr B)) _ _ _ _
 -- Transport along a path is an equivalence.
 -- The proof is a special case of isEquivTransp where the line of types is

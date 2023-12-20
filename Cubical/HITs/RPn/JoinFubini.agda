@@ -23,7 +23,7 @@ open import Cubical.HITs.Pushout
 open import Cubical.HITs.RPn.Base
 open import Cubical.HITs.RPn.Unordered
 
-module Cubical.Cohomology.EilenbergMacLane.cleanup3 where
+module Cubical.HITs.RPn.JoinFubini where
 
 open Iso
 
