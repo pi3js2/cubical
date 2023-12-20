@@ -1,8 +1,9 @@
 {-# OPTIONS --safe --lossy-unification #-}
 {-
 This file contains
-1. The Thom isomorphism (various related forms of it)
-2. The Gysin sequence
+1. Unordered joins, pairs, coproducts and smash products
+2. Some simple lemmas concerning these types
+3. A (rather lengthy) characterisation of Π-types over unorrered joins.
 -}
 open import Cubical.Foundations.Prelude
 open import Cubical.Foundations.Pointed
