@@ -94,76 +94,207 @@ A ⋀∙ B = (A ⋀ B) , (inl tt)
 fst ⋀comm→∙ = ⋀comm→
 snd ⋀comm→∙ = refl
 
-SmashAdjIso : Iso ((A ⋀∙ B) →∙ C) (A →∙ (B →∙ C ∙))
-SmashAdjIso {A = A} {B = B} {C = C} =
-  compIso is₃ (compIso iso₄ (invIso is₂))
+-- Smash/Bi pointed map adjunction
+-- preliminary construction
+private
+  module _ {ℓ} {C : Type ℓ} (f : (A ⋀ B) → C) where
+    SmashAdjIso→-push-push : (i j k : I) → C
+    SmashAdjIso→-push-push i j k =
+      hfill (λ k → λ {(i = i0) → f (push (inl (snd A)) (~ j))
+                     ; (i = i1) → f (push (inr (snd B)) (~ k ∧ ~ j))
+                     ; (j = i0) → f (push (inr (snd B)) (~ i ∨ ~ k))
+                     ; (j = i1) → f (inl tt)})
+        (inS (f (push (push tt i) (~ j))))
+        k
+
+    SmashAdjIso→↓ : (A →∙ (B →∙ (C , f (inl tt)) ∙))
+    fst (fst SmashAdjIso→↓ a) b = f (inr (a , b))
+    snd (fst SmashAdjIso→↓ a) = cong f (sym (push (inl a)))
+    fst (snd SmashAdjIso→↓ i) b = f (push (inr b) (~ i))
+    snd (snd (SmashAdjIso→↓) i) j = SmashAdjIso→-push-push i j i1
+
+ -- Function
+SmashAdjIso→J : ∀ {ℓ} {C : Type ℓ}
+  (f : (A ⋀ B) → C) (c : C) (fp : f (inl tt) ≡ c)
+  → (A →∙ (B →∙ (C , c) ∙))
+SmashAdjIso→J f = J> (SmashAdjIso→↓ f)
+
+SmashAdjIso→' : ∀ {ℓ} {C : Type ℓ} (f : (A ⋀ B) → C)
+  (c : C) (fp : f (inl tt) ≡ c) → (A →∙ (B →∙ (C , c) ∙))
+fst (fst (SmashAdjIso→' f c fp) a) b = f (inr (a , b))
+snd (fst (SmashAdjIso→' f c fp) a) = cong f (sym (push (inl a))) ∙ fp
+fst (snd (SmashAdjIso→' f c fp) i) b = (cong f (sym (push (inr b))) ∙ fp) i
+snd (snd (SmashAdjIso→' {A = A} {B = B} f c fp) i) j =
+  hcomp (λ r →
+   λ {(i = i0) → compPath-filler (λ j → f (push (inl (snd A)) (~ j))) fp r j
+    ; (i = i1) → fp r
+    ; (j = i0) → compPath-filler (λ j → f (push (inr (snd B)) (~ j))) fp r i
+    ; (j = i1) → fp r})
+    (SmashAdjIso→-push-push f i j i1)
+
+SmashAdjIso→ : ((A ⋀∙ B) →∙ C) → (A →∙ (B →∙ C ∙))
+SmashAdjIso→ f = SmashAdjIso→' (fst f) _ (snd f)
+
+SmashAdjIso→≡SmashAdjIso→J : (f : _)
+  → SmashAdjIso→ {A = A} {B = B} {C = C} f
+   ≡ SmashAdjIso→J {A = A} {B = B} (fst f) _ (snd f)
+SmashAdjIso→≡SmashAdjIso→J {A = A} {B = B} {C = C} (f , p) = help _ p
   where
-  is₁ : Iso (A →∙ (B →∙ C ∙))
-    (Σ[ f ∈ (fst A → fst B → fst C) ]
-      Σ[ l ∈ ((x : fst A) → f x (pt B) ≡ pt C) ]
-        Σ[ r ∈ ((b : fst B) → f (pt A) b ≡ pt C) ]
-          PathP (λ i → r (snd B) i ≡ snd C) (l (snd A)) refl)
-  Iso.fun is₁ f = (λ x y → f .fst x .fst y)
-                , (λ x → f .fst x .snd)
-                , (λ x i → f .snd i .fst x)
-                , λ i j → f .snd i .snd j
-  fst (fst (Iso.inv is₁ (f , l , r , p)) x) = f x
-  snd (fst (Iso.inv is₁ (f , l , r , p)) x) = l x
-  fst (snd (Iso.inv is₁ (f , l , r , p)) i) b = r b i
-  snd (snd (Iso.inv is₁ (f , l , r , p)) i) j = p i j
-  Iso.rightInv is₁ _ = refl
-  Iso.leftInv is₁ _ = refl
+  help : (c : fst C) (fp : f (inl tt) ≡ c)
+    → SmashAdjIso→ {A = A} {B = B} {C = fst C , c} (f , fp)
+     ≡ SmashAdjIso→J {A = A} {B = B} {C = fst C} f c fp
+  help = J> (h ∙ sym (transportRefl _))
+    where
+    h : SmashAdjIso→ {A = A} {B = B} {C = fst C , _} (f , refl)
+      ≡ SmashAdjIso→↓ {A = A} {B = B} {C = fst C} f
+    fst (fst (h i) a) b = f (inr (a , b))
+    snd (fst (h i) a) j = rUnit (λ j → f (push (inl a) (~ j))) (~ i) j
+    fst (snd (h i) j) b = rUnit (λ j → f (push (inr b) (~ j))) (~ i) j
+    snd (snd (h i) j) k =
+      hcomp (λ r → λ {(i = i1) → SmashAdjIso→-push-push f j k i1
+                     ; (j = i0) → rUnit (λ j₁ → f (push (inl (snd A)) (~ j₁))) (~ i ∧ r) k
+                     ; (j = i1) → f (snd (A ⋀∙ B))
+                     ; (k = i0) → rUnit (λ j₁ → f (push (inr (snd B)) (~ j₁))) (~ i ∧ r) j
+                     ; (k = i1) → f (snd (A ⋀∙ B))})
+            (SmashAdjIso→-push-push f j k i1)
 
-  is₂ : Iso (A →∙ (B →∙ C ∙)) (
-    (Σ[ f ∈ (fst A → fst B → fst C) ]
-      Σ[ l ∈ ((x : fst A) → f x (pt B) ≡ pt C) ]
-        Σ[ r ∈ ((b : fst B) → f (pt A) b ≡ pt C) ]
-          l (pt A) ≡ r (pt B)))
-  is₂ = compIso is₁ (Σ-cong-iso-snd
-    λ f → Σ-cong-iso-snd
-      λ l → Σ-cong-iso-snd
-        λ r → pathToIso (PathP≡doubleCompPathʳ _ _ _ _
-            ∙ cong (l (snd A) ≡_)
-               (sym (compPath≡compPath' (r (snd B)) refl)
-              ∙ sym (rUnit (r (pt B))))))
+SmashAdjIso : Iso ((A ⋀∙ B) →∙ C) (A →∙ (B →∙ C ∙))
+SmashAdjIso {A = A} {B = B} {C = C} = mainIso
+  where
+  fill₁ : (c : fst C) → (A →∙ (B →∙ (fst C , c) ∙)) → (i j k : I) → fst C
+  fill₁ c (f , p) i j k =
+    hfill (λ r → λ {(i = i0) → c
+                  ; (i = i1) → f (snd A) .snd (~ r)
+                  ; (j = i0) → f (snd A) .snd (~ i ∨ ~ r)
+                  ; (j = i1) → p (~ i) .snd (~ r)})
+         (inS c) k
 
-  is₃ : Iso ((A ⋀∙ B) →∙ C)
-    (Σ[ f ∈ (fst A → fst B → fst C) ]
-      Σ[ p ∈ singl (snd C) ]
-        Σ[ l ∈ ((x : fst A) → f x (pt B) ≡ fst p) ]
-        Σ[ r ∈ ((b : fst B) → f (pt A) b ≡ fst p) ]
-          l (pt A) ≡ r (pt B))
-  fst (Iso.fun is₃ f) x y = fst f (inr (x , y))
-  fst (fst (snd (Iso.fun is₃ f))) = fst f (inl tt)
-  snd (fst (snd (Iso.fun is₃ f))) = sym (snd f)
-  fst (snd (snd (Iso.fun is₃ f))) x = cong (fst f) (sym (push (inl x)))
-  fst (snd (snd (snd (Iso.fun is₃ f)))) x = cong (fst f) (sym (push (inr x)))
-  snd (snd (snd (snd (Iso.fun is₃ f)))) i j = fst f (push (push tt i) (~ j))
-  fst (Iso.inv is₃ (f , (c* , p) , l , r , q)) (inl x) = c*
-  fst (Iso.inv is₃ (f , (c* , p) , l , r , q)) (inr (x , y)) = f x y
-  fst (Iso.inv is₃ (f , (c* , p) , l , r , q)) (push (inl x) i) = l x (~ i)
-  fst (Iso.inv is₃ (f , (c* , p) , l , r , q)) (push (inr x) i) = r x (~ i)
-  fst (Iso.inv is₃ (f , (c* , p) , l , r , q)) (push (push a j) i) = q j (~ i)
-  snd (Iso.inv is₃ (f , (c* , p) , l , r , q)) = sym p
-  Iso.rightInv is₃ _ = refl
-  Iso.leftInv is₃ f =
-    ΣPathP ((funExt (λ { (inl x) → refl
-                       ; (inr x) → refl
-                       ; (push (inl x) i) → refl
-                       ; (push (inr x) i) → refl
-                       ; (push (push a i₁) i) → refl}))
-                       , refl)
+  from : (c : fst C) → (A →∙ (B →∙ (fst C , c) ∙)) → ((A ⋀∙ B) →∙ (fst C , c))
+  fst (from c (f , p)) (inl x) = c
+  fst (from c (f , p)) (inr (a , b)) = f a .fst b
+  fst (from c (f , p)) (push (inl x) i) = f x .snd (~ i)
+  fst (from c (f , p)) (push (inr x) i) = p (~ i) .fst x
+  fst (from c (f , p)) (push (push a j) i) = fill₁ c (f , p) i j i1
+  snd (from c (f , p)) = refl
 
-  isContrIso : ∀ {ℓ ℓ'} {A : Type ℓ} (a : A) (B : singl a → Type ℓ')
-    → Iso (Σ _ B) (B (a , refl))
-  isContrIso a B =
-    compIso (invIso
-      (Σ-cong-iso-fst (isContr→Iso isContrUnit (isContrSingl a))))
-      lUnit×Iso
+  to : ((A ⋀∙ B) →∙ C) → (A →∙ (B →∙ C ∙))
+  to (f , p) = SmashAdjIso→J f (pt C) p
 
-  iso₄ : Iso (isoToPath is₃ i1)
-            (isoToPath is₂ i1)
-  iso₄ = Σ-cong-iso-snd λ f → isContrIso (snd C) _
+  from-to : (f : A →∙ (B →∙ C ∙)) → to (from (snd C) f) ≡ f
+  from-to f =
+      transportRefl (SmashAdjIso→↓ (fst (from (snd C) f)))
+    ∙ λ i → (λ x → (λ b → fst f x .fst b)
+           , (snd (fst f x)))
+           , (λ j → (λ b → snd f j .fst b)
+                   , λ k
+      → hcomp (λ r →
+          λ {(i = i0) → SmashAdjIso→-push-push (from (pt C) f .fst) j k r
+           ; (i = i1) → snd (snd f j) k
+           ; (j = i0) → fst f (snd A) .snd k
+           ; (j = i1) → snd f (r ∨ k) .snd i
+           ; (k = i0) → help r j i
+           ; (k = i1) → snd C})
+          (hcomp (λ r →
+          λ {(i = i0) → fill₁ (pt C) f (~ k) j r
+           ; (i = i1) → snd (snd f j) (k ∨ ~ r)
+           ; (j = i0) → fst f (snd A) .snd (k ∨ ~ r)
+           ; (j = i1) → snd f k .snd (~ r ∨ i)
+           ; (k = i0) → sqf r j i
+           ; (k = i1) → pt C})
+           (pt C)))
+    where
+    sqf : (r j i : I) → fst C
+    sqf r j i =
+      hcomp (λ k → λ {(i = i0) → snd f (~ k) .snd (~ r)
+                     ; (i = i1) → snd (snd f j) (~ r)
+                     ; (j = i0) → snd f (~ k ∧ ~ i) .snd (~ r)
+                     ; (j = i1) → snd f (~ k) .snd (~ r ∨ i)
+                     ; (r = i0) → snd C})
+              (snd f (~ i ∨ j) .snd (~ r))
+
+    help : (r j i : I) → fst C
+    help r j i =
+      hcomp (λ k → λ {(i = i0) → fst (snd f (~ k ∨ (r ∧ j))) (snd B)
+                     ; (i = i1) → fst (snd f j) (snd B)
+                     ; (j = i0) → fst (snd f (~ k ∧ ~ i)) (snd B)
+                     ; (j = i1) → snd f (~ k ∨ r) .snd i
+                     ; (r = i1) → h _ (λ j → snd f j .fst (snd B)) k i j})
+                (fst (snd f (~ i ∨ j)) (snd B))
+      where
+      h : ∀ {ℓ} {A : Type ℓ} {x : A} (y : A) (p : x ≡ y)
+        → Cube (λ i j → p (~ i ∨ j)) (λ i j → p j)
+                (λ k j → p (~ k ∨ j)) (λ k j → p j)
+                (λ k i → p (~ k ∧ ~ i)) λ _ _ → y 
+      h = J> refl
+
+  to-from : (f : (A ⋀ B) → fst C) (c : fst C) (p : f (inl tt) ≡ c)
+          → from c (SmashAdjIso→J f c p) ≡ (f , p)
+  to-from f = J> (cong (from (f (inl tt))) (transportRefl (SmashAdjIso→↓ f))
+    ∙ ΣPathP ((funExt (
+    λ { (inl x) → refl
+      ; (inr x) → refl
+      ; (push (inl x) i) → refl
+      ; (push (inr x) i) → refl
+      ; (push (push tt j) i) k
+        → hcomp (λ r →
+          λ {(i = i0) → f (inl tt)
+           ; (i = i1) → f (push (push tt (j ∧ k)) r)
+           ; (j = i0) → f (push (inl (snd A)) (i ∧ r))
+           ; (j = i1) → he r k i
+           ; (k = i1) → f (push (push tt j) (i ∧ r))})
+          (f (inl tt))})) , refl))
+    where
+    he : Cube (λ k i → f (inl tt))
+              (λ k i → f (push (inr (snd B)) i))
+              (λ r i → SmashAdjIso→-push-push f (~ i) (~ r) i1)
+              (λ r i → f (push (inr (snd B)) (i ∧ r)))
+              (λ r k → f (inl tt))
+              (λ r k → f (push (push tt k) r))
+    he r k i =
+      hcomp (λ j → λ {(r = i0) → f (inl tt)
+                     ; (r = i1) → f (push (inr (snd B)) (i ∨ ~ j))
+                     ; (k = i0) → SmashAdjIso→-push-push f (~ i) (~ r) j
+                     ; (k = i1) → f (push (inr (snd B)) ((i ∨ ~ j) ∧ r))
+                     ; (i = i0) → f (push (inr (snd B)) (~ j ∧ r))
+                     ; (i = i1) → f (push (push tt k) r)})
+            (f (push (push tt (~ i ∨ k)) r))
+
+  mainIso : Iso ((A ⋀∙ B) →∙ C) (A →∙ (B →∙ C ∙))
+  Iso.fun mainIso = SmashAdjIso→ -- to
+  Iso.inv mainIso = from (pt C)
+  Iso.rightInv mainIso f = SmashAdjIso→≡SmashAdjIso→J (from _ f) ∙ from-to f
+  Iso.leftInv mainIso f = cong (from (pt C)) (SmashAdjIso→≡SmashAdjIso→J f)
+                        ∙ to-from (fst f) _ (snd f)
+
+private
+  -- base point preservation
+  SmashAdjIso→↓-const : ∀ {ℓ} {C : Type ℓ} {c : C}
+    → SmashAdjIso→↓ {A = A} {B = B} (λ _ → c)
+      ≡ (A →∙ (B →∙ C , c ∙) ∙) .snd
+  fst (fst (SmashAdjIso→↓-const {c = c} i) a) b = c
+  snd (fst (SmashAdjIso→↓-const {c = c} i) a) j = c
+  fst (snd (SmashAdjIso→↓-const {c = c} i) j) b = c
+  snd (snd (SmashAdjIso→↓-const {c = c} i) j) k =
+    hcomp (λ r → λ {(i = i1) → c
+                   ; (j = i0) → c
+                   ; (j = i1) → c
+                   ; (k = i0) → c
+                   ; (k = i1) → c})
+          c
+
+SmashAdjIso→∙ : ∀ {ℓ} {C : Type ℓ}
+  (f : (A ⋀ B) → C) (c : C)
+  → SmashAdjIso→J {A = A} {B = B} (λ _ → c) c refl
+   ≡ (A →∙ (B →∙ (C , c) ∙) ∙) .snd
+SmashAdjIso→∙ f c =
+  transportRefl (SmashAdjIso→↓ (λ _ → c))
+  ∙ SmashAdjIso→↓-const
+
+SmashAdj≃∙ : ((A ⋀∙ B) →∙ C ∙) ≃∙ (A →∙ (B →∙ C ∙) ∙)
+fst SmashAdj≃∙ = isoToEquiv SmashAdjIso
+snd (SmashAdj≃∙ {C = C}) =
+    SmashAdjIso→≡SmashAdjIso→J (const∙ _ C)
+  ∙ SmashAdjIso→∙ (λ _ → pt C) _
 
 ⋀→∙Homogeneous≡ : isHomogeneous C
   → {f g : (A ⋀∙ B) →∙ C}

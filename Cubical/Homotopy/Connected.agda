@@ -905,3 +905,54 @@ module _ {ℓ ℓ' ℓ'' : Level} {A : Type ℓ} {B : A → Type ℓ'} {C : A �
   FunConnected→TotalFunConnected n con r =
     isConnectedRetractFromIso n
      (Iso-fibTotalFun-fibFun r) (con (fst r) (snd r))
+
+isConnected→∙Dep : ∀ {ℓ ℓ'} {A : Pointed ℓ} {B : fst A → Pointed ℓ'} (n k : ℕ)
+  → isConnected n (fst A)
+  → ((x : _) → isOfHLevel (n + k) (fst (B x)))
+  → isOfHLevel (suc k) (Σ[ f ∈ ((a : fst A) → B a .fst) ] f (pt A) ≡ pt (B (pt A)))
+isConnected→∙Dep zero k cA b = isOfHLevelΣ (suc k)
+  (isOfHLevelΠ (suc k) (λ x → isOfHLevelSuc k (b x)))
+    λ f → isOfHLevelPath (suc k) (isOfHLevelSuc k (b _)) _ _
+isConnected→∙Dep {A = A} {B = B} (suc n) zero cA hB F G =
+  ΣPathP (funExt (λ a → main a (isConnectedPoint _ cA (pt A) a .fst))
+               , flipSquare
+                 ((cong (main (pt A))
+                    (isConnectedPoint n cA (pt A) (pt A) .snd ∣ tt , refl ∣ₕ)
+                ∙∙ recₕ n _
+                ∙∙ λ j i → cohr (pt A) (tt , (λ _ → pt A)) i (~ j))
+                ◁ λ i j → doubleCompPath-filler (F .snd) refl (sym (G .snd)) (~ i) j))
+  where
+  hB' : (x : _) → isOfHLevel (suc n) (fst (B x))
+  hB' x = subst (λ n → isOfHLevel (suc n) (fst (B x))) (+-comm n zero) (hB x)
+
+  cohr : (a : fst A) (g : fiber {A = Unit} (λ _ → pt A) a)
+    → (i j : I) → B (snd g j) .fst
+  cohr a g i j =
+    fill (λ j → B (snd g j) .fst)
+         (λ j → λ {(i = i0) → F .fst (snd g j)
+                  ; (i = i1) → G .fst (snd g j)})
+         (inS ((F .snd ∙∙ refl ∙∙ (sym (G .snd))) i)) j
+
+  main : (a : fst A) (p : hLevelTrunc n (fiber {A = Unit} (λ _ → pt A) a))
+    → fst F a ≡ fst G a
+  main a = Trunc.rec (isOfHLevelPath' n (hB' a) _ _)
+                     λ g i → cohr a g i i1
+
+isConnected→∙Dep {A = A} {B = B} (suc n) (suc k) cA b =
+  isOfHLevelΩ→isOfHLevel k
+    λ f → isOfHLevelRetractFromIso (suc k)
+            (compIso (invIso (equivToIso (funExt∙≃ f f))) (lem f))
+              (isConnected→∙Dep {B = λ x → (fst f x ≡ fst f x) , λ _ → fst f x}
+                (suc n) k cA λ x → isOfHLevelPath' (suc (n + k))
+                 (subst (λ n → isOfHLevel (suc n) (fst (B x))) (+-suc n k) (b x)) _ _ )
+  where
+  lem : (f : Π∙ A (fst ∘ B) (snd (B (pt A))))
+    → Iso (f ∙∼ f) (Σ[ f ∈ ((x : _) → fst f x ≡ fst f x) ] f (pt A) ≡ refl)
+  lem f = Σ-cong-iso-snd λ p → pathToIso λ k → p (pt A) ≡ rCancel (snd f) k
+
+isConnected→∙ : ∀ {ℓ ℓ'} {A : Pointed ℓ} {B : Pointed ℓ'} (n k : ℕ)
+  → isConnected n (fst A)
+  → isOfHLevel (n + k) (fst B)
+  → isOfHLevel (suc k) (A →∙ B)
+isConnected→∙ {A = A} {B = B} n k cA hlB =
+  isConnected→∙Dep {A = A} {B = λ _ → B} n k cA λ _ → hlB

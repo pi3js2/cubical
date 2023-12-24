@@ -227,3 +227,132 @@ syntax ⌣[]ₖ-syntax R x y = x ⌣[ R R]ₖ y
 syntax ⌣[]Cₖ-syntax R x y = x ⌣[ R R]Cₖ y
 syntax ⌣[,,]ₖ-syntax n m R x y = x ⌣[ R , n , m ]ₖ y
 syntax ⌣[,,]Cₖ-syntax n m R x y = x ⌣[ R , n , m ]Cₖ y
+
+-- ΩEM+1→EM-gen-hom : ∀ {ℓ} {G : AbGroup ℓ} (n : ℕ) (x : EM G (suc n))
+--   → (p q : x ≡ x)
+--   → ΩEM+1→EM-gen n x (p ∙ q)
+--    ≡ ΩEM+1→EM-gen n x p +ₖ ΩEM+1→EM-gen n x q
+-- ΩEM+1→EM-gen-hom {G = G} n =
+--   EM-raw'-elim _ (suc n)
+--     (λ _ → isOfHLevelΠ2 (suc (suc n))
+--       λ _ _ → isOfHLevelPath (suc (suc n)) (hLevelEM _ n) _ _)
+--        (EM-raw'-trivElim
+--           _ n (λ _ → isOfHLevelΠ2 (suc n) λ _ _ → hLevelEM _ n _ _)
+--             (help n))
+--   where
+--   help : (n : ℕ) (p q : EM-raw'→EM G (suc n) (snd (EM-raw'∙ G (suc n)))
+--                        ≡ EM-raw'→EM G (suc n) (snd (EM-raw'∙ G (suc n))))
+--      → ΩEM+1→EM-gen n (EM-raw'→EM G (suc n) (snd (EM-raw'∙ G (suc n)))) (p ∙ q)
+--       ≡ ΩEM+1→EM-gen n (EM-raw'→EM G (suc n) (snd (EM-raw'∙ G (suc n)))) p
+--      +ₖ ΩEM+1→EM-gen n (EM-raw'→EM G (suc n) (snd (EM-raw'∙ G (suc n)))) q
+--   help zero = ΩEM+1→EM-hom zero
+--   help (suc n) = ΩEM+1→EM-hom (suc n)
+
+-- module _ {G' H' : AbGroup ℓ} where
+--   open import Cubical.Foundations.Isomorphism
+--   open import Cubical.Foundations.Function
+--   open import Cubical.Foundations.Pointed
+--   open import Cubical.Homotopy.Loopspace
+--   open import Cubical.Foundations.Pointed.Homogeneous
+  
+  
+--   cupProdIso⊗n→↓ : {G' H' : AbGroup ℓ} (n : ℕ)
+--     → EM∙ G' (suc n)→∙ EM∙ H' (suc n)
+--     → EM∙ G' n →∙ EM∙ H' n
+--   fst (cupProdIso⊗n→↓ n (f , p)) x =
+--     ΩEM+1→EM-gen n (f (0ₖ (suc n))) (cong f (EM→ΩEM+1 n x))
+--   snd (cupProdIso⊗n→↓ n (f , p)) =
+--       cong (ΩEM+1→EM-gen n (f (0ₖ (suc n))))
+--            (cong (cong f) (EM→ΩEM+1-0ₖ n))
+--     ∙ ΩEM+1→EM-gen-refl n _
+
+--   cupProdIso⊗n→ : {G' H' : AbGroup ℓ} (n : ℕ) → EM∙ G' (suc n) →∙ EM∙ H' (suc n) → AbGroupHom G' H'
+--   fst (cupProdIso⊗n→ zero (f , p)) = cupProdIso⊗n→↓ zero (f , p) .fst
+--   snd (cupProdIso⊗n→ {G' = G'} {H' = H'} zero (f , p)) =
+--     makeIsGroupHom λ g g'
+--     → cong (ΩEM+1→EM-gen zero _ ∘ cong f) (emloop-comp _ g g')
+--      ∙ cong (ΩEM+1→EM-gen zero (f embase))
+--             (cong-∙ f (emloop g) (emloop g'))
+--           ∙ ΩEM+1→EM-gen-hom zero _ _ _
+--   cupProdIso⊗n→ (suc n) f = cupProdIso⊗n→ n (cupProdIso⊗n→↓ (suc n) f)
+
+--   cupProdIso⊗n← : {G' H' : AbGroup ℓ} (n : ℕ)
+--     → AbGroupHom G' H' → EM∙ G' (suc n) →∙ EM∙ H' (suc n)
+--   fst (cupProdIso⊗n← n ϕ) = inducedFun-EM ϕ (suc n)
+--   snd (cupProdIso⊗n← n ϕ) = inducedFun-EM0ₖ (suc n)
+
+--   cupProdIso⊗nsect : {G' H' : AbGroup ℓ} (n : ℕ)
+--     → section (cupProdIso⊗n→ {G' = G'} {H' = H'} n) (cupProdIso⊗n← n)
+--   cupProdIso⊗nsect = {!!}
+--   open import Cubical.Foundations.Path 
+
+--   cupProdIso⊗n : {G' H' : AbGroup ℓ} (n : ℕ)
+--     → retract (cupProdIso⊗n→ {G' = G'} {H' = H'} n) (cupProdIso⊗n← n)
+--      × section (cupProdIso⊗n→ {G' = G'} {H' = H'} n) (cupProdIso⊗n← n)
+--   fst (cupProdIso⊗n {G' = G'} {H' = H'} zero) (f , p) =
+--     →∙Homogeneous≡ (isHomogeneousEM _)
+--       (funExt (elimSet _ (λ _ → emsquash _ _)
+--         (sym p)
+--           λ g → flipSquare
+--             (((λ k → emloop (ΩEM+1→EM-gen zero (p k)
+--                       (doubleCompPath-filler (sym p) (cong f (emloop g)) p k)))
+--            ∙ Iso.rightInv (Iso-EM-ΩEM+1 zero) (sym p ∙∙ cong f (emloop g) ∙∙ p))
+--            ◁ λ i j → doubleCompPath-filler (sym p) (cong f (emloop g)) p (~ i) j)))
+--   snd (cupProdIso⊗n zero) f = Σ≡Prop (λ _ → isPropIsGroupHom _ _)
+--     (funExt λ x → cong (ΩEM+1→EM 0) (sym (EMFun-EM→ΩEM+1 {ϕ = f} zero x))
+--                 ∙ Iso.leftInv (Iso-EM-ΩEM+1 zero) _)
+--   fst (cupProdIso⊗n {G' = G'} (suc n)) (f , p) =
+--     →∙Homogeneous≡ (isHomogeneousEM _)
+--                     (funExt (EM-raw'-elim _ (suc (suc n))
+--                       (λ _ → isOfHLevelPath' (suc (suc (suc n)))
+--                         (isOfHLevelTrunc (suc (suc (suc (suc n))))) _ _)
+--                       λ { north → sym p
+--                         ; south → cong ∣_∣ₕ (sym (merid ptEM-raw)) ∙∙ sym p ∙∙ cong (f ∘ ∣_∣ₕ) (merid ptEM-raw)
+--                         ; (merid a i) j → help a j i}))
+--     where
+--     help : (a : EM-raw G' (suc n))
+--       → PathP (λ i → p (~ i) ≡ (cong ∣_∣ₕ (sym (merid ptEM-raw)) ∙∙ sym p ∙∙ cong (f ∘ ∣_∣ₕ) (merid ptEM-raw)) i)
+--                (cong (inducedFun-EM
+--                  (cupProdIso⊗n→ n (cupProdIso⊗n→↓ (suc n) (f , p))) (suc (suc n)))
+--                    (cong ∣_∣ₕ (merid a)))
+--                (cong (f ∘ ∣_∣ₕ) (merid a))
+--     help a i j =
+--       hcomp (λ k → λ {(i = i0) → {! ∣ inducedFun-EM-raw
+--                                         (cupProdIso⊗n→ n (cupProdIso⊗n→↓ (suc n) (f , p))) (suc (suc n))
+--                                          (compPath-filler (merid a) (sym (merid ptEM-raw)) (~ k) j)
+--                                          ∣!}
+--                      ; (i = i1) → f ∣ compPath-filler (merid a) (sym (merid ptEM-raw)) (~ k) j ∣ₕ
+--                      ; (j = i0) → {!!}})
+--             {!j = i0 ⊢ p (~ i)
+-- j = i1 ⊢ hcomp
+--          (doubleComp-faces (cong (λ a₁ → ∣ a₁ ∣) (sym (merid ptEM-raw)))
+--           (cong (f ∘ (λ a₁ → ∣ a₁ ∣)) (merid ptEM-raw)) i)
+--          (sym p i)
+-- i = i0 ⊢ ∣
+--          inducedFun-EM-raw
+--          (cupProdIso⊗n→ n (cupProdIso⊗n→↓ (suc n) (f , p))) (suc (suc n))
+--          (merid a j)
+--          ∣
+-- i = i1 ⊢ f ∣ merid a j ∣!}
+--   snd (cupProdIso⊗n (suc n)) = {!!}
+
+--   cupProdIso⊗n0 : {G' H' : AbGroup ℓ} (n : ℕ)
+--     → Iso (EM∙ G' (suc n) →∙ EM∙ H' (suc n)) (AbGroupHom G' H')
+--   Iso.fun (cupProdIso⊗n0 n) = cupProdIso⊗n→ n
+--   Iso.inv (cupProdIso⊗n0 n) = cupProdIso⊗n← n
+--   Iso.rightInv (cupProdIso⊗n0 n) = cupProdIso⊗n n .snd
+--   Iso.leftInv (cupProdIso⊗n0 n) = cupProdIso⊗n n .fst
+
+
+  -- fst (Iso.fun (cupProdIso⊗n0 zero) f) g = ΩEM+1→EM-gen 0 _ (cong (fst f) (emloop g))
+  -- snd (Iso.fun (cupProdIso⊗n0 zero) f) = {!!}
+  -- fst (Iso.inv (cupProdIso⊗n0 zero) (f , h)) x = {!!}
+  -- snd (Iso.inv (cupProdIso⊗n0 zero) (f , h)) = {!inducedFun-EM (f , h)!}
+  -- Iso.rightInv (cupProdIso⊗n0 zero) = {!!}
+  -- Iso.leftInv (cupProdIso⊗n0 zero) = {!!}
+  -- cupProdIso⊗n0 (suc n) = compIso {!!} (cupProdIso⊗n0 n)
+  
+  -- cupProdIso⊗ : (n m : ℕ)
+  --   → Iso (EM∙ G' n →∙ (EM∙ H' n →∙ EM∙ (G' ⨂ H') (n +' m) ∙))
+  --          (AbGroupHom G' {!!})
+  -- cupProdIso⊗ = {!!}
