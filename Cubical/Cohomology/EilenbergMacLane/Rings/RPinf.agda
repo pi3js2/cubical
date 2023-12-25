@@ -334,9 +334,6 @@ open import Cubical.HITs.Join
 ×⁴ A = A true true .fst × A true false .fst
      × A false true .fst × A false false .fst
 
-JoinStructureBoolDom : {!(A : Bool → Bool → Pointed ℓ) → ?!}
-JoinStructureBoolDom = {!!}
-
 module _ {ℓ} {A : Type ℓ} {B C : A → Type ℓ} (contr : isContr (Σ A B)) where
   private
     push-c : (a : A) (p : contr .fst .fst ≡ a)
@@ -484,19 +481,25 @@ notNotRP∞' = JRP∞' refl
 ∑RP∞' : (X : RP∞' ℓ-zero) (n : fst X → ℕ) → ℕ
 ∑RP∞' X n =
   RP∞'→SetRec isSetℕ X
-   (λ x → n x + n (RP∞'-fields.notRP∞' X x))
-   λ x → +-comm (n x) _ ∙ cong (n (RP∞'-fields.notRP∞' X x) +_)
+   (λ x → n x +' n (RP∞'-fields.notRP∞' X x))
+   λ x → +'-comm (n x) _ ∙ cong (n (RP∞'-fields.notRP∞' X x) +'_)
                            (cong n (sym (notNotRP∞' X x)))
 
 ∑RP∞'≡ : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
   → ∑RP∞' X n ≡ n x +' n (RP∞'-fields.notRP∞' X x)
-∑RP∞'≡ = JRP∞' (λ n → sym (+'≡+ _ _))
+∑RP∞'≡ = JRP∞' (λ n → refl)
 
 module _ {ℓ} (X : RP∞' ℓ) (A : fst X → Pointed ℓ) (B : Pointed ℓ) where
   BipointedUnordJoin : (f : ((x : fst X) → A x .fst) → fst B) → Type ℓ
   BipointedUnordJoin f =
       (g : (x : fst X) → A x .fst)
     → UnordJoinR X (λ x → g x ≡ A x .snd)
+    → f g ≡ B .snd
+
+module _ {ℓ} (X Y : RP∞' ℓ) (A : fst X → fst Y → Pointed ℓ) (B : Pointed ℓ) where
+  QuadpointedUnordJoin : (f : ((x : fst X) (y : fst Y) → A x y .fst) → fst B) → Type ℓ
+  QuadpointedUnordJoin f = (g : (x : fst X) (y : fst Y) → A x y .fst)
+    → UnordJoinR X (λ x → UnordJoinR Y λ y → g x y ≡ A x y .snd)
     → f g ≡ B .snd
 
 module _ {ℓ} (A B T :  Pointed ℓ)
@@ -606,27 +609,35 @@ mainLem' A B T = compIso (Σ-cong-iso-snd (λ f → FullIso A B T f)) is2
   fst (snd (snd (mmB T f))) c = cong f (sym (push (inl c)))
   snd (snd (snd (mmB T f))) j i = f (push (push tt (~ j)) (~ i))
 
+  mm' : (T : Type) (f : A ⋀ B → T) (t : T)
+    → (f (inl tt) ≡ t)
+    → BipointedJoinBool'' A B (T , t) (λ a b → f (inr (a , b)))
+  mm' T f = J> mmB T f .snd
+
   mm : (T : Type) (f : A ⋀ B → T) (t : T)
     → (f (inl tt) ≡ t)
     → Σ[ f ∈ (fst A → fst B → T) ] BipointedJoinBool'' A B (T , t) f
-  mm T f = J> (mmB T f)
+  fst (mm T f t x) a b = f (inr (a , b))
+  snd (mm T f t x) = mm' T f t x
 
   c1 : (T : Type) (f : A ⋀ B → T) (t : T) (p : f (inl tt) ≡ t)
     → F→ T t (mm T f t p) ≡ (f , p)
-  c1 T f = J> cong (F→ T (f (inl tt))) (transportRefl (mmB T f))
-            ∙ ΣPathP ((funExt (
-            λ { (inl x) → refl
-              ; (inr x) → refl
-              ; (push (inl x) i) → refl
-              ; (push (inr x) i) → refl
-              ; (push (push a i₁) i) → refl})) , refl)
+  c1 T f =
+    J> cong (F→ T (f (inl tt)))
+        (ΣPathP (refl , (transportRefl (mmB T f .snd))))
+     ∙ ΣPathP ((funExt (
+             λ { (inl x) → refl
+               ; (inr x) → refl
+               ; (push (inl x) i) → refl
+               ; (push (inr x) i) → refl
+               ; (push (push a i₁) i) → refl})) , refl)
 
   is2 : Iso (Σ[ f ∈ (fst A → fst B → fst T) ] BipointedJoinBool'' A B T f)
             (A ⋀∙ B →∙ T)
   Iso.fun is2 f = F→ (fst T) (snd T) f
   Iso.inv is2 f = mm (fst T) (fst f) (snd T) (snd f)
   Iso.rightInv is2 f = c1 (fst T) (fst f) _ (snd f)
-  Iso.leftInv is2 f = transportRefl f
+  Iso.leftInv is2 f = ΣPathP (refl , transportRefl (snd f))
 
 mainLem : (A B T : Pointed ℓ-zero)
   → Iso (Σ[ f ∈ (fst A → fst B → fst T) ] BipointedJoinBool A B T f)
@@ -671,42 +682,155 @@ Iso-BipointedUnordJoin-BipointedJoinBool A B f =
     (compIso (ΠIso ΠBool×Iso λ g
       → codomainIso (pathToIso (cong (_≡ B .snd) (cong f (sym (CasesBoolη g)))))) curryIso)
 
+SteenrodFunTypeGen : {!(X Y : RP∞' ℓ-zero) (n : ℕ
+  → Σ[ f ∈ (((x : fst X) → EM ℤ/2 (n x)) → EM ℤ/2 (∑RP∞' X n)) ]
+       BipointedUnordJoin X (λ x → EM∙ ℤ/2 (n x)) (EM∙ ℤ/2 (∑RP∞' X n)) f!}
+SteenrodFunTypeGen = {!!}
+
 SteenrodFunType : (X : RP∞' ℓ-zero) (n : fst X → ℕ) → Type
 SteenrodFunType X n =
   Σ[ f ∈ (((x : fst X) → EM ℤ/2 (n x)) → EM ℤ/2 (∑RP∞' X n)) ]
     BipointedUnordJoin X (λ x → EM∙ ℤ/2 (n x)) (EM∙ ℤ/2 (∑RP∞' X n)) f
 
-isOfHLevelEM→∙∙-full : {!!}
-isOfHLevelEM→∙∙-full = {!!}
+isSetSteenrodFunTypeBoolIso : (n : Bool → ℕ)
+  → Iso (SteenrodFunType (RP∞'∙ ℓ-zero) n)
+         (EM∙ ℤ/2 (n true) →∙ (EM∙ ℤ/2 (n false) →∙ EM∙ ℤ/2 (n true +' n false) ∙))
+isSetSteenrodFunTypeBoolIso n =
+  (compIso (Σ-cong-iso-snd (λ f → Iso-BipointedUnordJoin-BipointedJoinBool _ _ _))
+             (compIso (invIso (Σ-cong-iso (compIso (invIso curryIso) (invIso (ΠIso ΠBool×Iso λ f → idIso)))
+                      λ g → idIso))
+             (mainLem (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
+                      (EM∙ ℤ/2 (n true +' n false)))))
+
+isSetSteenrodFunTypeBoolIsoId : (n : Bool → ℕ) (f : _) (x : _) (y : _)
+  →  Iso.fun (isSetSteenrodFunTypeBoolIso n) f .fst x .fst y ≡ fst f (×→ΠBool (x , y)) 
+isSetSteenrodFunTypeBoolIsoId n f x y = transportRefl _
 
 isSetSteenrodFunType : (X : RP∞' ℓ-zero) (n : fst X → ℕ) → isSet (SteenrodFunType X n)
 isSetSteenrodFunType = RP∞'pt→Prop (λ _ → isPropΠ λ _ → isPropIsOfHLevel 2)
   λ n → isOfHLevelRetractFromIso 2
-    (compIso (Σ-cong-iso-snd (λ f → Iso-BipointedUnordJoin-BipointedJoinBool _ _ _))
-             (compIso (invIso (Σ-cong-iso (compIso (invIso curryIso) (invIso (ΠIso ΠBool×Iso λ f → idIso)))
-                      λ g → idIso))
-             (mainLem (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
-                      (EM∙ ℤ/2 (n true + n false)))))
-          (isConnected→∙ (suc (n true)) 1
-            (isConnectedEM (n true))
-              (subst (λ m → isOfHLevel m (EM∙ ℤ/2 (n false) →∙ EM∙ ℤ/2 (n true + n false)))
-                (cong suc (+-comm 1 (n true)) )
-                (isConnected→∙ (suc (n false)) (suc (n true))
-                  (isConnectedEM (n false))
-                  (subst (λ m → isOfHLevel (suc m) (EM ℤ/2 (n true + n false)))
-                     (+-comm (suc (n true)) (n false))
-                     (hLevelEM ℤ/2 (n true + n false))))))
+    (isSetSteenrodFunTypeBoolIso n)
+    (isConnected→∙ (suc (n true)) 1
+    (isConnectedEM (n true))
+    (subst (λ m → isOfHLevel m (EM∙ ℤ/2 (n false) →∙ EM∙ ℤ/2 (n true +' n false)))
+           (cong suc (+-comm 1 (n true)) )
+           (isConnected→∙ (suc (n false)) (suc (n true))
+             (isConnectedEM (n false))
+             (subst (λ m → isOfHLevel (suc m) (EM ℤ/2 (n true +' n false)))
+                (cong suc (+'≡+ (n true) (n false)) ∙ (+-comm (suc (n true)) (n false)))
+                (hLevelEM ℤ/2 (n true +' n false))))))
+
+SteenrodFunType≡ : (X : RP∞' ℓ-zero) (n : fst X → ℕ)
+  (f g : SteenrodFunType X n)
+  → fst f ≡ fst g
+  → f ≡ g
+SteenrodFunType≡ =
+  RP∞'pt→Prop (λ X → isPropΠ4 λ n _ _ _ → isSetSteenrodFunType X n _ _)
+   λ n f g p → sym (Iso.leftInv (isSetSteenrodFunTypeBoolIso n) f)
+            ∙∙ cong (inv (isSetSteenrodFunTypeBoolIso n))
+                 (→∙Homogeneous≡ (isHomogeneous→∙ (isHomogeneousEM _))
+                   (funExt (λ x → →∙Homogeneous≡ (isHomogeneousEM _)
+                     (funExt λ y → transportRefl _
+                                  ∙ funExt⁻ p (×→ΠBool (x , y))
+                                  ∙ sym (transportRefl _)))))
+            ∙∙ Iso.leftInv (isSetSteenrodFunTypeBoolIso n) g
 
 cp : {n m : ℕ} → EM ℤ/2 n → EM ℤ/2 m → EM ℤ/2 (n +' m)
 cp = _⌣ₖ_ {G'' = ℤ/2Ring}
 
 SQ : (X : RP∞' ℓ-zero) (n : fst X → ℕ) → SteenrodFunType X n
 SQ X n = RP∞'→SetRec (isSetSteenrodFunType X n) X
-  (λ x → (λ f → subst (EM ℤ/2) (sym (∑RP∞'≡ X x n)) (cp (f x) (f (RP∞'-fields.notRP∞' X x))))
-        , λ g → {!!})
-  {!!}
+                      (λ x → sq X x n , sq-coh X x n)
+                      (λ x → comm-field X x n)
+  where
+  sq : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
+       (f : ((x₁ : fst X) → EM ℤ/2 (n x₁))) → EM ℤ/2 (∑RP∞' X n)
+  sq X x n f =
+    subst (EM ℤ/2) (sym (∑RP∞'≡ X x n))
+      (cp (f x) (f (RP∞'-fields.notRP∞' X x)))
 
+  sq-bool : (n : Bool → ℕ) (f : ((x₁ : Bool) → EM ℤ/2 (n x₁)))
+    → EM ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n)
+  sq-bool n f = cp (f true) (f false)
 
+  sq≡ : (n : Bool → ℕ) (f : ((x₁ : Bool) → EM ℤ/2 (n x₁)))
+    → sq (RP∞'∙ ℓ-zero) true n f ≡ sq-bool n f
+  sq≡ n f = (λ j → subst (EM ℤ/2)
+                     (isSetℕ _ _ (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n)) refl j)
+                     (sq-bool n f))
+           ∙ transportRefl _
+
+  sq' : (n : Bool → ℕ)
+    → SmashPt (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
+    →∙ EM∙ ℤ/2 (n true +' n false)
+  fst (sq' n) basel = 0ₖ (n true +' n false)
+  fst (sq' n) baser = 0ₖ (n true +' n false)
+  fst (sq' n) (proj x y) = x ⌣ₖ y
+  fst (sq' n) (gluel a i) = ⌣ₖ-0ₖ {G'' = ℤ/2Ring} (n true) (n false) a i
+  fst (sq' n) (gluer b i) = 0ₖ-⌣ₖ {G'' = ℤ/2Ring} (n true) (n false) b i
+  snd (sq' n) = refl
+
+  sq-coh-bool : (n : Bool → ℕ)
+    → BipointedJoinBool (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
+                         (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n))
+           (λ a b → sq-bool n (CasesBool true a b))
+  sq-coh-bool n =
+    mainLem' (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
+             (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n)) .Iso.inv
+      (sq' n ∘∙ (⋀→Smash , refl)) .snd
+
+  sq-coh : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
+    → BipointedUnordJoin X (λ x₁ → EM∙ ℤ/2 (n x₁))
+                            (EM∙ ℤ/2 (∑RP∞' X n)) (sq X x n)
+  sq-coh = JRP∞' λ n → Iso-BipointedUnordJoin-BipointedJoinBool
+                          (λ x₁ → EM∙ ℤ/2 (n x₁))
+                          (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n))
+                          (sq (RP∞'∙ ℓ-zero) true n) .Iso.inv
+                          λ g x r → sq≡ n _ ∙ sq-coh-bool n g x r
+
+  comm-field : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
+    → Path (SteenrodFunType X n)
+            (sq X x n
+             , sq-coh X x n)
+            (sq X (RP∞'-fields.notRP∞' X x) n
+             , sq-coh X (RP∞'-fields.notRP∞' X x) n)
+  comm-field = JRP∞' λ n → SteenrodFunType≡ (RP∞'∙ ℓ-zero) n _ _
+    (funExt λ f → cong (subst (EM ℤ/2) (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n)))
+            (⌣ₖ-commℤ/2 (n true) (n false) (f true) (f false))
+          ∙ help _ (+'-comm (n false) (n true)) _
+                   (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n))
+                   (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) false n))
+             (cp (f false) (f true)))
+    where
+    help : {n : ℕ} (m : ℕ) (p : n ≡ m) (l : ℕ) (q : m ≡ l) (r : n ≡ l)
+      → (x : EM ℤ/2 n)
+      → subst (EM ℤ/2) q (subst (EM ℤ/2) p x) ≡ subst (EM ℤ/2) r x
+    help = J> (J> λ r x
+      → transportRefl _
+       ∙ λ j → subst (EM ℤ/2) (isSetℕ _ _ refl r j) x )
+
+SQ4comm' : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → Σ[ f ∈ (((x : fst X) (y : fst Y) → EM ℤ/2 (n x y))
+         → EM ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) ]
+      QuadpointedUnordJoin Y X
+        (λ y x → EM∙ ℤ/2 (n x y))
+        (EM∙ ℤ/2 (∑RP∞' Y λ y → ∑RP∞' X λ x → n x y)) λ g → {!f ?!} -- (λ x y → f y x)
+SQ4comm' X Y n = {!!}
+
+-- SQ4 : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+--   → Σ[ f ∈ (((x : fst X) (y : fst Y) → EM ℤ/2 (n x y))
+--          → EM ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) ]
+--       QuadpointedUnordJoin X Y
+--         (λ x y → EM∙ ℤ/2 (n x y))
+--         (EM∙ ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) f
+-- fst (SQ4 X Y n) f = SQ X (λ x → ∑RP∞' Y (n x)) .fst λ x → SQ Y (n x) .fst (f x)
+-- snd (SQ4 X Y n) g (inlR p) = SQ X (λ x → ∑RP∞' Y (n x)) .snd _ (inlR (fst p , SQ Y (n (fst p)) .snd _ (snd p)))
+-- snd (SQ4 X Y n) g (inrR f) = SQ X (λ x → ∑RP∞' Y (n x)) .snd _ (inrR λ x → SQ Y (n x) .snd _ (f x))
+-- snd (SQ4 X Y n) g (pushR p f r i) =
+--   SQ X (λ x → ∑RP∞' Y (n x)) .snd _
+--     (pushR (fst p , SQ Y (n (fst p)) .snd _ (snd p))
+--            (λ x → SQ Y (n x) .snd _ (f x))
+--            (cong (SQ Y (n (fst p)) .snd (λ x₂ → g (fst p) x₂)) r) i)
 
 -- mainA : (A B C D T : Pointed ℓ-zero)
 --   → Iso (Σ[ f ∈ (fst A → fst B → fst C → fst D → fst T) ]
