@@ -462,6 +462,33 @@ Iso.leftInv (ΠContr {B = B} c) f =
 --   FullIso : Iso JS₁ JS₁''
 --   FullIso = compIso IS1 IS2
 
+RP∞'→SetElim :
+  ∀ {ℓ} {A : RP∞' ℓ → Type ℓ} (s : (X : _) → isSet (A X))
+     → (f : (X : RP∞' ℓ) → fst X → A X)
+     → ((X : RP∞' ℓ) → (x : fst X) → f X x ≡ f X (RP∞'-fields.notRP∞' X x))
+     → ((X : RP∞' ℓ) → A X)
+RP∞'→SetElim {A = A} s f f-comm =
+  uncurry λ X → uncurry λ 2tx
+  → elim→Set (λ _ → s _)
+       (λ x → f (X , 2tx , ∣ x ∣₁) x)
+       λ x → RP∞'-fields.elimRP∞' (X , 2tx , ∣ x ∣₁) x
+              (λ i → f (X , 2tx , squash₁ ∣ x ∣₁ ∣ x ∣₁ i) x)
+              (f-comm (X , 2tx , ∣ x ∣₁) x
+            ◁ λ i → f (X , 2tx , squash₁ ∣ x ∣₁ ∣ fst 2tx x ∣₁ i) (fst 2tx x))
+
+RP∞'→SetElimEq :
+  ∀ {ℓ} {A : RP∞' ℓ → Type ℓ} (s : (X : _) → isSet (A X))
+     (f : (X : RP∞' ℓ) → fst X → A X)
+     (h : (X : RP∞' ℓ) → (x : fst X) → f X x ≡ f X (RP∞'-fields.notRP∞' X x))
+     (X : RP∞' ℓ) (x : _)
+     → RP∞'→SetElim s f h X ≡ f X x
+RP∞'→SetElimEq {A = A} s f h = uncurry λ X → uncurry
+  λ 2x → PT.elim (λ _ → isPropΠ λ _ → s _ _ _)
+    λ x → RP∞'-fields.elimRP∞' (X , 2x , ∣ x ∣₁) x
+            (fromPathP λ i → (f (X , 2x , squash₁ ∣ x ∣₁ ∣ x ∣₁ i)  x))
+            (fromPathP (h (X , 2x , ∣ x ∣₁) x
+              ◁ λ i → f (X , 2x , squash₁ ∣ x ∣₁ ∣ x ∣₁ i) (fst 2x x)))
+
 RP∞'→SetRec : ∀ {ℓ} {A : Type ℓ} (s : isSet A) (X : RP∞' ℓ)
          → (f : fst X → A)
          → ((x : _) → f x ≡ f (RP∞'-fields.notRP∞' X x))
@@ -474,6 +501,18 @@ RP∞'→SetRec s = uncurry λ X
                  (λ i f coh → f x)
                  λ i f coh → coh x i
 
+RP∞'→SetRecEq :
+  ∀ {ℓ} {A : Type ℓ} (s : isSet A) (X : _)
+     (f : fst X → A)
+     (h : (x : fst X) → f x ≡ f (RP∞'-fields.notRP∞' X x))
+     (x : fst X)
+     → RP∞'→SetRec s X f h ≡ f x
+RP∞'→SetRecEq {A = A} s = uncurry λ X → uncurry
+  λ 2x → PT.elim (λ _ → isPropΠ3 λ _ _ _ → s _ _)
+    λ x f h → RP∞'-fields.elimRP∞' (X , 2x , ∣ x ∣₁) x
+      (λ i → transportRefl (transportRefl (f (transportRefl x i)) i) i)
+      ((λ i → transportRefl (transportRefl (f (transportRefl x i)) i) i) ∙ h x)
+
 notNotRP∞' : ∀ {ℓ} (X : RP∞' ℓ) (x : fst X)
   → RP∞'-fields.notRP∞' X (RP∞'-fields.notRP∞' X x) ≡ x
 notNotRP∞' = JRP∞' refl
@@ -485,9 +524,22 @@ notNotRP∞' = JRP∞' refl
    λ x → +'-comm (n x) _ ∙ cong (n (RP∞'-fields.notRP∞' X x) +'_)
                            (cong n (sym (notNotRP∞' X x)))
 
+
 ∑RP∞'≡ : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
   → ∑RP∞' X n ≡ n x +' n (RP∞'-fields.notRP∞' X x)
-∑RP∞'≡ = JRP∞' (λ n → refl)
+∑RP∞'≡ = RP∞'pt→Prop (λ _ → isPropΠ2 λ _ _ → isSetℕ _ _)
+  λ { false n → +'-comm (n true) (n false)
+     ; true n → refl}
+
+∑RP∞'Fubini : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → (∑RP∞' Y (λ y → ∑RP∞' X (λ x → n x y)))
+   ≡ (∑RP∞' X (λ x → ∑RP∞' Y (n x)))
+∑RP∞'Fubini =
+  RP∞'pt→Prop (λ X → isPropΠ2 λ _ _ → isSetℕ _ _)
+    (RP∞'pt→Prop ((λ _ → isPropΠ λ _ → isSetℕ _ _))
+      λ n → move4 (n true true) (n false true) (n true false) (n false false) _+'_
+        +'-assoc
+        +'-comm)
 
 module _ {ℓ} (X : RP∞' ℓ) (A : fst X → Pointed ℓ) (B : Pointed ℓ) where
   BipointedUnordJoin : (f : ((x : fst X) → A x .fst) → fst B) → Type ℓ
@@ -495,6 +547,7 @@ module _ {ℓ} (X : RP∞' ℓ) (A : fst X → Pointed ℓ) (B : Pointed ℓ) wh
       (g : (x : fst X) → A x .fst)
     → UnordJoinR X (λ x → g x ≡ A x .snd)
     → f g ≡ B .snd
+
 
 module _ {ℓ} (X Y : RP∞' ℓ) (A : fst X → fst Y → Pointed ℓ) (B : Pointed ℓ) where
   QuadpointedUnordJoin : (f : ((x : fst X) (y : fst Y) → A x y .fst) → fst B) → Type ℓ
@@ -682,11 +735,6 @@ Iso-BipointedUnordJoin-BipointedJoinBool A B f =
     (compIso (ΠIso ΠBool×Iso λ g
       → codomainIso (pathToIso (cong (_≡ B .snd) (cong f (sym (CasesBoolη g)))))) curryIso)
 
-SteenrodFunTypeGen : {!(X Y : RP∞' ℓ-zero) (n : ℕ
-  → Σ[ f ∈ (((x : fst X) → EM ℤ/2 (n x)) → EM ℤ/2 (∑RP∞' X n)) ]
-       BipointedUnordJoin X (λ x → EM∙ ℤ/2 (n x)) (EM∙ ℤ/2 (∑RP∞' X n)) f!}
-SteenrodFunTypeGen = {!!}
-
 SteenrodFunType : (X : RP∞' ℓ-zero) (n : fst X → ℕ) → Type
 SteenrodFunType X n =
   Σ[ f ∈ (((x : fst X) → EM ℤ/2 (n x)) → EM ℤ/2 (∑RP∞' X n)) ]
@@ -738,590 +786,908 @@ SteenrodFunType≡ =
 cp : {n m : ℕ} → EM ℤ/2 n → EM ℤ/2 m → EM ℤ/2 (n +' m)
 cp = _⌣ₖ_ {G'' = ℤ/2Ring}
 
-SQ : (X : RP∞' ℓ-zero) (n : fst X → ℕ) → SteenrodFunType X n
-SQ X n = RP∞'→SetRec (isSetSteenrodFunType X n) X
-                      (λ x → sq X x n , sq-coh X x n)
-                      (λ x → comm-field X x n)
-  where
-  sq : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
+Sq : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
        (f : ((x₁ : fst X) → EM ℤ/2 (n x₁))) → EM ℤ/2 (∑RP∞' X n)
-  sq X x n f =
-    subst (EM ℤ/2) (sym (∑RP∞'≡ X x n))
+Sq X x n f =
+  subst (EM ℤ/2) (sym (∑RP∞'≡ X x n))
       (cp (f x) (f (RP∞'-fields.notRP∞' X x)))
 
-  sq-bool : (n : Bool → ℕ) (f : ((x₁ : Bool) → EM ℤ/2 (n x₁)))
-    → EM ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n)
-  sq-bool n f = cp (f true) (f false)
+Sq-bool : (n : Bool → ℕ) (f : ((x₁ : Bool) → EM ℤ/2 (n x₁)))
+  → EM ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n)
+Sq-bool n f = cp (f true) (f false)
 
-  sq≡ : (n : Bool → ℕ) (f : ((x₁ : Bool) → EM ℤ/2 (n x₁)))
-    → sq (RP∞'∙ ℓ-zero) true n f ≡ sq-bool n f
-  sq≡ n f = (λ j → subst (EM ℤ/2)
+sq≡ : (n : Bool → ℕ) (f : ((x₁ : Bool) → EM ℤ/2 (n x₁)))
+  → Sq (RP∞'∙ ℓ-zero) true n f ≡ Sq-bool n f
+sq≡ n f = (λ j → subst (EM ℤ/2)
                      (isSetℕ _ _ (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n)) refl j)
-                     (sq-bool n f))
+                     (Sq-bool n f))
            ∙ transportRefl _
 
-  sq' : (n : Bool → ℕ)
-    → SmashPt (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
-    →∙ EM∙ ℤ/2 (n true +' n false)
-  fst (sq' n) basel = 0ₖ (n true +' n false)
-  fst (sq' n) baser = 0ₖ (n true +' n false)
-  fst (sq' n) (proj x y) = x ⌣ₖ y
-  fst (sq' n) (gluel a i) = ⌣ₖ-0ₖ {G'' = ℤ/2Ring} (n true) (n false) a i
-  fst (sq' n) (gluer b i) = 0ₖ-⌣ₖ {G'' = ℤ/2Ring} (n true) (n false) b i
-  snd (sq' n) = refl
 
-  sq-coh-bool : (n : Bool → ℕ)
-    → BipointedJoinBool (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
-                         (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n))
-           (λ a b → sq-bool n (CasesBool true a b))
-  sq-coh-bool n =
-    mainLem' (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
-             (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n)) .Iso.inv
-      (sq' n ∘∙ (⋀→Smash , refl)) .snd
+sq' : (n : Bool → ℕ)
+  → SmashPt (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
+  →∙ EM∙ ℤ/2 (n true +' n false)
+fst (sq' n) basel = 0ₖ (n true +' n false)
+fst (sq' n) baser = 0ₖ (n true +' n false)
+fst (sq' n) (proj x y) = cp x y
+fst (sq' n) (gluel a i) = ⌣ₖ-0ₖ {G'' = ℤ/2Ring} (n true) (n false) a i
+fst (sq' n) (gluer b i) = 0ₖ-⌣ₖ {G'' = ℤ/2Ring} (n true) (n false) b i
+snd (sq' n) = refl
 
-  sq-coh : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
-    → BipointedUnordJoin X (λ x₁ → EM∙ ℤ/2 (n x₁))
-                            (EM∙ ℤ/2 (∑RP∞' X n)) (sq X x n)
-  sq-coh = JRP∞' λ n → Iso-BipointedUnordJoin-BipointedJoinBool
-                          (λ x₁ → EM∙ ℤ/2 (n x₁))
-                          (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n))
-                          (sq (RP∞'∙ ℓ-zero) true n) .Iso.inv
-                          λ g x r → sq≡ n _ ∙ sq-coh-bool n g x r
+sq-coh-bool : (n : Bool → ℕ)
+  → BipointedJoinBool (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
+                       (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n))
+         (λ a b → Sq-bool n (CasesBool true a b))
+sq-coh-bool n =
+  mainLem' (EM∙ ℤ/2 (n true)) (EM∙ ℤ/2 (n false))
+           (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n)) .Iso.inv
+    (sq' n ∘∙ (⋀→Smash , refl)) .snd
 
-  comm-field : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
-    → Path (SteenrodFunType X n)
-            (sq X x n
-             , sq-coh X x n)
-            (sq X (RP∞'-fields.notRP∞' X x) n
-             , sq-coh X (RP∞'-fields.notRP∞' X x) n)
-  comm-field = JRP∞' λ n → SteenrodFunType≡ (RP∞'∙ ℓ-zero) n _ _
-    (funExt λ f → cong (subst (EM ℤ/2) (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n)))
-            (⌣ₖ-commℤ/2 (n true) (n false) (f true) (f false))
-          ∙ help _ (+'-comm (n false) (n true)) _
-                   (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n))
-                   (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) false n))
-             (cp (f false) (f true)))
-    where
-    help : {n : ℕ} (m : ℕ) (p : n ≡ m) (l : ℕ) (q : m ≡ l) (r : n ≡ l)
-      → (x : EM ℤ/2 n)
-      → subst (EM ℤ/2) q (subst (EM ℤ/2) p x) ≡ subst (EM ℤ/2) r x
-    help = J> (J> λ r x
-      → transportRefl _
-       ∙ λ j → subst (EM ℤ/2) (isSetℕ _ _ refl r j) x )
+sq-coh : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
+  → BipointedUnordJoin X (λ x₁ → EM∙ ℤ/2 (n x₁))
+                          (EM∙ ℤ/2 (∑RP∞' X n)) (Sq X x n)
+sq-coh = JRP∞' λ n → Iso-BipointedUnordJoin-BipointedJoinBool
+                        (λ x₁ → EM∙ ℤ/2 (n x₁))
+                        (EM∙ ℤ/2 (∑RP∞' (RP∞'∙ ℓ-zero) n))
+                        (Sq (RP∞'∙ ℓ-zero) true n) .Iso.inv
+                        λ g x r → sq≡ n _ ∙ sq-coh-bool n g x r
+
+comm-field : (X : RP∞' ℓ-zero) (x : fst X) (n : fst X → ℕ)
+  → Path (SteenrodFunType X n)
+          (Sq X x n
+           , sq-coh X x n)
+          (Sq X (RP∞'-fields.notRP∞' X x) n
+           , sq-coh X (RP∞'-fields.notRP∞' X x) n)
+comm-field = JRP∞' λ n → SteenrodFunType≡ (RP∞'∙ ℓ-zero) n _ _
+  (funExt λ f → cong (subst (EM ℤ/2) (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n)))
+          (⌣ₖ-commℤ/2 (n true) (n false) (f true) (f false))
+        ∙ help _ (+'-comm (n false) (n true)) _
+                 (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) true n))
+                 (sym (∑RP∞'≡ (RP∞'∙ ℓ-zero) false n))
+           (cp (f false) (f true)))
+  where
+  help : {n : ℕ} (m : ℕ) (p : n ≡ m) (l : ℕ) (q : m ≡ l) (r : n ≡ l)
+    → (x : EM ℤ/2 n)
+    → subst (EM ℤ/2) q (subst (EM ℤ/2) p x) ≡ subst (EM ℤ/2) r x
+  help = J> (J> λ r x
+    → transportRefl _
+     ∙ λ j → subst (EM ℤ/2) (isSetℕ _ _ refl r j) x)
+
+
+SQ : (X : RP∞' ℓ-zero) (n : fst X → ℕ) → SteenrodFunType X n
+SQ X n = RP∞'→SetRec (isSetSteenrodFunType X n) X
+                      (λ x → Sq X x n , sq-coh X x n)
+                      (λ x → comm-field X x n)
+
+STSQ : (X : RP∞' ℓ-zero) (n : fst X → ℕ)
+       (f : ((x₁ : fst X) → EM ℤ/2 (n x₁))) → EM ℤ/2 (∑RP∞' X n)
+STSQ X n f = SQ X n .fst f
+
+SQId : (X : RP∞' ℓ-zero) (n : fst X → ℕ)
+  (x : fst X) (g : (x₁ : fst X) → EM ℤ/2 (n x₁))
+  → SQ X n .fst g ≡ Sq X x n g
+SQId X n x g i =
+  RP∞'→SetRecEq (isSetSteenrodFunType X n) X
+                  (λ x → Sq X x n , sq-coh X x n)
+                  (λ x → comm-field X x n) x i .fst g
+
+SQBool : (n : Bool → ℕ) (g : _) → SQ (RP∞'∙ ℓ-zero) n .fst g ≡ cp (g true) (g false)
+SQBool n g = SQId (RP∞'∙ ℓ-zero) n true g ∙ sq≡ n g
+
+ΣQuadpointTy : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → Type
+ΣQuadpointTy X Y n =
+  Σ[ f ∈ (((x : fst X) (y : fst Y) → EM ℤ/2 (n x y))
+         → EM ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) ]
+      QuadpointedUnordJoin X Y
+        (λ x y → EM∙ ℤ/2 (n x y))
+        (EM∙ ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) f
+
+SQ4 : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → ΣQuadpointTy X Y n
+fst (SQ4 X Y n) f = SQ X (λ x → ∑RP∞' Y (n x)) .fst λ x → SQ Y (n x) .fst (f x)
+snd (SQ4 X Y n) g (inlR p) = SQ X (λ x → ∑RP∞' Y (n x)) .snd _ (inlR (fst p , SQ Y (n (fst p)) .snd _ (snd p)))
+snd (SQ4 X Y n) g (inrR f) = SQ X (λ x → ∑RP∞' Y (n x)) .snd _ (inrR λ x → SQ Y (n x) .snd _ (f x))
+snd (SQ4 X Y n) g (pushR p f r i) =
+  SQ X (λ x → ∑RP∞' Y (n x)) .snd _
+    (pushR (fst p , SQ Y (n (fst p)) .snd _ (snd p))
+           (λ x → SQ Y (n x) .snd _ (f x))
+           (cong (SQ Y (n (fst p)) .snd (λ x₂ → g (fst p) x₂)) r) i)
 
 SQ4comm' : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
   → Σ[ f ∈ (((x : fst X) (y : fst Y) → EM ℤ/2 (n x y))
-         → EM ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) ]
+         → EM ℤ/2 (∑RP∞' Y λ y → ∑RP∞' X λ x → n x y)) ]
       QuadpointedUnordJoin Y X
         (λ y x → EM∙ ℤ/2 (n x y))
-        (EM∙ ℤ/2 (∑RP∞' Y λ y → ∑RP∞' X λ x → n x y)) λ g → {!f ?!} -- (λ x y → f y x)
-SQ4comm' X Y n = {!!}
+        (EM∙ ℤ/2 (∑RP∞' Y λ y → ∑RP∞' X λ x → n x y))
+        (λ g → f (λ x y → g y x))
+fst (SQ4comm' X Y n) f =
+  SQ Y (λ z → ∑RP∞' X (λ x → n x z)) .fst
+    λ y → SQ X (λ x → n x y) .fst λ x → f x y
+snd (SQ4comm' X Y n) g (inlR x) =
+  SQ Y (λ z → ∑RP∞' X (λ x₁ → n x₁ z)) .snd
+    (λ y → SQ X (λ x₁ → n x₁ y) .fst (λ x₁ → g y x₁))
+      (inlR (fst x , SQ X (λ x₁ → n x₁ (fst x)) .snd (g (fst x)) (snd x)))
+snd (SQ4comm' X Y n) g (inrR f) =
+  SQ Y (λ y → ∑RP∞' X (λ x → n x y)) .snd
+    (λ y → SQ X (λ x → n x y) .fst (g y))
+    (inrR λ y → SQ X (λ x → n x y) .snd (g y) (f y))
+snd (SQ4comm' X Y n) g (pushR a b x i) =
+  SQ Y (λ y → ∑RP∞' X (λ x → n x y)) .snd
+    (λ y → SQ X (λ x₁ → n x₁ y) .fst (g y))
+      (pushR (fst a , SQ X (λ x → n x (fst a)) .snd (g (fst a)) (snd a))
+             (λ y → SQ X (λ x → n x y) .snd (g y) (b y))
+             (cong (SQ X (λ x₁ → n x₁ (fst a)) .snd (g (fst a))) x) i)
 
--- SQ4 : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
---   → Σ[ f ∈ (((x : fst X) (y : fst Y) → EM ℤ/2 (n x y))
---          → EM ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) ]
---       QuadpointedUnordJoin X Y
---         (λ x y → EM∙ ℤ/2 (n x y))
---         (EM∙ ℤ/2 (∑RP∞' X λ x → ∑RP∞' Y λ y → n x y)) f
--- fst (SQ4 X Y n) f = SQ X (λ x → ∑RP∞' Y (n x)) .fst λ x → SQ Y (n x) .fst (f x)
--- snd (SQ4 X Y n) g (inlR p) = SQ X (λ x → ∑RP∞' Y (n x)) .snd _ (inlR (fst p , SQ Y (n (fst p)) .snd _ (snd p)))
--- snd (SQ4 X Y n) g (inrR f) = SQ X (λ x → ∑RP∞' Y (n x)) .snd _ (inrR λ x → SQ Y (n x) .snd _ (f x))
--- snd (SQ4 X Y n) g (pushR p f r i) =
---   SQ X (λ x → ∑RP∞' Y (n x)) .snd _
---     (pushR (fst p , SQ Y (n (fst p)) .snd _ (snd p))
---            (λ x → SQ Y (n x) .snd _ (f x))
---            (cong (SQ Y (n (fst p)) .snd (λ x₂ → g (fst p) x₂)) r) i)
+SQ4comm : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → ΣQuadpointTy X Y n
+fst (SQ4comm X Y n) f =
+  subst (EM ℤ/2) (∑RP∞'Fubini X Y n)
+    (SQ Y (λ z → ∑RP∞' X (λ x → n x z)) .fst
+      λ y → SQ X (λ x → n x y) .fst λ x → f x y)
+snd (SQ4comm X Y n) f p =
+    cong (subst (EM ℤ/2) (∑RP∞'Fubini X Y n))
+      (SQ4comm' X Y n .snd (λ y x → f x y)
+        (UnordJoinFubiniFun X Y _ p))
+  ∙ subst-EM∙ (∑RP∞'Fubini X Y n) .snd
 
--- mainA : (A B C D T : Pointed ℓ-zero)
---   → Iso (Σ[ f ∈ (fst A → fst B → fst C → fst D → fst T) ]
---             JS4 A B C D T f)
---          (A →∙ (B →∙ C →∙ D →∙ T ∙ ∙ ∙))
--- mainA A B C D T =
---   compIso
---    (compIso IsMain
---      (pathToIso (λ i → Σ (fst A → fst B → mainIs i .fst)
---                            (BipointedJoinBool A B (mainIs i)))))
---                             (mainLem A B (C →∙ D →∙ T ∙ ∙))
---   where
---   T1 = (Σ[ f ∈ (fst A → fst B → fst C → fst D → fst T) ] JS4 A B C D T f)
---   T2 = (Σ (fst A → fst B → Σ (fst C → fst D → fst T) (BipointedJoinBool C D T))
---                  (BipointedJoinBool A B (Σ (fst C → fst D → fst T) (BipointedJoinBool C D T)
---                    , (λ _ _ → snd T) , (λ _ _ _ → refl) )))
+mainA : (A B C D T : Pointed ℓ-zero)
+  → Iso (Σ[ f ∈ (fst A → fst B → fst C → fst D → fst T) ]
+            JS4 A B C D T f)
+         (A →∙ (B →∙ C →∙ D →∙ T ∙ ∙ ∙))
+mainA A B C D T =
+  compIso
+   (compIso IsMain
+     (Σ-cong-iso
+       (codomainIso (codomainIso (mainLem C D T)))
+       λ f → codomainIsoDep λ a
+           → codomainIsoDep λ b
+           → codomainIso
+             (compIso (congIso {x = f a b} (mainLem C D T))
+               (pathToIso (cong (fun (mainLem C D T) (f a b) ≡_)
+                 (mainIs .snd)) ))))
+    (mainLem A B (C →∙ D →∙ T ∙ ∙))
+  where
+  T1 = (Σ[ f ∈ (fst A → fst B → fst C → fst D → fst T) ] JS4 A B C D T f)
+  T2 = (Σ (fst A → fst B → Σ (fst C → fst D → fst T) (BipointedJoinBool C D T))
+                 (BipointedJoinBool A B (Σ (fst C → fst D → fst T) (BipointedJoinBool C D T)
+                   , (λ _ _ → snd T) , (λ _ _ _ → refl) )))
 
---   module _ (a : fst A) (b : fst B) (c : fst C) (d : fst D)
---            (p : join (a ≡ snd A) (b ≡ snd B))
---            (q : join (c ≡ snd C) (d ≡ snd D)) (i j k : I) where
---     fill₁ : T1 → fst T
---     fill₁ (f , g) =
---       hfill (λ k → λ {(i = i0) → g a b c d (push p q k) j
---                      ; (i = i1) → snd T
---                      ; (j = i0) → g a b c d (inl p) i
---                      ; (j = i1) → snd T})
---             (inS (g a b c d (inl p) (i ∨ j))) k
+  module _ (a : fst A) (b : fst B) (c : fst C) (d : fst D)
+           (p : join (a ≡ snd A) (b ≡ snd B))
+           (q : join (c ≡ snd C) (d ≡ snd D)) (i j k : I) where
+    fill₁ : T1 → fst T
+    fill₁ (f , g) =
+      hfill (λ k → λ {(i = i0) → g a b c d (push p q k) j
+                     ; (i = i1) → snd T
+                     ; (j = i0) → g a b c d (inl p) i
+                     ; (j = i1) → snd T})
+            (inS (g a b c d (inl p) (i ∨ j))) k
 
---     fill₂ : T2 → fst T
---     fill₂ (f , g) =
---       hfill (λ k → λ {(i = i0) → g a b p j .snd c d q (~ k)
---                    ; (i = i1) → f a b .snd c d q (~ k ∨ j)
---                    ; (j = i0) → f a b .snd c d q (~ k)
---                    ; (j = i1) → snd T})
---           (inS (snd T)) k
+    fill₂ : T2 → fst T
+    fill₂ (f , g) =
+      hfill (λ k → λ {(i = i0) → g a b p j .snd c d q (~ k)
+                   ; (i = i1) → f a b .snd c d q (~ k ∨ j)
+                   ; (j = i0) → f a b .snd c d q (~ k)
+                   ; (j = i1) → snd T})
+          (inS (snd T)) k
 
---   T1→T2 : T1 → T2
---   fst (fst (T1→T2 (f , p)) a b) c d = f a b c d
---   snd (fst (T1→T2 (f , p)) a b) c d t = p a b c d (inr t)
---   fst (snd (T1→T2 (f , p)) a b t i) c d = p a b c d (inl t) i
---   snd (snd (T1→T2 (f , p)) a b t i) c d q j = fill₁ a b c d t q i j i1 (f , p)
+  T1→T2 : T1 → T2
+  fst (fst (T1→T2 (f , p)) a b) c d = f a b c d
+  snd (fst (T1→T2 (f , p)) a b) c d t = p a b c d (inr t)
+  fst (snd (T1→T2 (f , p)) a b t i) c d = p a b c d (inl t) i
+  snd (snd (T1→T2 (f , p)) a b t i) c d q j = fill₁ a b c d t q i j i1 (f , p)
 
---   T2→T1 : T2 → T1
---   fst (T2→T1 (f , p)) a b c d = f a b .fst c d
---   snd (T2→T1 (f , p)) a b c d (inl x) i = p a b x i .fst c d
---   snd (T2→T1 (f , p)) a b c d (inr x) = f a b .snd c d x
---   snd (T2→T1 (f , g)) a b c d (push p q i) j = fill₂ a b c d p q i j i1 (f , g)
+  T2→T1 : T2 → T1
+  fst (T2→T1 (f , p)) a b c d = f a b .fst c d
+  snd (T2→T1 (f , p)) a b c d (inl x) i = p a b x i .fst c d
+  snd (T2→T1 (f , p)) a b c d (inr x) = f a b .snd c d x
+  snd (T2→T1 (f , g)) a b c d (push p q i) j = fill₂ a b c d p q i j i1 (f , g)
 
---   IsMain : Iso T1 T2
---   Iso.fun IsMain = T1→T2
---   Iso.inv IsMain = T2→T1
---   fst (Iso.rightInv IsMain (f , p) i) = fst (T1→T2 (T2→T1 (f , p)))
---   fst (snd (Iso.rightInv IsMain (f , p) i) a b t j) = p a b t j .fst
---   snd (snd (Iso.rightInv IsMain (f , g) i) a b p j) c d q k =
---     hcomp (λ r → λ {(i = i0) → fill₁ a b c d p q j k r ((λ a b c d → f a b .fst c d) , (snd (T2→T1 (f , g))))
---                    ; (i = i1) → snd (g a b p j) c d q k
---                    ; (j = i0) → sd r i k
---                    ; (j = i1) → snd T
---                    ; (k = i0) → g a b p j .fst c d
---                    ; (k = i1) → snd T})
---            (cb k j i)
---     where
---     sq : (k i r : I) → fst T
---     sq k i r =
---       hfill (λ r → λ {(i = i0) → g a b p k .snd c d q (~ r)
---                      ; (i = i1) → f a b .snd c d q (~ r ∨ k)
---                      ; (k = i0) → f a b .snd c d q (~ r)
---                      ; (k = i1) → snd T})
---             (inS (snd T))
---             r
+  IsMain : Iso T1 T2
+  Iso.fun IsMain = T1→T2
+  Iso.inv IsMain = T2→T1
+  fst (Iso.rightInv IsMain (f , p) i) = fst (T1→T2 (T2→T1 (f , p)))
+  fst (snd (Iso.rightInv IsMain (f , p) i) a b t j) = p a b t j .fst
+  snd (snd (Iso.rightInv IsMain (f , g) i) a b p j) c d q k =
+    hcomp (λ r → λ {(i = i0) → fill₁ a b c d p q j k r ((λ a b c d → f a b .fst c d) , (snd (T2→T1 (f , g))))
+                   ; (i = i1) → snd (g a b p j) c d q k
+                   ; (j = i0) → sd r i k
+                   ; (j = i1) → snd T
+                   ; (k = i0) → g a b p j .fst c d
+                   ; (k = i1) → snd T})
+           (cb k j i)
+    where
+    sq : (k i r : I) → fst T
+    sq k i r =
+      hfill (λ r → λ {(i = i0) → g a b p k .snd c d q (~ r)
+                     ; (i = i1) → f a b .snd c d q (~ r ∨ k)
+                     ; (k = i0) → f a b .snd c d q (~ r)
+                     ; (k = i1) → snd T})
+            (inS (snd T))
+            r
 
---     sd : Cube (λ i j → sq j i i1)
---                (λ i k → f a b .snd c d q k)
---                (λ r k → fill₂ a b c d p q r k i1
---                           (f , λ a b p → g a b p))
---                (λ r k → snd (f a b) c d q k)
---                (λ r i → f a b .fst c d) (λ _ _ → pt T)
---     sd r i k =
---       hcomp (λ w → λ {(r = i0) → sq k i w
---                      ; (r = i1) → f a b .snd c d q (~ w ∨ k)
---                      ; (i = i0) → fill₂ a b c d p q r k w (f , λ a b p → g a b p)
---                      ; (i = i1) → f a b .snd c d q (~ w ∨ k)
---                      ; (k = i0) → f a b .snd c d q (~ w)
---                      ; (k = i1) → snd T})
---                 (snd T)
+    sd : Cube (λ i j → sq j i i1)
+               (λ i k → f a b .snd c d q k)
+               (λ r k → fill₂ a b c d p q r k i1
+                          (f , λ a b p → g a b p))
+               (λ r k → snd (f a b) c d q k)
+               (λ r i → f a b .fst c d) (λ _ _ → pt T)
+    sd r i k =
+      hcomp (λ w → λ {(r = i0) → sq k i w
+                     ; (r = i1) → f a b .snd c d q (~ w ∨ k)
+                     ; (i = i0) → fill₂ a b c d p q r k w (f , λ a b p → g a b p)
+                     ; (i = i1) → f a b .snd c d q (~ w ∨ k)
+                     ; (k = i0) → f a b .snd c d q (~ w)
+                     ; (k = i1) → snd T})
+                (snd T)
 
---     cb : Cube (λ j i → g a b p j .fst c d) (λ _ _ → pt T)
---               (λ i j → sq i j i1) (λ _ _ → pt T)
---               (λ k j → g a b p (j ∨ k) .fst c d)
---               λ k j → snd (g a b p j) c d q k
---     cb k j i =
---       hcomp (λ r → λ {(i = i0) → g a b p (k ∨ j) .snd c d q (~ r)
---                      ; (i = i1) → snd (g a b p j) c d q (~ r ∨ k)
---                      ; (j = i1) → snd T
---                      ; (k = i0) → g a b p j .snd c d q (~ r)
---                      ; (k = i1) → snd T})
---             (snd T)
---   fst (Iso.leftInv IsMain (f , g) i) = f
---   snd (Iso.leftInv IsMain (f , g) i) a b c d (inl p) = g a b c d (inl p)
---   snd (Iso.leftInv IsMain (f , g) i) a b c d (inr p) = g a b c d (inr p)
---   snd (Iso.leftInv IsMain (f , g) i) a b c d (push p q j) k =
---     hcomp (λ r → λ {(i = i0) → fill₂ a b c d p q j k r
---                                    (fst (T1→T2 (f , g)) , snd (T1→T2 (f , g)))
---                    ; (i = i1) → ss r j k
---                    ; (j = i0) → s2 r k i
---                    ; (j = i1) → g a b c d (inr q) (~ r ∨ k)
---                    ; (k = i0) → g a b c d (inr q) (~ r)
---                    ; (k = i1) → pt T})
---            (snd T)
---     where
---     PP : (i j k : I) → fst T
---     PP i j k = doubleWhiskFiller {A = λ i → g a b c d (inr q) (~ i) ≡ pt T} refl
---           (λ i j → g a b c d (inr q) (~ i ∨ j))
---           (λ j k → g a b c d (push p q (~ j)) k)
---           k i j
+    cb : Cube (λ j i → g a b p j .fst c d) (λ _ _ → pt T)
+              (λ i j → sq i j i1) (λ _ _ → pt T)
+              (λ k j → g a b p (j ∨ k) .fst c d)
+              λ k j → snd (g a b p j) c d q k
+    cb k j i =
+      hcomp (λ r → λ {(i = i0) → g a b p (k ∨ j) .snd c d q (~ r)
+                     ; (i = i1) → snd (g a b p j) c d q (~ r ∨ k)
+                     ; (j = i1) → snd T
+                     ; (k = i0) → g a b p j .snd c d q (~ r)
+                     ; (k = i1) → snd T})
+            (snd T)
+  fst (Iso.leftInv IsMain (f , g) i) = f
+  snd (Iso.leftInv IsMain (f , g) i) a b c d (inl p) = g a b c d (inl p)
+  snd (Iso.leftInv IsMain (f , g) i) a b c d (inr p) = g a b c d (inr p)
+  snd (Iso.leftInv IsMain (f , g) i) a b c d (push p q j) k =
+    hcomp (λ r → λ {(i = i0) → fill₂ a b c d p q j k r
+                                   (fst (T1→T2 (f , g)) , snd (T1→T2 (f , g)))
+                   ; (i = i1) → ss r j k
+                   ; (j = i0) → s2 r k i
+                   ; (j = i1) → g a b c d (inr q) (~ r ∨ k)
+                   ; (k = i0) → g a b c d (inr q) (~ r)
+                   ; (k = i1) → pt T})
+           (snd T)
+    where
+    PP : (i j k : I) → fst T
+    PP i j k = doubleWhiskFiller {A = λ i → g a b c d (inr q) (~ i) ≡ pt T} refl
+          (λ i j → g a b c d (inr q) (~ i ∨ j))
+          (λ j k → g a b c d (push p q (~ j)) k)
+          k i j
 
---     s2 : Cube (λ _ _ → pt T) (λ k i → g a b c d (inl p) k)
---               (λ r i → g a b c d (inr q) (~ r)) (λ _ _ → pt T)
---               (λ r k → fill₁ a b c d p q k (~ r) i1 (f , g))
---               λ r k → PP r k i1
---     s2 r k i =
---       hcomp (λ j → λ {(r = i0) → pt T
---                      ; (r = i1) → g a b c d (push p q (~ j ∧ i)) k
---                      ; (k = i0) → g a b c d (push p q (j ∨ i)) (~ r)
---                      ; (k = i1) → pt T
---                      ; (i = i0) → fill₁ a b c d p q k (~ r) j (f , g)
---                      ; (i = i1) → PP r k j})
---             (g a b c d (push p q i) (k ∨ ~ r))
+    s2 : Cube (λ _ _ → pt T) (λ k i → g a b c d (inl p) k)
+              (λ r i → g a b c d (inr q) (~ r)) (λ _ _ → pt T)
+              (λ r k → fill₁ a b c d p q k (~ r) i1 (f , g))
+              λ r k → PP r k i1
+    s2 r k i =
+      hcomp (λ j → λ {(r = i0) → pt T
+                     ; (r = i1) → g a b c d (push p q (~ j ∧ i)) k
+                     ; (k = i0) → g a b c d (push p q (j ∨ i)) (~ r)
+                     ; (k = i1) → pt T
+                     ; (i = i0) → fill₁ a b c d p q k (~ r) j (f , g)
+                     ; (i = i1) → PP r k j})
+            (g a b c d (push p q i) (k ∨ ~ r))
 
---     ss : Cube (λ _ _ → pt T) (λ j k → g a b c d (push p q j) k)
---                (λ i j → PP i j i1)
---                (λ r k → g a b c d (inr q) (~ r ∨ k))
---                (λ r j → g a b c d (inr q) (~ r))
---                (λ r j → pt T)
---     ss r j k =
---       hcomp (λ w → λ {(r = i0) → pt T
---                    ; (r = i1) → g a b c d (push p q (~ w ∨ j)) k
---                    ; (j = i1) → g a b c d (inr q) (~ r ∨ k)
---                    ; (k = i0) → g a b c d (inr q) (~ r)
---                    ; (k = i1) → pt T})
---            (g a b c d (inr q) (~ r ∨ k))
+    ss : Cube (λ _ _ → pt T) (λ j k → g a b c d (push p q j) k)
+               (λ i j → PP i j i1)
+               (λ r k → g a b c d (inr q) (~ r ∨ k))
+               (λ r j → g a b c d (inr q) (~ r))
+               (λ r j → pt T)
+    ss r j k =
+      hcomp (λ w → λ {(r = i0) → pt T
+                   ; (r = i1) → g a b c d (push p q (~ w ∨ j)) k
+                   ; (j = i1) → g a b c d (inr q) (~ r ∨ k)
+                   ; (k = i0) → g a b c d (inr q) (~ r)
+                   ; (k = i1) → pt T})
+           (g a b c d (inr q) (~ r ∨ k))
 
---   mainIs : (isoToPath (mainLem C D T) i0 , (λ c d → pt T) , λ _ _ _ → refl)
---          ≡ (C →∙ (D →∙ T ∙) ∙)
---   mainIs =
---     ua∙ ((isoToEquiv (mainLem C D T)))
---      (cong (Iso.fun SmashAdjIso)
---        (ΣPathP ((funExt (
---          λ { (inl x) → refl
---             ; (inr x) → refl
---             ; (push (inl x) i) → refl
---             ; (push (inr x) i) → refl
---             ; (push (push a i₁) i) → refl})) , refl))
---             ∙ SmashAdj≃∙ .snd)
+  mainIs :  (isoToPath (mainLem C D T) i0 , (λ c d → pt T) , λ _ _ _ → refl)
+          ≃∙ (C →∙ (D →∙ T ∙) ∙)
+  fst mainIs = isoToEquiv (mainLem C D T)
+  snd mainIs = cong (Iso.fun SmashAdjIso)
+       (ΣPathP ((funExt (
+         λ { (inl x) → refl
+            ; (inr x) → refl
+            ; (push (inl x) i) → refl
+            ; (push (inr x) i) → refl
+            ; (push (push a i₁) i) → refl})) , refl))
+            ∙ SmashAdj≃∙ .snd
+{-
+     ((isoToEquiv (mainLem C D T)))
+     (cong (Iso.fun SmashAdjIso)
+       (ΣPathP ((funExt (
+         λ { (inl x) → refl
+            ; (inr x) → refl
+            ; (push (inl x) i) → refl
+            ; (push (inr x) i) → refl
+            ; (push (push a i₁) i) → refl})) , refl))
+            ∙ SmashAdj≃∙ .snd)
+-}
 
--- -- module _ (A B C D :  Pointed ℓ-zero) (T : Pointed ℓ-zero)
--- --          (f : A .fst × B .fst × C .fst × D .fst
--- --            → fst T) where
--- --   BipointedJoinBool : Type
--- --   BipointedJoinBool = (a : A .fst) (b : B .fst) (c : C .fst) (d : D .fst)
--- --          → join (a ≡ A .snd)
--- --              (join (b ≡ B .snd)
--- --                (join (c ≡ C .snd)
--- --                      (d ≡ D .snd)))
--- --          → f (a , b , c , d) ≡ T .snd
+ΣQuadpointTyBool : (n : Bool → Bool → ℕ)
+  → Iso (ΣQuadpointTy (RP∞'∙ ℓ-zero) (RP∞'∙ ℓ-zero) n)
+        (EM∙ ℤ/2 (n true true)
+     →∙ (EM∙ ℤ/2 (n true false)
+     →∙ EM∙ ℤ/2 (n false true)
+     →∙ EM∙ ℤ/2 (n false false)
+     →∙ EM∙ ℤ/2 ((n true true +' n true false)
+               +' (n false true +' n false false)) ∙ ∙ ∙))
+ΣQuadpointTyBool n =
+   (compIso
+    (Σ-cong-iso
+     (invIso (compIso (invIso curryIso)
+     (compIso (invIso curryIso)
+     (compIso (invIso curryIso)
+     (domIso (invIso help))))))
+      λ f → invIso (compIso
+        (compIso (invIso curryIso)
+          (compIso (invIso curryIso)
+            (compIso (invIso curryIso)
+              (invIso
+                (ΠIso idIso
+                  λ {(((x , y) , z) , w)
+               → domIso (compIso join-UnordJoinR-iso
+                   (Iso→joinIso
+                     join-UnordJoinR-iso
+                     join-UnordJoinR-iso))})))))
+          (ΠIso (invIso help) λ _ → idIso)))
+    (mainA (EM∙ ℤ/2 (n true true))
+           (EM∙ ℤ/2 (n true false))
+           (EM∙ ℤ/2 (n false true))
+           (EM∙ ℤ/2 (n false false))
+     (EM∙ ℤ/2 ((n true true +' n true false)
+           +' (n false true +' n false false)))))
+  where
+  help : Iso ((x y : fst (RP∞'∙ ℓ-zero)) → EM∙ ℤ/2 (n x y) .fst)
+             (((EM ℤ/2 (n true true)
+              × EM ℤ/2 (n true false))
+              × EM ℤ/2 (n false true))
+              × EM ℤ/2 (n false false))
+  help = compIso (compIso ΠBool×Iso
+                  (prodIso ΠBool×Iso ΠBool×Iso))
+                  (invIso Σ-assoc-Iso)
 
--- --   BipointedJoinBool* : Type
--- --   BipointedJoinBool* = (b : B .fst) (c : C .fst) (d : D .fst)
--- --     → Σ[ fr ∈ ((a : A .fst) → join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd))
--- --                              → f (a , b , c , d) ≡ T .snd) ]
--- --           ((x : singl (A .snd)) → 
--- --               (Σ[ fl ∈ (f (x .fst , b , c , d) ≡ T .snd) ]
--- --                ((t : join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd)))
--- --              → fl ≡ fr (x .fst) t)))
+{-
+ΣQuadpointTyPres : (n : Bool → Bool → ℕ)
+  (f : ΣQuadpointTy (RP∞'∙ ℓ-zero) (RP∞'∙ ℓ-zero) n)
+  → Path (EM ℤ/2 (n true true) →
+      (EM ℤ/2 (n true false) →
+       EM ℤ/2 (n false true) →
+       EM ℤ/2 (n false false) →
+       EM ℤ/2
+         ((n true true +' n true false)
+       +' (n false true +' n false false))))
+        (λ x y z w → Iso.fun (ΣQuadpointTyBool n) f .fst x .fst y .fst z .fst w)
+        λ x y z w → f .fst (CasesBool true
+                             (CasesBool true x y)
+                             (CasesBool true z w))
+ΣQuadpointTyPres n f = refl
+-}
 
--- --   BipointedJoinBool** : Type
--- --   BipointedJoinBool** = (b : B .fst) (c : C .fst) (d : D .fst)
--- --     → Σ[ fr ∈ ((a : A .fst) → join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd))
--- --                              → f (a , b , c , d) ≡ T .snd) ]
--- --            Σ[ fl ∈ (f (pt A , b , c , d) ≡ T .snd) ]
--- --                ((t : join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd)))
--- --              → fl ≡ fr (pt A) t)
+isSetΣQuadPoint : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → isSet (ΣQuadpointTy X Y n)
+isSetΣQuadPoint =
+  RP∞'pt→Prop (λ Y → isPropΠ2 (λ _ _ → isPropIsSet))
+    (RP∞'pt→Prop (λ Y → isPropΠ (λ _ → isPropIsSet))
+      λ n → isOfHLevelRetractFromIso 2
+              (ΣQuadpointTyBool n)
+              (isConnected→∙ (suc (n true true)) 1
+                (isConnectedEM (n true true))
+                (isConnected→∙ (suc (n true false)) (n true true + 1)
+                  (isConnectedEM (n true false))
+                  (isConnected→∙ (suc (n false true))
+                    ((n true false) + (n true true + 1))
+                    (isConnectedEM (n false true))
+                    (isConnected→∙
+                      (suc (n false false))
+                      (n false true + (n true false + (n true true + 1)))
+                      (isConnectedEM (n false false))
+                      (subst (λ k → isOfHLevel (suc k) (EM ℤ/2 (N' n)))
+                        (lem n)
+                        (hLevelEM ℤ/2 (N' n))))))))
+  where
+  N' : (n : Bool → Bool → ℕ) → ℕ
+  N' n = ((n true true +' n true false) +' (n false true +' n false false))
 
--- --   JS₂ : Type
--- --   JS₂ = (c : C .fst) (d : D .fst)
--- --     → Σ[ fr ∈ ((a : A .fst) (b : fst B)
--- --               → join (c ≡ C .snd) (d ≡ D .snd)
--- --               → f (a , b , c , d) ≡ T .snd) ]
--- --        Σ[ fl ∈ ((b : fst B) → f (pt A , b , c , d) ≡ T .snd) ]
--- --          Σ[ flp ∈ ((b : fst B) → (t : join (c ≡ C .snd) (d ≡ D .snd))
--- --                  → fl b ≡ fr (pt A) b t) ]
--- --           ((x : singl (B .snd))
--- --        → Σ[ frl ∈ ((a : fst A) → f (a , fst x , c , d) ≡ T .snd) ]
--- --            Σ[ frp ∈ ((a : fst A) (t : join (c ≡ C .snd) (d ≡ D .snd)) → frl a ≡ fr a (fst x) t) ]
--- --              Σ[ r ∈ fl (fst x) ≡ frl (pt A) ]
--- --                ((t : join (c ≡ C .snd) (d ≡ D .snd))
--- --              → Square r (flp (fst x) t) refl (frp (pt A) t)))
+  lem : (n : _) → suc (N' n)
+                 ≡ (n false false + (n false true + (n true false + (n true true + 1))))
+  lem n =  cong suc ((cong₂ _+'_ (+'≡+ (n true true) (n true false))
+                                (+'≡+ (n false true) (n false false))
+                 ∙ +'≡+ _ _)
+                 ∙ +-assoc (n true true + n true false ) (n false true) (n false false))
+         ∙ cong (_+ n false false)
+              (cong (_+ n false true)
+                ((λ i → +-comm (+-comm 1 (n true true) i) (n true false) i))
+              ∙ +-comm _ (n false true))
+         ∙ +-comm _ (n false false)
 
--- --   JS₂* : Type
--- --   JS₂* = (c : C .fst) (d : D .fst)
--- --     → Σ[ fr ∈ ((a : A .fst) (b : fst B)
--- --               → join (c ≡ C .snd) (d ≡ D .snd)
--- --               → f (a , b , c , d) ≡ T .snd) ]
--- --        Σ[ fl ∈ ((b : fst B) → f (pt A , b , c , d) ≡ T .snd) ]
--- --          Σ[ flp ∈ ((b : fst B) → (t : join (c ≡ C .snd) (d ≡ D .snd))
--- --                  → fl b ≡ fr (pt A) b t) ]
--- --           (Σ[ frl ∈ ((a : fst A) → f (a , pt B , c , d) ≡ T .snd) ]
--- --            Σ[ frp ∈ ((a : fst A) (t : join (c ≡ C .snd) (d ≡ D .snd)) → frl a ≡ fr a (pt B) t) ]
--- --              Σ[ r ∈ fl (pt B) ≡ frl (pt A) ]
--- --                ((t : join (c ≡ C .snd) (d ≡ D .snd))
--- --              → Square r (flp (pt B) t) refl (frp (pt A) t)))
+ΣQuadPoint≡ : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  (f g : ΣQuadpointTy X Y n)
+  → ((t : _) → f .fst t ≡ g .fst t)
+  → f ≡ g
+ΣQuadPoint≡ =
+  RP∞'pt→Prop (λ X → isPropΠ5 λ Y n _ _ _ → isSetΣQuadPoint X Y n _ _)
+    (RP∞'pt→Prop (λ Y → isPropΠ4 λ n _ _ _
+                       → isSetΣQuadPoint (RP∞'∙ ℓ-zero) Y n _ _)
+     λ n f g p
+   → sym (Iso.leftInv (ΣQuadpointTyBool n) f)
+   ∙∙ cong (inv (ΣQuadpointTyBool n))
+       (main n f g p)
+   ∙∙ Iso.leftInv (ΣQuadpointTyBool n) g)
+  where
+  module _ (n : Bool → Bool → ℕ)
+           (f g : ΣQuadpointTy (RP∞'∙ ℓ-zero) (RP∞'∙ ℓ-zero) n)
+         (p : (t : (x y : fst (RP∞'∙ ℓ-zero)) → EM ℤ/2 (n x y))
+        →  f .fst t ≡ g .fst t) where
+    p' : (x : _) (y : _) (z : _) (w : _)
+      → fun (ΣQuadpointTyBool n) f .fst x .fst y .fst z .fst w
+      ≡ fun (ΣQuadpointTyBool n) g .fst x .fst y .fst z .fst w
+    p' x y z w = p (CasesBool true
+                       (CasesBool true x y)
+                       (CasesBool true z w))
 
--- --   module _ (fl₁ : ((b : fst B) (c : C .fst) (d : D .fst) → f (pt A , b , c , d) ≡ T .snd))
--- --                 (fl₂ : ((a : fst A) (c : C .fst) (d : D .fst) → f (a , pt B , c , d) ≡ T .snd))
--- --                 (fl₁₂ : (c : fst C) (d : fst D) → fl₁ (pt B) c d ≡ fl₂ (pt A) c d)
--- --                 where
--- --     TL : singl (snd C) → Type
--- --     TL (c , p) =
--- --       Σ[ fr ∈ ((a : fst A) (b : fst B) (d : fst D) → f (a , b , c , d) ≡ T .snd) ]
--- --         Σ[ flp ∈ ((b : fst B) (d : fst D)  → fl₁ b c d ≡ fr (pt A) b d) ]
--- --           Σ[ frp ∈ ((a : fst A) (d : fst D) → fl₂ a c d ≡ fr a (pt B) d) ]
--- --             ((d : fst D) → Square (fl₁₂ c d) (flp (pt B) d) refl (frp (pt A) d))
--- --     TR : singl (snd D) → Type
--- --     TR (d , p) =
--- --       Σ[ fr ∈ ((a : fst A) (b : fst B) (c : fst C) → f (a , b , c , d) ≡ T .snd) ]
--- --         Σ[ flp ∈ ((b : fst B) (c : fst C)  → fl₁ b c d ≡ fr (pt A) b c) ]
--- --           Σ[ frp ∈ ((a : fst A) (c : fst C) → fl₂ a c d ≡ fr a (pt B) c) ]
--- --             ((c : fst C) → Square (fl₁₂ c d) (flp (pt B) c) refl (frp (pt A) c))
+    module _ {ℓ ℓ' ℓT} {C : Pointed ℓ} {D : Pointed ℓ'} {T : Pointed ℓT}
+              (hom : isHomogeneous T) where
+      isHomogeneous→∙₂ : isHomogeneous (C →∙ (D →∙ T ∙) ∙) 
+      isHomogeneous→∙₂ = isHomogeneous→∙ (isHomogeneous→∙ hom)
 
--- --     TLR : (c : singl (snd C)) (d : singl (snd D)) → TL c → TR d → Type
--- --     TLR (c , p) (d , q) (frₗ , flpₗ , frpₗ , sqₗ) (frᵣ , flpᵣ , frpᵣ , sqᵣ) =
--- --       Σ[ frₗᵣ ∈ (((a : fst A) (b : fst B) → frₗ a b d ≡ frᵣ a b c)) ]
--- --       Σ[ flpₗᵣ ∈ ((b : fst B) → PathP (λ i → fl₁ b c d ≡ frₗᵣ (pt A) b i) (flpₗ b d) (flpᵣ b c)) ]
--- --       Σ[ frpₗᵣ ∈ ((a : fst A) → PathP (λ i → fl₂ a c d ≡ frₗᵣ a (pt B) i) (frpₗ a d) (frpᵣ a c)) ]
--- --         Cube (sqₗ d) (sqᵣ c)
--- --              (λ i j → fl₁₂ c d j) (flpₗᵣ (pt B))
--- --              (λ j i → fl₁ (pt B) c d) (frpₗᵣ (pt A)) 
+      module _ {ℓ'' : Level} {B : Pointed ℓ''} where
+        isHomogeneous→∙₃ : isHomogeneous (B →∙ (C →∙ (D →∙ T ∙) ∙) ∙) 
+        isHomogeneous→∙₃ = isHomogeneous→∙ isHomogeneous→∙₂
 
+        isHomogeneous→∙₄ : ∀ {ℓ'''} {A : Pointed ℓ'''}
+          → isHomogeneous (A →∙ (B →∙ (C →∙ (D →∙ T ∙) ∙) ∙) ∙)
+        isHomogeneous→∙₄ = isHomogeneous→∙ isHomogeneous→∙₃
 
--- --   JS₃* : Type
--- --   JS₃* = Σ[ fl₁ ∈ ((b : fst B) (c : C .fst) (d : D .fst) → f (pt A , b , c , d) ≡ T .snd) ]
--- --            Σ[ fl₂ ∈ ((a : fst A) (c : C .fst) (d : D .fst) → f (a , pt B , c , d) ≡ T .snd) ]
--- --             Σ[ fl₁₂ ∈ ((c : fst C) (d : fst D) → fl₁ (pt B) c d ≡ fl₂ (pt A) c d) ]
--- --              Σ[ l ∈ ((c : _) → TL fl₁ fl₂ fl₁₂ c) ]
--- --               Σ[ r ∈ ((c : _) → TR fl₁ fl₂ fl₁₂ c) ]
--- --                 ((c : singl (snd C)) (d : singl (snd D)) → TLR fl₁ fl₂ fl₁₂ c d (l c) (r d))
+      
 
--- --   JS₃** : Type
--- --   JS₃** = Σ[ fl₁ ∈ ((b : fst B) (c : C .fst) (d : D .fst) → f (pt A , b , c , d) ≡ T .snd) ]
--- --            Σ[ fl₂ ∈ ((a : fst A) (c : C .fst) (d : D .fst) → f (a , pt B , c , d) ≡ T .snd) ]
--- --             Σ[ fl₁₂ ∈ ((c : fst C) (d : fst D) → fl₁ (pt B) c d ≡ fl₂ (pt A) c d) ]
--- --              Σ[ l ∈ (TL fl₁ fl₂ fl₁₂ (pt C , refl)) ]
--- --               Σ[ r ∈ (TR fl₁ fl₂ fl₁₂ (pt D , refl)) ]
--- --                 (TLR fl₁ fl₂ fl₁₂ (pt C , refl) (pt D , refl) l r)
+    T = (n true true +' n true false) +' (n false true +' n false false)
 
--- --   module _ (js : JS₃**) where
--- --     open import Cubical.HITs.SmashProduct
--- --     JS₃**→' : (A ⋀∙ (B ⋀∙ (C ⋀∙ D))) →∙ T
--- --     fst JS₃**→' (inl x) = pt T
--- --     fst JS₃**→' (inr (a , inl x)) = {!f (a , ?)!} -- pt T
--- --     fst JS₃**→' (inr (a , inr (b , inl x))) = {!!} -- pt T
--- --     fst JS₃**→' (inr (a , inr (b , inr (c , d)))) = f (a , b , c , d)
--- --     fst JS₃**→' (inr (a , inr (b , push (inl x) i))) = snd js .snd .snd .snd .fst .fst a b x (~ i)
--- --     fst JS₃**→' (inr (a , inr (b , push (inr x) i))) = snd js .snd .snd .fst .fst a b x (~ i)
--- --     fst JS₃**→' (inr (a , inr (b , push (push tt i₁) i))) = snd js .snd .snd .snd .snd .fst a b (~ i₁) (~ i)
--- --     fst JS₃**→' (inr (a , push (inl x) i)) = {!f (a , pt B , pt C , ?)!} -- pt T
--- --     fst JS₃**→' (inr (a , push (inr (inl x)) i)) = {!f (a , pt B , pt C , x)!} -- snd T
--- --     fst JS₃**→' (inr (a , push (inr (inr (c , d))) i)) = snd js .fst a c d (~ i)
--- --     fst JS₃**→' (inr (a , push (inr (push (inl x) i₁)) i)) = {!!}
--- --     fst JS₃**→' (inr (a , push (inr (push (inr x) i₁)) i)) = {!snd js .snd .snd .fst .snd .snd .fst a x (~ i₁) (~ i)!}
--- --     fst JS₃**→' (inr (a , push (inr (push (push a₁ i₂) i₁)) i)) = {!!}
--- --     fst JS₃**→' (inr (a , push (push a₁ i₁) i)) = {!!}
--- --     fst JS₃**→' (push a i) = {!!}
--- --     snd JS₃**→' = {!!}
+    m4 : (x : EM ℤ/2 (n true true)) (y : EM ℤ/2 (n true false))
+         (z : EM ℤ/2 (n false true))
+       → fun (ΣQuadpointTyBool n) f .fst x .fst y .fst z
+       ≡ fun (ΣQuadpointTyBool n) g .fst x .fst y .fst z
+    m4 x y z = →∙Homogeneous≡ (isHomogeneousEM T) (funExt (p' x y z))
 
--- --     JS₃**→ : A →∙ (B →∙ (C →∙ (D →∙ T ∙) ∙) ∙)
--- --     fst (fst (fst (fst JS₃**→ a) b) c) d = f (a , b , c , d)
--- --     snd (fst (fst (fst JS₃**→ a) b) c) = snd js .snd .snd .snd .fst .fst a b c
--- --     fst (snd (fst (fst JS₃**→ a) b) i) d = snd js .snd .snd .fst .fst a b d i
--- --     snd (snd (fst (fst JS₃**→ a) b) i) = {!snd js .snd .snd .snd .snd .fst a b  i!}
--- --     fst (fst (snd (fst JS₃**→ a) i) c) d = snd js .fst a c d i
--- --     snd (fst (snd (fst JS₃**→ a) i) c) j = {!!}
--- --     fst (snd (snd (fst JS₃**→ a) i) j) d = {!!}
--- --     snd (snd (snd (fst JS₃**→ a) i) j) k = {!!}
--- --     fst (fst (fst (snd JS₃**→ i) b) c) d = fst js b c d i
--- --     snd (fst (fst (snd JS₃**→ i) b) c) j = {!!}
--- --     fst (snd (fst (snd JS₃**→ i) b) j) d = {!!}
--- --     snd (snd (fst (snd JS₃**→ i) b) j) k = {!!}
--- --     fst (fst (snd (snd JS₃**→ i) j) c) d = {!!}
--- --     snd (fst (snd (snd JS₃**→ i) j) c) k = {!!}
--- --     snd (snd (snd JS₃**→ i) j) = {!!}
+    m3 : (x : EM ℤ/2 (n true true)) (y : EM ℤ/2 (n true false))
+       → fun (ΣQuadpointTyBool n) f .fst x .fst y
+       ≡ fun (ΣQuadpointTyBool n) g .fst x .fst y
+    m3 x y = →∙Homogeneous≡ (isHomogeneous→∙ (isHomogeneousEM T))
+               (funExt (m4 x y))
 
--- --   Iso-JS₃*-JS₃** : Iso JS₃* JS₃**
--- --   Iso-JS₃*-JS₃** =
--- --     Σ-cong-iso-snd λ f' → Σ-cong-iso-snd λ g → Σ-cong-iso-snd λ fg
--- --       → compIso (Σ-cong-iso-snd (λ r → Σ-cong-iso-snd λ s
--- --         → compIso (ΠContr (isContrSingl (snd C)))
--- --                    (ΠContr (isContrSingl (snd D)))))
--- --            (compIso (ΣΠContr {C = λ c l → Σ ((d : _) → TR f' g fg d)
--- --                      λ r → TLR f' g fg c (pt D , refl) l (r (pt D , refl))} (isContrSingl (snd C)))
--- --              (Σ-cong-iso-snd λ l →
--- --                ΣΠContr {C = λ d r → TLR f' g fg (pt C , refl) d l r} (isContrSingl (snd D))))
+    m2 : (x : EM ℤ/2 (n true true))
+      → fun (ΣQuadpointTyBool n) f .fst x
+       ≡ fun (ΣQuadpointTyBool n) g .fst x
+    m2 x = →∙Homogeneous≡ (isHomogeneous→∙₂ (isHomogeneousEM T))
+             (funExt (m3 x))
 
--- --   Iso₂ : Iso BipointedJoinBool** JS₂
--- --   fst (Iso.fun Iso₂ F c d) a b t = F b c d .fst a (inr t)
--- --   fst (snd (Iso.fun Iso₂ F c d)) b = F b c d .snd .fst
--- --   fst (snd (snd (Iso.fun Iso₂ F c d))) b t = F b c d .snd .snd (inr t)
--- --   fst (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p)) a =
--- --     F b c d .fst a (inl (sym p))
--- --   fst (snd (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p))) a t =
--- --     cong (F b c d .fst a) (push (sym p) t)
--- --   fst (snd (snd (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p)))) =
--- --     F b c d .snd .snd (inl (sym p))
--- --   snd (snd (snd (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p)))) t =
--- --     cong (F b c d .snd .snd) (push (sym p) t)
--- --   fst (Iso.inv Iso₂ F b c d) a (inl x) = F c d .snd .snd .snd (b , sym x) .fst a
--- --   fst (Iso.inv Iso₂ F b c d) a (inr t) = F c d .fst a b t
--- --   fst (Iso.inv Iso₂ F b c d) a (push x t i) =
--- --     F c d .snd .snd .snd (b , sym x) .snd .fst a t i
--- --   fst (snd (Iso.inv Iso₂ F b c d)) = F c d .snd .fst b
--- --   snd (snd (Iso.inv Iso₂ F b c d)) (inl x) =
--- --     F c d .snd .snd .snd (b , sym x) .snd .snd .fst
--- --   snd (snd (Iso.inv Iso₂ F b c d)) (inr t) = F c d .snd .snd .fst b t
--- --   snd (snd (Iso.inv Iso₂ F b c d)) (push a t i) =
--- --     F c d .snd .snd .snd (b , sym a) .snd .snd .snd t i
--- --   Iso.rightInv Iso₂ = λ _ → refl
--- --   Iso.leftInv Iso₂ F = funExt λ b → funExt λ c → funExt λ x →
--- --     ΣPathP (funExt (λ a → funExt λ { (inl x) → refl
--- --                                     ; (inr x) → refl
--- --                                     ; (push a x i) → refl})
--- --            , ΣPathP (refl , (funExt (λ { (inl x) → refl
--- --                            ; (inr x) → refl
--- --                            ; (push a x i) → refl}))))
+    main : fun (ΣQuadpointTyBool n) f ≡ fun (ΣQuadpointTyBool n) g
+    main = →∙Homogeneous≡ (isHomogeneous→∙₃ (isHomogeneousEM T))
+             (funExt m2)
 
--- --   Iso₂* : Iso BipointedJoinBool** JS₂*
--- --   Iso₂* =
--- --     compIso Iso₂
--- --       (codomainIsoDep λ c → codomainIsoDep λ d →
--- --         Σ-cong-iso-snd λ f → Σ-cong-iso-snd λ g → Σ-cong-iso-snd
--- --         λ h → ΠContr (isContrSingl (B .snd)))
+SQ4≡SQ4comm : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → SQ4 X Y n ≡ SQ4comm X Y n
+SQ4≡SQ4comm =
+  RP∞'pt→Prop (λ _ → isPropΠ2 λ Y n → isSetΣQuadPoint _ Y n _ _)
+  (RP∞'pt→Prop (λ Y → isPropΠ λ n → isSetΣQuadPoint _ Y n _ _)
+    λ n → ΣQuadPoint≡ _ _ _ _ _
+      λ f → SQBool (λ x → ∑RP∞' (RP∞'∙ ℓ-zero) (n x))
+                    (λ x → SQ (RP∞'∙ ℓ-zero) (n x) .fst (f x))
+           ∙ cong₂ cp (SQBool (n true) (f true))
+                      (SQBool (n false) (f false))
+           ∙ help (EM ℤ/2) (λ n m x y → cp {n = n} {m = m} x y)
+               ⌣ₖ-commℤ/2 assoc⌣ₖ
+               (n true true) (n true false)
+               (n false true) (n false false)
+               (f true true) (f true false)
+               (f false true) (f false false)
+               (∑RP∞'Fubini (RP∞'∙ ℓ-zero) (RP∞'∙ ℓ-zero) n)
+           ∙ cong (subst (EM ℤ/2) (∑RP∞'Fubini (RP∞'∙ ℓ-zero) (RP∞'∙ ℓ-zero) n))
+               (sym (SQBool (λ z → ∑RP∞' (RP∞'∙ ℓ-zero) (λ x → n x z))
+                         (λ y → SQ (RP∞'∙ ℓ-zero) (λ x → n x y) .fst (λ x → f x y))
+               ∙ cong₂ cp (SQBool (λ x → n x true) (λ x → f x true))
+                               (SQBool (λ x → n x false) (λ x → f x false)))))
+  where
+  help : ∀ {ℓ} (A : ℕ → Type ℓ) (compA : (n m : ℕ) (x : A n) (y : A m) → A (n +' m))
+    → (⌣comm : (n m : ℕ) (x : A n) (y : A m)
+      → compA n m x y
+       ≡ subst A (+'-comm m n) (compA m n y x))
+    → (⌣assoc : (n m l : ℕ) (x : A n) (y : A m) (z : A l)
+      → compA (n +' m) l (compA n m x y) z
+       ≡ subst A (+'-assoc n m l)
+           (compA n (m +' l) x (compA m l y z)))
+    → (n m k l : ℕ) (x : A n) (y : A m) (z : A k) (w : A l)
+    → (p : ((n +' k) +' (m +' l)) ≡ ((n +' m) +' (k +' l)))
+    → compA (n +' m) (k +' l) (compA n m x y) (compA k l z w)
+     ≡ subst A p (compA (n +' k) (m +' l) (compA n k x z) (compA m l y w))
+  help A compA ⌣comm ⌣assoc n m k l x y z w p =
+      (sym (transportRefl _)
+    ∙ (λ i → subst A (isSetℕ _ _ refl (((sym (+'-assoc n m (k +' l))) ∙ p5 ∙ p4) ∙ p) i)
+               (compA (n +' m) (k +' l) (compA n m x y) (compA k l z w))))
+    ∙ substComposite A ((sym (+'-assoc n m (k +' l)) ∙ p5 ∙ p4)) p _
+    ∙ cong (subst A p)
+        ((substComposite A (sym (+'-assoc n m (k +' l))) (p5 ∙ p4) _
+        ∙ cong (subst A (p5 ∙ p4))
+           (cong (subst A (sym (+'-assoc n m (k +' l))))
+                 (⌣assoc _ _ _ x y (compA k l z w))
+         ∙ subst⁻Subst A (+'-assoc n m (k +' l)) _))
+        ∙ substComposite A (cong (_+'_ n) ((p1 ∙ p2) ∙ p3)) p4
+           (compA n (m +' (k +' l)) x (compA m (k +' l) y (compA k l z w)))
+        ∙ cong (subst A (+'-assoc n k (m +' l)))
+          (sym (substLems _ _ ((p1 ∙ p2) ∙ p3) _ .snd
+                 x (compA m (k +' l) y (compA k l z w)))
+         ∙ cong (compA n (k +' (m +' l)) x)
+            (substComposite A (p1 ∙ p2) p3 (compA m (k +' l) y (compA k l z w))
+           ∙ cong (subst A p3)
+              ((substComposite A p1 p2 (compA m (k +' l) y (compA k l z w))
+              ∙ cong (subst A (cong (_+' l) (+'-comm m k)))
+                  (sym (⌣assoc m k l y z w)))
+              ∙ sym (substLems _ _ (+'-comm m k) _ .fst (compA m k y z) w)
+              ∙ cong (λ z → compA (k +' m) l z w)
+                 (sym (⌣comm k m z y)))
+            ∙ cong (subst A p3)
+              (⌣assoc _ _ _ z y w)
+           ∙ subst⁻Subst A (+'-assoc k m l) _))
+        ∙ sym (⌣assoc _ _ _ x z (compA m l y w)))
+    where
+    p1 = +'-assoc m k l
+    p2 = cong (_+' l) (+'-comm m k)
+    p3 = sym (+'-assoc k m l)
+    p4 = +'-assoc n k (m +' l)
+    p5 = cong (n +'_) ((p1 ∙ p2) ∙ p3)
 
--- --   Iso₃ : Iso JS₂* JS₃*
--- --   fst (Iso.fun Iso₃ F) b c d = F c d .snd .fst b
--- --   fst (snd (Iso.fun Iso₃ F)) a c d = F c d .snd .snd .snd .fst a
--- --   fst (snd (snd (Iso.fun Iso₃ F))) c d = F c d .snd .snd .snd .snd .snd .fst
--- --   fst (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p)) a b d =
--- --     F c d .fst a b (inl (sym p))
--- --   fst (snd (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p))) b d =
--- --     F c d .snd .snd .fst b (inl (sym p))
--- --   fst (snd (snd (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p)))) a d =
--- --     F c d .snd .snd .snd .snd .fst a (inl (sym p))
--- --   snd (snd (snd (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p)))) d =
--- --     F c d .snd .snd .snd .snd .snd .snd (inl (sym p))
--- --   fst (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p)) a b c =
--- --     F c d .fst a b (inr (sym p))
--- --   fst (snd (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p))) b c =
--- --     F c d .snd .snd .fst b (inr (sym p))
--- --   fst (snd (snd (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p)))) a c =
--- --     F c d .snd .snd .snd .snd .fst a (inr (sym p))
--- --   snd (snd (snd (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p)))) c =
--- --     F c d .snd .snd .snd .snd .snd .snd (inr (sym p))
--- --   fst (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q)) a b =
--- --     cong (F c d .fst a b) (push (sym p) (sym q))
--- --   fst (snd (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q))) b i =
--- --     F c d .snd .snd .fst b (push (sym p) (sym q) i)
--- --   fst (snd (snd (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q)))) a i =
--- --     F c d .snd .snd .snd .snd .fst a (push (sym p) (sym q) i)
--- --   snd (snd (snd (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q)))) i =
--- --     F c d .snd .snd .snd .snd .snd .snd (push (sym p) (sym q) i)
--- --   fst (Iso.inv Iso₃ F c d) a b (inl x) =
--- --     F .snd .snd .snd .fst (c , sym x) .fst a b d
--- --   fst (Iso.inv Iso₃ F c d) a b (inr x) =
--- --     F .snd .snd .snd .snd .fst (d , sym x) .fst a b c
--- --   fst (Iso.inv Iso₃ F c d) a b (push p q i) =
--- --     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .fst a b i
--- --   fst (snd (Iso.inv Iso₃ F c d)) b = F .fst b c d
--- --   fst (snd (snd (Iso.inv Iso₃ F c d))) b (inl x) = F .snd .snd .snd .fst (c , sym x) .snd .fst b d 
--- --   fst (snd (snd (Iso.inv Iso₃ F c d))) b (inr x) = F .snd .snd .snd .snd .fst (d , sym x) .snd .fst b c 
--- --   fst (snd (snd (Iso.inv Iso₃ F c d))) b (push p q i) =
--- --     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .snd .fst b i
--- --   fst (snd (snd (snd (Iso.inv Iso₃ F c d)))) a = F .snd .fst a c d
--- --   fst (snd (snd (snd (snd (Iso.inv Iso₃ F c d))))) a (inl x) =
--- --     F .snd .snd .snd .fst (c , sym x) .snd .snd .fst a d
--- --   fst (snd (snd (snd (snd (Iso.inv Iso₃ F c d))))) a (inr x) =
--- --     F .snd .snd .snd .snd .fst (d , sym x) .snd .snd .fst a c
--- --   fst (snd (snd (snd (snd (Iso.inv Iso₃ F c d))))) a (push p q i) =
--- --     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .snd .snd .fst a i
--- --   fst (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) = F .snd .snd .fst c d
--- --   snd (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) (inl x) =
--- --     F .snd .snd .snd .fst (c , sym x) .snd .snd .snd d
--- --   snd (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) (inr x) =
--- --     F .snd .snd .snd .snd .fst (d , sym x) .snd .snd .snd c
--- --   snd (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) (push p q i) =
--- --     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .snd .snd .snd i
--- --   Iso.rightInv Iso₃ _ = refl
--- --   Iso.leftInv Iso₃ F = funExt λ c → funExt λ d →
--- --     ΣPathP ((funExt (λ a → funExt λ b → funExt
--- --            λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))
--- --     , ΣPathP (refl , (ΣPathP ((funExt (λ b
--- --       → funExt λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))
--- --      , (ΣPathP (refl , (ΣPathP ((funExt (λ a →
--- --         funExt λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))
--- --      , (ΣPathP (refl , (funExt (λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))))))))))))
+    substLems : (n n' : ℕ) (p : n ≡ n') (m : ℕ)
+      → ((x : A n) (y : A m)
+        → compA n' m (subst A p x) y ≡ subst A (cong (_+' m) p) (compA n m x y))
+       × ((x : A m) (y : A n)
+        → compA m n' x (subst A p y) ≡ subst A (cong (m +'_) p) (compA m n x y))
+    substLems n = J> λ m
+      → (λ x y → cong (λ x → compA n m x y) (transportRefl x)
+                 ∙ sym (transportRefl _))
+       , ((λ x y → cong (λ y → compA m n x y) (transportRefl y)
+                 ∙ sym (transportRefl _)))
 
+PreCartan : (X Y : RP∞' ℓ-zero) (n : fst X → fst Y → ℕ)
+  → (f : (x : fst X) (y : fst Y) → EM ℤ/2 (n x y))
+  → STSQ X (λ x → ∑RP∞' Y (n x)) (λ x → STSQ Y (n x) (f x))
+   ≡ subst (EM ℤ/2) (∑RP∞'Fubini X Y n)
+       (STSQ Y (λ y → ∑RP∞' X (λ x → n x y))
+         (λ y → STSQ X (λ x → n x y) (λ x → f x y)))
+PreCartan X Y n f i = SQ4≡SQ4comm X Y n i .fst f
 
--- --            Σ[ fl ∈ (f (pt A , b , c , d) ≡ T .snd) ]
--- --                ((t : join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd)))
--- --              → fl ≡ fr (pt A) t)
+-- module _ (A B C D :  Pointed ℓ-zero) (T : Pointed ℓ-zero)
+--          (f : A .fst × B .fst × C .fst × D .fst
+--            → fst T) where
+--   BipointedJoinBool : Type
+--   BipointedJoinBool = (a : A .fst) (b : B .fst) (c : C .fst) (d : D .fst)
+--          → join (a ≡ A .snd)
+--              (join (b ≡ B .snd)
+--                (join (c ≡ C .snd)
+--                      (d ≡ D .snd)))
+--          → f (a , b , c , d) ≡ T .snd
 
--- --   Iso₁ : Iso BipointedJoinBool BipointedJoinBool*
--- --   fst (Iso.fun Iso₁ F b c d) a x = F a b c d (inr x)
--- --   fst (snd (Iso.fun Iso₁ F b c d) (a , p)) = F a b c d (inl (sym p))
--- --   snd (snd (Iso.fun Iso₁ F b c d) (a , p)) t = cong (F a b c d) (push (sym p) t)
--- --   Iso.inv Iso₁ F a b c d (inl x) = F b c d .snd (a , sym x) .fst
--- --   Iso.inv Iso₁ F a b c d (inr t) = F b c d .fst a t
--- --   Iso.inv Iso₁ F a b c d (push p t i) = F b c d .snd (a , sym p) .snd t i
--- --   Iso.rightInv Iso₁ = λ _ → refl
--- --   Iso.leftInv Iso₁ F = funExt λ a → funExt λ b → funExt λ c → funExt λ d
--- --     → funExt λ { (inl x) → refl ; (inr x) → refl ; (push a x i) → refl}
+--   BipointedJoinBool* : Type
+--   BipointedJoinBool* = (b : B .fst) (c : C .fst) (d : D .fst)
+--     → Σ[ fr ∈ ((a : A .fst) → join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd))
+--                              → f (a , b , c , d) ≡ T .snd) ]
+--           ((x : singl (A .snd)) → 
+--               (Σ[ fl ∈ (f (x .fst , b , c , d) ≡ T .snd) ]
+--                ((t : join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd)))
+--              → fl ≡ fr (x .fst) t)))
 
--- --   Iso₁' : Iso BipointedJoinBool BipointedJoinBool**
--- --   Iso₁' = compIso Iso₁ (codomainIsoDep λ b → codomainIsoDep λ c → codomainIsoDep λ d
--- --     → Σ-cong-iso-snd λ f → ΠContr (isContrSingl (A .snd)))
+--   BipointedJoinBool** : Type
+--   BipointedJoinBool** = (b : B .fst) (c : C .fst) (d : D .fst)
+--     → Σ[ fr ∈ ((a : A .fst) → join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd))
+--                              → f (a , b , c , d) ≡ T .snd) ]
+--            Σ[ fl ∈ (f (pt A , b , c , d) ≡ T .snd) ]
+--                ((t : join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd)))
+--              → fl ≡ fr (pt A) t)
 
--- -- JoinStructureBool* : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero)
--- --   (f : A true true .fst × A true false .fst
--- --      × A false true .fst × A false false .fst
--- --     → fst B)
--- --   → Type
--- -- JoinStructureBool* A B f =
--- --   (g : A true true .fst × A true false .fst
--- --      × A false true .fst × A false false .fst)
--- --   → join (fst g ≡ A true true .snd)
--- --       (join (snd g .fst ≡ A true false .snd)
--- --         (join (snd (snd g) .fst ≡ A false true .snd)
--- --               (snd (snd g) .snd ≡ A false false .snd)))
--- --   → f g ≡ B .snd
+--   JS₂ : Type
+--   JS₂ = (c : C .fst) (d : D .fst)
+--     → Σ[ fr ∈ ((a : A .fst) (b : fst B)
+--               → join (c ≡ C .snd) (d ≡ D .snd)
+--               → f (a , b , c , d) ≡ T .snd) ]
+--        Σ[ fl ∈ ((b : fst B) → f (pt A , b , c , d) ≡ T .snd) ]
+--          Σ[ flp ∈ ((b : fst B) → (t : join (c ≡ C .snd) (d ≡ D .snd))
+--                  → fl b ≡ fr (pt A) b t) ]
+--           ((x : singl (B .snd))
+--        → Σ[ frl ∈ ((a : fst A) → f (a , fst x , c , d) ≡ T .snd) ]
+--            Σ[ frp ∈ ((a : fst A) (t : join (c ≡ C .snd) (d ≡ D .snd)) → frl a ≡ fr a (fst x) t) ]
+--              Σ[ r ∈ fl (fst x) ≡ frl (pt A) ]
+--                ((t : join (c ≡ C .snd) (d ≡ D .snd))
+--              → Square r (flp (fst x) t) refl (frp (pt A) t)))
 
--- -- 4→∙ : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero) → Type ℓ-zero
--- -- 4→∙ A B = A true true →∙ (A true false →∙ (A false true →∙ (A false false →∙ B ∙) ∙) ∙)
+--   JS₂* : Type
+--   JS₂* = (c : C .fst) (d : D .fst)
+--     → Σ[ fr ∈ ((a : A .fst) (b : fst B)
+--               → join (c ≡ C .snd) (d ≡ D .snd)
+--               → f (a , b , c , d) ≡ T .snd) ]
+--        Σ[ fl ∈ ((b : fst B) → f (pt A , b , c , d) ≡ T .snd) ]
+--          Σ[ flp ∈ ((b : fst B) → (t : join (c ≡ C .snd) (d ≡ D .snd))
+--                  → fl b ≡ fr (pt A) b t) ]
+--           (Σ[ frl ∈ ((a : fst A) → f (a , pt B , c , d) ≡ T .snd) ]
+--            Σ[ frp ∈ ((a : fst A) (t : join (c ≡ C .snd) (d ≡ D .snd)) → frl a ≡ fr a (pt B) t) ]
+--              Σ[ r ∈ fl (pt B) ≡ frl (pt A) ]
+--                ((t : join (c ≡ C .snd) (d ≡ D .snd))
+--              → Square r (flp (pt B) t) refl (frp (pt A) t)))
 
--- -- 4→∙' : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero)
--- --       → Type ℓ-zero
--- -- 4→∙' A B =
--- --   Σ[ f ∈ (A true true .fst → A true false .fst
--- --        → A false true .fst → A false false .fst → fst B) ]
--- --    Σ[ f-inl-inl ∈ ((a : singl (A true true .snd)) (b : _) (c : _) (d : _) → f (fst a) b c d ≡ pt B) ]
--- --     Σ[ f-inl-inr ∈ ((b : singl (A true false .snd)) (a : _) (c : _) (d : _) → f a (fst b) c d ≡ pt B) ]
--- --      Σ[ f-inl-push ∈ (((a : singl (A true true .snd)) (b : singl (A true false .snd)) (c : _) (d : _)
--- --                      → f-inl-inl a (fst b) c d ≡ f-inl-inr b (fst a) c d)) ]
--- --     Σ[ f-inr-inl ∈ ((c : singl (A false true .snd)) (a : _) (b : _)  (d : _) → f a b (fst c) d ≡ pt B) ]
--- --      Σ[ f-inr-inr ∈ ((d : singl (A false false .snd)) (a : _) (b : _) (c : _) → f a b c (fst d) ≡ pt B) ]
--- --        Σ[ f-inl-push ∈ ((c : singl (A false true .snd)) (d : singl (A false false .snd)) (a : _) (b : _)
--- --          → f-inr-inl c a b (fst d) ≡ f-inr-inr d a b (fst c)) ]
--- --        {!Σ[ f-inl-push ∈ ((c : singl (A false true .snd)) (d : singl (A false false .snd)) (a : _) (b : _)
--- --          → f-inr-inl c a b (fst d) ≡ f-inr-inr d a b (fst c)) ]!}
+--   module _ (fl₁ : ((b : fst B) (c : C .fst) (d : D .fst) → f (pt A , b , c , d) ≡ T .snd))
+--                 (fl₂ : ((a : fst A) (c : C .fst) (d : D .fst) → f (a , pt B , c , d) ≡ T .snd))
+--                 (fl₁₂ : (c : fst C) (d : fst D) → fl₁ (pt B) c d ≡ fl₂ (pt A) c d)
+--                 where
+--     TL : singl (snd C) → Type
+--     TL (c , p) =
+--       Σ[ fr ∈ ((a : fst A) (b : fst B) (d : fst D) → f (a , b , c , d) ≡ T .snd) ]
+--         Σ[ flp ∈ ((b : fst B) (d : fst D)  → fl₁ b c d ≡ fr (pt A) b d) ]
+--           Σ[ frp ∈ ((a : fst A) (d : fst D) → fl₂ a c d ≡ fr a (pt B) d) ]
+--             ((d : fst D) → Square (fl₁₂ c d) (flp (pt B) d) refl (frp (pt A) d))
+--     TR : singl (snd D) → Type
+--     TR (d , p) =
+--       Σ[ fr ∈ ((a : fst A) (b : fst B) (c : fst C) → f (a , b , c , d) ≡ T .snd) ]
+--         Σ[ flp ∈ ((b : fst B) (c : fst C)  → fl₁ b c d ≡ fr (pt A) b c) ]
+--           Σ[ frp ∈ ((a : fst A) (c : fst C) → fl₂ a c d ≡ fr a (pt B) c) ]
+--             ((c : fst C) → Square (fl₁₂ c d) (flp (pt B) c) refl (frp (pt A) c))
 
--- -- pss : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero) (f : _) → JoinStructureBool A B f
--- -- pss A B f (x , y , z , w) (inl (inl p)) = {!p!}
--- -- pss A B f (x , y , z , w) (inl (inr q)) = {!q!}
--- -- pss A B f (x , y , z , w) (inl (push p q i)) = {!!}
--- -- pss A B f (x , y , z , w) (inr (inl p)) = {!!}
--- -- pss A B f (x , y , z , w) (inr (inr q)) = {!!}
--- -- pss A B f (x , y , z , w) (inr (push p q i)) = {!!}
--- -- pss A B f (x , y , z , w) (push (inl p) (inl q) i) = {!!}
--- -- pss A B f (x , y , z , w) (push (inr p) (inl q) i) = {!!}
--- -- pss A B f (x , y , z , w) (push (push p q i₁) (inl r) i) = {!!}
--- -- pss A B f (x , y , z , w) (push p (inr q) i) = {!!}
--- -- pss A B f (x , y , z , w) (push p (push q r i₁) i) = {!!}
+--     TLR : (c : singl (snd C)) (d : singl (snd D)) → TL c → TR d → Type
+--     TLR (c , p) (d , q) (frₗ , flpₗ , frpₗ , sqₗ) (frᵣ , flpᵣ , frpᵣ , sqᵣ) =
+--       Σ[ frₗᵣ ∈ (((a : fst A) (b : fst B) → frₗ a b d ≡ frᵣ a b c)) ]
+--       Σ[ flpₗᵣ ∈ ((b : fst B) → PathP (λ i → fl₁ b c d ≡ frₗᵣ (pt A) b i) (flpₗ b d) (flpᵣ b c)) ]
+--       Σ[ frpₗᵣ ∈ ((a : fst A) → PathP (λ i → fl₂ a c d ≡ frₗᵣ a (pt B) i) (frpₗ a d) (frpᵣ a c)) ]
+--         Cube (sqₗ d) (sqᵣ c)
+--              (λ i j → fl₁₂ c d j) (flpₗᵣ (pt B))
+--              (λ j i → fl₁ (pt B) c d) (frpₗᵣ (pt A)) 
 
 
--- -- JoinStructureBoolD : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero)
--- --   → Σ _ (JoinStructureBool A B)
--- --   → A true true →∙ (A true false →∙ (A false true →∙ (A false false →∙ B ∙) ∙) ∙)
--- -- fst (fst (fst (fst (JoinStructureBoolD A B (f , p)) x) y) z) w =
--- --   f (x , y , z , w)
--- -- snd (fst (fst (fst (JoinStructureBoolD A B (f , p)) x) y) z) =
--- --   p (x , y , z , snd (A false false)) (inr (inr refl))
--- -- fst (snd (fst (fst (JoinStructureBoolD A B (f , p)) x) y) i) w =
--- --   p (x , y , snd (A false true) , w) (inr (inl refl)) i 
--- -- snd (snd (fst (fst (JoinStructureBoolD A B (f , p)) x) y) i) = {!!}
--- -- fst (fst (snd (fst (JoinStructureBoolD A B (f , p)) x) i) z) w =
--- --   p (x , snd (A true false) , z , w) (inl (inr refl)) i
--- -- snd (fst (snd (fst (JoinStructureBoolD A B (f , p)) x) i) z) = {!!}
--- -- fst (snd (snd (fst (JoinStructureBoolD A B (f , p)) x) i) j) w = {!!}
--- -- snd (snd (snd (fst (JoinStructureBoolD A B (f , p)) x) i) j) = {!!}
--- -- fst (fst (fst (snd (JoinStructureBoolD A B (f , p)) i) y) z) w =
--- --   p (snd (A true true) , y , z , w) (inl (inl refl)) i
--- -- snd (fst (fst (snd (JoinStructureBoolD A B (f , p)) i) y) z) j = {!!}
--- -- snd (fst (snd (JoinStructureBoolD A B (f , p)) i) y) = {!!}
--- -- snd (snd (JoinStructureBoolD A B (f , p)) i) = {!!}
+--   JS₃* : Type
+--   JS₃* = Σ[ fl₁ ∈ ((b : fst B) (c : C .fst) (d : D .fst) → f (pt A , b , c , d) ≡ T .snd) ]
+--            Σ[ fl₂ ∈ ((a : fst A) (c : C .fst) (d : D .fst) → f (a , pt B , c , d) ≡ T .snd) ]
+--             Σ[ fl₁₂ ∈ ((c : fst C) (d : fst D) → fl₁ (pt B) c d ≡ fl₂ (pt A) c d) ]
+--              Σ[ l ∈ ((c : _) → TL fl₁ fl₂ fl₁₂ c) ]
+--               Σ[ r ∈ ((c : _) → TR fl₁ fl₂ fl₁₂ c) ]
+--                 ((c : singl (snd C)) (d : singl (snd D)) → TLR fl₁ fl₂ fl₁₂ c d (l c) (r d))
+
+--   JS₃** : Type
+--   JS₃** = Σ[ fl₁ ∈ ((b : fst B) (c : C .fst) (d : D .fst) → f (pt A , b , c , d) ≡ T .snd) ]
+--            Σ[ fl₂ ∈ ((a : fst A) (c : C .fst) (d : D .fst) → f (a , pt B , c , d) ≡ T .snd) ]
+--             Σ[ fl₁₂ ∈ ((c : fst C) (d : fst D) → fl₁ (pt B) c d ≡ fl₂ (pt A) c d) ]
+--              Σ[ l ∈ (TL fl₁ fl₂ fl₁₂ (pt C , refl)) ]
+--               Σ[ r ∈ (TR fl₁ fl₂ fl₁₂ (pt D , refl)) ]
+--                 (TLR fl₁ fl₂ fl₁₂ (pt C , refl) (pt D , refl) l r)
+
+--   module _ (js : JS₃**) where
+--     open import Cubical.HITs.SmashProduct
+--     JS₃**→' : (A ⋀∙ (B ⋀∙ (C ⋀∙ D))) →∙ T
+--     fst JS₃**→' (inl x) = pt T
+--     fst JS₃**→' (inr (a , inl x)) = {!f (a , ?)!} -- pt T
+--     fst JS₃**→' (inr (a , inr (b , inl x))) = {!!} -- pt T
+--     fst JS₃**→' (inr (a , inr (b , inr (c , d)))) = f (a , b , c , d)
+--     fst JS₃**→' (inr (a , inr (b , push (inl x) i))) = snd js .snd .snd .snd .fst .fst a b x (~ i)
+--     fst JS₃**→' (inr (a , inr (b , push (inr x) i))) = snd js .snd .snd .fst .fst a b x (~ i)
+--     fst JS₃**→' (inr (a , inr (b , push (push tt i₁) i))) = snd js .snd .snd .snd .snd .fst a b (~ i₁) (~ i)
+--     fst JS₃**→' (inr (a , push (inl x) i)) = {!f (a , pt B , pt C , ?)!} -- pt T
+--     fst JS₃**→' (inr (a , push (inr (inl x)) i)) = {!f (a , pt B , pt C , x)!} -- snd T
+--     fst JS₃**→' (inr (a , push (inr (inr (c , d))) i)) = snd js .fst a c d (~ i)
+--     fst JS₃**→' (inr (a , push (inr (push (inl x) i₁)) i)) = {!!}
+--     fst JS₃**→' (inr (a , push (inr (push (inr x) i₁)) i)) = {!snd js .snd .snd .fst .snd .snd .fst a x (~ i₁) (~ i)!}
+--     fst JS₃**→' (inr (a , push (inr (push (push a₁ i₂) i₁)) i)) = {!!}
+--     fst JS₃**→' (inr (a , push (push a₁ i₁) i)) = {!!}
+--     fst JS₃**→' (push a i) = {!!}
+--     snd JS₃**→' = {!!}
+
+--     JS₃**→ : A →∙ (B →∙ (C →∙ (D →∙ T ∙) ∙) ∙)
+--     fst (fst (fst (fst JS₃**→ a) b) c) d = f (a , b , c , d)
+--     snd (fst (fst (fst JS₃**→ a) b) c) = snd js .snd .snd .snd .fst .fst a b c
+--     fst (snd (fst (fst JS₃**→ a) b) i) d = snd js .snd .snd .fst .fst a b d i
+--     snd (snd (fst (fst JS₃**→ a) b) i) = {!snd js .snd .snd .snd .snd .fst a b  i!}
+--     fst (fst (snd (fst JS₃**→ a) i) c) d = snd js .fst a c d i
+--     snd (fst (snd (fst JS₃**→ a) i) c) j = {!!}
+--     fst (snd (snd (fst JS₃**→ a) i) j) d = {!!}
+--     snd (snd (snd (fst JS₃**→ a) i) j) k = {!!}
+--     fst (fst (fst (snd JS₃**→ i) b) c) d = fst js b c d i
+--     snd (fst (fst (snd JS₃**→ i) b) c) j = {!!}
+--     fst (snd (fst (snd JS₃**→ i) b) j) d = {!!}
+--     snd (snd (fst (snd JS₃**→ i) b) j) k = {!!}
+--     fst (fst (snd (snd JS₃**→ i) j) c) d = {!!}
+--     snd (fst (snd (snd JS₃**→ i) j) c) k = {!!}
+--     snd (snd (snd JS₃**→ i) j) = {!!}
+
+--   Iso-JS₃*-JS₃** : Iso JS₃* JS₃**
+--   Iso-JS₃*-JS₃** =
+--     Σ-cong-iso-snd λ f' → Σ-cong-iso-snd λ g → Σ-cong-iso-snd λ fg
+--       → compIso (Σ-cong-iso-snd (λ r → Σ-cong-iso-snd λ s
+--         → compIso (ΠContr (isContrSingl (snd C)))
+--                    (ΠContr (isContrSingl (snd D)))))
+--            (compIso (ΣΠContr {C = λ c l → Σ ((d : _) → TR f' g fg d)
+--                      λ r → TLR f' g fg c (pt D , refl) l (r (pt D , refl))} (isContrSingl (snd C)))
+--              (Σ-cong-iso-snd λ l →
+--                ΣΠContr {C = λ d r → TLR f' g fg (pt C , refl) d l r} (isContrSingl (snd D))))
+
+--   Iso₂ : Iso BipointedJoinBool** JS₂
+--   fst (Iso.fun Iso₂ F c d) a b t = F b c d .fst a (inr t)
+--   fst (snd (Iso.fun Iso₂ F c d)) b = F b c d .snd .fst
+--   fst (snd (snd (Iso.fun Iso₂ F c d))) b t = F b c d .snd .snd (inr t)
+--   fst (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p)) a =
+--     F b c d .fst a (inl (sym p))
+--   fst (snd (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p))) a t =
+--     cong (F b c d .fst a) (push (sym p) t)
+--   fst (snd (snd (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p)))) =
+--     F b c d .snd .snd (inl (sym p))
+--   snd (snd (snd (snd (snd (snd (Iso.fun Iso₂ F c d))) (b , p)))) t =
+--     cong (F b c d .snd .snd) (push (sym p) t)
+--   fst (Iso.inv Iso₂ F b c d) a (inl x) = F c d .snd .snd .snd (b , sym x) .fst a
+--   fst (Iso.inv Iso₂ F b c d) a (inr t) = F c d .fst a b t
+--   fst (Iso.inv Iso₂ F b c d) a (push x t i) =
+--     F c d .snd .snd .snd (b , sym x) .snd .fst a t i
+--   fst (snd (Iso.inv Iso₂ F b c d)) = F c d .snd .fst b
+--   snd (snd (Iso.inv Iso₂ F b c d)) (inl x) =
+--     F c d .snd .snd .snd (b , sym x) .snd .snd .fst
+--   snd (snd (Iso.inv Iso₂ F b c d)) (inr t) = F c d .snd .snd .fst b t
+--   snd (snd (Iso.inv Iso₂ F b c d)) (push a t i) =
+--     F c d .snd .snd .snd (b , sym a) .snd .snd .snd t i
+--   Iso.rightInv Iso₂ = λ _ → refl
+--   Iso.leftInv Iso₂ F = funExt λ b → funExt λ c → funExt λ x →
+--     ΣPathP (funExt (λ a → funExt λ { (inl x) → refl
+--                                     ; (inr x) → refl
+--                                     ; (push a x i) → refl})
+--            , ΣPathP (refl , (funExt (λ { (inl x) → refl
+--                            ; (inr x) → refl
+--                            ; (push a x i) → refl}))))
+
+--   Iso₂* : Iso BipointedJoinBool** JS₂*
+--   Iso₂* =
+--     compIso Iso₂
+--       (codomainIsoDep λ c → codomainIsoDep λ d →
+--         Σ-cong-iso-snd λ f → Σ-cong-iso-snd λ g → Σ-cong-iso-snd
+--         λ h → ΠContr (isContrSingl (B .snd)))
+
+--   Iso₃ : Iso JS₂* JS₃*
+--   fst (Iso.fun Iso₃ F) b c d = F c d .snd .fst b
+--   fst (snd (Iso.fun Iso₃ F)) a c d = F c d .snd .snd .snd .fst a
+--   fst (snd (snd (Iso.fun Iso₃ F))) c d = F c d .snd .snd .snd .snd .snd .fst
+--   fst (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p)) a b d =
+--     F c d .fst a b (inl (sym p))
+--   fst (snd (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p))) b d =
+--     F c d .snd .snd .fst b (inl (sym p))
+--   fst (snd (snd (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p)))) a d =
+--     F c d .snd .snd .snd .snd .fst a (inl (sym p))
+--   snd (snd (snd (fst (snd (snd (snd (Iso.fun Iso₃ F)))) (c , p)))) d =
+--     F c d .snd .snd .snd .snd .snd .snd (inl (sym p))
+--   fst (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p)) a b c =
+--     F c d .fst a b (inr (sym p))
+--   fst (snd (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p))) b c =
+--     F c d .snd .snd .fst b (inr (sym p))
+--   fst (snd (snd (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p)))) a c =
+--     F c d .snd .snd .snd .snd .fst a (inr (sym p))
+--   snd (snd (snd (fst (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (d , p)))) c =
+--     F c d .snd .snd .snd .snd .snd .snd (inr (sym p))
+--   fst (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q)) a b =
+--     cong (F c d .fst a b) (push (sym p) (sym q))
+--   fst (snd (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q))) b i =
+--     F c d .snd .snd .fst b (push (sym p) (sym q) i)
+--   fst (snd (snd (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q)))) a i =
+--     F c d .snd .snd .snd .snd .fst a (push (sym p) (sym q) i)
+--   snd (snd (snd (snd (snd (snd (snd (snd (Iso.fun Iso₃ F))))) (c , p) (d , q)))) i =
+--     F c d .snd .snd .snd .snd .snd .snd (push (sym p) (sym q) i)
+--   fst (Iso.inv Iso₃ F c d) a b (inl x) =
+--     F .snd .snd .snd .fst (c , sym x) .fst a b d
+--   fst (Iso.inv Iso₃ F c d) a b (inr x) =
+--     F .snd .snd .snd .snd .fst (d , sym x) .fst a b c
+--   fst (Iso.inv Iso₃ F c d) a b (push p q i) =
+--     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .fst a b i
+--   fst (snd (Iso.inv Iso₃ F c d)) b = F .fst b c d
+--   fst (snd (snd (Iso.inv Iso₃ F c d))) b (inl x) = F .snd .snd .snd .fst (c , sym x) .snd .fst b d 
+--   fst (snd (snd (Iso.inv Iso₃ F c d))) b (inr x) = F .snd .snd .snd .snd .fst (d , sym x) .snd .fst b c 
+--   fst (snd (snd (Iso.inv Iso₃ F c d))) b (push p q i) =
+--     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .snd .fst b i
+--   fst (snd (snd (snd (Iso.inv Iso₃ F c d)))) a = F .snd .fst a c d
+--   fst (snd (snd (snd (snd (Iso.inv Iso₃ F c d))))) a (inl x) =
+--     F .snd .snd .snd .fst (c , sym x) .snd .snd .fst a d
+--   fst (snd (snd (snd (snd (Iso.inv Iso₃ F c d))))) a (inr x) =
+--     F .snd .snd .snd .snd .fst (d , sym x) .snd .snd .fst a c
+--   fst (snd (snd (snd (snd (Iso.inv Iso₃ F c d))))) a (push p q i) =
+--     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .snd .snd .fst a i
+--   fst (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) = F .snd .snd .fst c d
+--   snd (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) (inl x) =
+--     F .snd .snd .snd .fst (c , sym x) .snd .snd .snd d
+--   snd (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) (inr x) =
+--     F .snd .snd .snd .snd .fst (d , sym x) .snd .snd .snd c
+--   snd (snd (snd (snd (snd (snd (Iso.inv Iso₃ F c d)))))) (push p q i) =
+--     F .snd .snd .snd .snd .snd (c , sym p) (d , sym q) .snd .snd .snd i
+--   Iso.rightInv Iso₃ _ = refl
+--   Iso.leftInv Iso₃ F = funExt λ c → funExt λ d →
+--     ΣPathP ((funExt (λ a → funExt λ b → funExt
+--            λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))
+--     , ΣPathP (refl , (ΣPathP ((funExt (λ b
+--       → funExt λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))
+--      , (ΣPathP (refl , (ΣPathP ((funExt (λ a →
+--         funExt λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))
+--      , (ΣPathP (refl , (funExt (λ { (inl x) → refl ; (inr x) → refl ; (push a b i) → refl}))))))))))))
+
+
+--            Σ[ fl ∈ (f (pt A , b , c , d) ≡ T .snd) ]
+--                ((t : join (b ≡ B .snd) (join (c ≡ C .snd) (d ≡ D .snd)))
+--              → fl ≡ fr (pt A) t)
+
+--   Iso₁ : Iso BipointedJoinBool BipointedJoinBool*
+--   fst (Iso.fun Iso₁ F b c d) a x = F a b c d (inr x)
+--   fst (snd (Iso.fun Iso₁ F b c d) (a , p)) = F a b c d (inl (sym p))
+--   snd (snd (Iso.fun Iso₁ F b c d) (a , p)) t = cong (F a b c d) (push (sym p) t)
+--   Iso.inv Iso₁ F a b c d (inl x) = F b c d .snd (a , sym x) .fst
+--   Iso.inv Iso₁ F a b c d (inr t) = F b c d .fst a t
+--   Iso.inv Iso₁ F a b c d (push p t i) = F b c d .snd (a , sym p) .snd t i
+--   Iso.rightInv Iso₁ = λ _ → refl
+--   Iso.leftInv Iso₁ F = funExt λ a → funExt λ b → funExt λ c → funExt λ d
+--     → funExt λ { (inl x) → refl ; (inr x) → refl ; (push a x i) → refl}
+
+--   Iso₁' : Iso BipointedJoinBool BipointedJoinBool**
+--   Iso₁' = compIso Iso₁ (codomainIsoDep λ b → codomainIsoDep λ c → codomainIsoDep λ d
+--     → Σ-cong-iso-snd λ f → ΠContr (isContrSingl (A .snd)))
+
+-- JoinStructureBool* : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero)
+--   (f : A true true .fst × A true false .fst
+--      × A false true .fst × A false false .fst
+--     → fst B)
+--   → Type
+-- JoinStructureBool* A B f =
+--   (g : A true true .fst × A true false .fst
+--      × A false true .fst × A false false .fst)
+--   → join (fst g ≡ A true true .snd)
+--       (join (snd g .fst ≡ A true false .snd)
+--         (join (snd (snd g) .fst ≡ A false true .snd)
+--               (snd (snd g) .snd ≡ A false false .snd)))
+--   → f g ≡ B .snd
+
+-- 4→∙ : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero) → Type ℓ-zero
+-- 4→∙ A B = A true true →∙ (A true false →∙ (A false true →∙ (A false false →∙ B ∙) ∙) ∙)
+
+-- 4→∙' : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero)
+--       → Type ℓ-zero
+-- 4→∙' A B =
+--   Σ[ f ∈ (A true true .fst → A true false .fst
+--        → A false true .fst → A false false .fst → fst B) ]
+--    Σ[ f-inl-inl ∈ ((a : singl (A true true .snd)) (b : _) (c : _) (d : _) → f (fst a) b c d ≡ pt B) ]
+--     Σ[ f-inl-inr ∈ ((b : singl (A true false .snd)) (a : _) (c : _) (d : _) → f a (fst b) c d ≡ pt B) ]
+--      Σ[ f-inl-push ∈ (((a : singl (A true true .snd)) (b : singl (A true false .snd)) (c : _) (d : _)
+--                      → f-inl-inl a (fst b) c d ≡ f-inl-inr b (fst a) c d)) ]
+--     Σ[ f-inr-inl ∈ ((c : singl (A false true .snd)) (a : _) (b : _)  (d : _) → f a b (fst c) d ≡ pt B) ]
+--      Σ[ f-inr-inr ∈ ((d : singl (A false false .snd)) (a : _) (b : _) (c : _) → f a b c (fst d) ≡ pt B) ]
+--        Σ[ f-inl-push ∈ ((c : singl (A false true .snd)) (d : singl (A false false .snd)) (a : _) (b : _)
+--          → f-inr-inl c a b (fst d) ≡ f-inr-inr d a b (fst c)) ]
+--        {!Σ[ f-inl-push ∈ ((c : singl (A false true .snd)) (d : singl (A false false .snd)) (a : _) (b : _)
+--          → f-inr-inl c a b (fst d) ≡ f-inr-inr d a b (fst c)) ]!}
+
+-- pss : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero) (f : _) → JoinStructureBool A B f
+-- pss A B f (x , y , z , w) (inl (inl p)) = {!p!}
+-- pss A B f (x , y , z , w) (inl (inr q)) = {!q!}
+-- pss A B f (x , y , z , w) (inl (push p q i)) = {!!}
+-- pss A B f (x , y , z , w) (inr (inl p)) = {!!}
+-- pss A B f (x , y , z , w) (inr (inr q)) = {!!}
+-- pss A B f (x , y , z , w) (inr (push p q i)) = {!!}
+-- pss A B f (x , y , z , w) (push (inl p) (inl q) i) = {!!}
+-- pss A B f (x , y , z , w) (push (inr p) (inl q) i) = {!!}
+-- pss A B f (x , y , z , w) (push (push p q i₁) (inl r) i) = {!!}
+-- pss A B f (x , y , z , w) (push p (inr q) i) = {!!}
+-- pss A B f (x , y , z , w) (push p (push q r i₁) i) = {!!}
+
+
+-- JoinStructureBoolD : (A : Bool → Bool → Pointed ℓ-zero) (B : Pointed ℓ-zero)
+--   → Σ _ (JoinStructureBool A B)
+--   → A true true →∙ (A true false →∙ (A false true →∙ (A false false →∙ B ∙) ∙) ∙)
+-- fst (fst (fst (fst (JoinStructureBoolD A B (f , p)) x) y) z) w =
+--   f (x , y , z , w)
+-- snd (fst (fst (fst (JoinStructureBoolD A B (f , p)) x) y) z) =
+--   p (x , y , z , snd (A false false)) (inr (inr refl))
+-- fst (snd (fst (fst (JoinStructureBoolD A B (f , p)) x) y) i) w =
+--   p (x , y , snd (A false true) , w) (inr (inl refl)) i 
+-- snd (snd (fst (fst (JoinStructureBoolD A B (f , p)) x) y) i) = {!!}
+-- fst (fst (snd (fst (JoinStructureBoolD A B (f , p)) x) i) z) w =
+--   p (x , snd (A true false) , z , w) (inl (inr refl)) i
+-- snd (fst (snd (fst (JoinStructureBoolD A B (f , p)) x) i) z) = {!!}
+-- fst (snd (snd (fst (JoinStructureBoolD A B (f , p)) x) i) j) w = {!!}
+-- snd (snd (snd (fst (JoinStructureBoolD A B (f , p)) x) i) j) = {!!}
+-- fst (fst (fst (snd (JoinStructureBoolD A B (f , p)) i) y) z) w =
+--   p (snd (A true true) , y , z , w) (inl (inl refl)) i
+-- snd (fst (fst (snd (JoinStructureBoolD A B (f , p)) i) y) z) j = {!!}
+-- snd (fst (snd (JoinStructureBoolD A B (f , p)) i) y) = {!!}
+-- snd (snd (JoinStructureBoolD A B (f , p)) i) = {!!}
 
 -- module _ {ℓ} (X Y : RP∞' ℓ) (A : fst X → fst Y → Pointed ℓ) (B : Type ℓ) where
 
