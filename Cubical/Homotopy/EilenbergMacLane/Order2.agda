@@ -23,17 +23,25 @@ open import Cubical.Foundations.Transport
 open import Cubical.Foundations.GroupoidLaws
 open import Cubical.Foundations.Pointed
 open import Cubical.Foundations.Pointed.Homogeneous
+open import Cubical.Foundations.Univalence
+open import Cubical.Foundations.Isomorphism
+open import Cubical.Foundations.Equiv
 
+open import Cubical.Functions.Embedding
 
 open import Cubical.Data.Nat renaming (_+_ to _+ℕ_ ; elim to ℕelim)
+open import Cubical.Data.Nat.Order
 open import Cubical.Data.Fin
 open import Cubical.Data.Fin.Arithmetic
 open import Cubical.Data.Sigma
 open import Cubical.Data.Sum as ⊎
+open import Cubical.Data.Bool
+open import Cubical.Data.Empty as ⊥
 
 open import Cubical.HITs.EilenbergMacLane1
 open import Cubical.HITs.Susp
 open import Cubical.HITs.Truncation as TR
+open import Cubical.HITs.RPn.Base
 
 open import Cubical.Algebra.CommRing.Base
 open import Cubical.Algebra.Group.Instances.IntMod
@@ -251,3 +259,62 @@ symConst-ℤ/2-refl = EMZ/2.symConstEM-refl
 ⌣ₖ-commℤ/2 n m x y = ⌣ₖ-comm {G'' = ℤ/2CommRing} n m x y
                    ∙ cong (subst (EM ℤ/2) (+'-comm m n))
                       (-ₖ^[ n · m ]-const _)
+
+-- EM 1 ℤ/2 ≃ RP∞'
+EM₁-ℤ/2→RP∞'-emloop : (g : ℤ/2 .fst) → RP∞'∙ ℓ-zero ≡ RP∞'∙ ℓ-zero
+EM₁-ℤ/2→RP∞'-emloop (zero , p) = refl
+EM₁-ℤ/2→RP∞'-emloop (suc zero , p) = Σ≡Prop (isPropIsRP∞ ℓ-zero) (ua notEquiv)
+EM₁-ℤ/2→RP∞'-emloop (suc (suc g) , p) =
+  ⊥.rec (¬-<-zero (<-k+-cancel {k = 2} p))
+
+EM₁-ℤ/2→RP∞' : EM ℤ/2 1 → RP∞' ℓ-zero
+EM₁-ℤ/2→RP∞' =
+  elimGroupoid _ (λ _ → isGroupoidRP∞') (RP∞'∙ ℓ-zero)
+    EM₁-ℤ/2→RP∞'-emloop
+    λ g h → ΣSquareSet (λ _ → isProp→isSet (isPropIsRP∞ ℓ-zero _))
+      (coh g h)
+  where
+  coh : (g h : ℤ/2 .fst)
+    → Square refl (cong fst (EM₁-ℤ/2→RP∞'-emloop h))
+             (cong fst (EM₁-ℤ/2→RP∞'-emloop g))
+             (cong fst (EM₁-ℤ/2→RP∞'-emloop (g +ₘ h)))
+  coh = ℤ/2-elim (ℤ/2-elim refl λ i j → ua notEquiv (i ∧ j))
+                 (ℤ/2-elim (λ i j → ua notEquiv i)
+                           ((λ i j → ua notEquiv (~ j ∧ i)) ▷ sym help))
+    where
+    help : ua notEquiv ≡ sym (ua notEquiv)
+    help = cong ua (Σ≡Prop isPropIsEquiv (funExt (CasesBool true refl refl)))
+          ∙ uaInvEquiv notEquiv
+
+EM₁-ℤ/2≃RP∞' : EM ℤ/2 1 ≃ RP∞' ℓ-zero
+fst EM₁-ℤ/2≃RP∞' = EM₁-ℤ/2→RP∞'
+equiv-proof (snd EM₁-ℤ/2≃RP∞') =
+  RP∞'pt→Prop (λ _ → isPropIsContr)
+    ((embase , refl)
+   , (isEmbedding→hasPropFibers′ {f = EM₁-ℤ/2→RP∞'}
+       (Cubical.HITs.EilenbergMacLane1.elimProp _ (λ _ → isPropΠ λ _ → isPropIsEquiv _)
+         (Cubical.HITs.EilenbergMacLane1.elimProp _ (λ _ → isPropIsEquiv _)
+           (subst isEquiv (sym main) (isoToEquiv (invIso (compIso iso₂ iso₁)) .snd )))) _ _))
+  where
+  iso₁ : Iso Bool (Ω (EM∙ ℤ/2 1) .fst)
+  iso₁ = compIso (fst Bool≅ℤGroup/2) (Iso-EM-ΩEM+1 0)
+
+  iso₂ : Iso (Ω (RP∞' ℓ-zero , RP∞'∙ ℓ-zero) .fst) Bool
+  iso₂ = compIso help-iso (compIso (equivToIso univalence) Bool≃Charac)
+    where
+    help-iso : Iso (RP∞'∙ ℓ-zero ≡ RP∞'∙ ℓ-zero) (Bool ≡ Bool)
+    Iso.fun help-iso = cong fst
+    Iso.inv help-iso p = Σ≡Prop (isPropIsRP∞ ℓ-zero) p
+    Iso.rightInv help-iso p = refl
+    Iso.leftInv help-iso p =
+      ΣSquareSet (λ _ → isProp→isSet (isPropIsRP∞ ℓ-zero _))
+        λ i j → fst (p j)
+
+  main : cong EM₁-ℤ/2→RP∞' ≡ (λ x → (Iso.inv iso₂ (Iso.inv iso₁ x)))
+  main = funExt λ x → cong (cong EM₁-ℤ/2→RP∞') (sym (Iso.rightInv iso₁ x))
+                     ∙ sym (Iso.leftInv iso₂ _)
+                     ∙ cong (Iso.inv iso₂) (compute (Iso.inv iso₁ x))
+    where
+    compute : (x : Bool) → Iso.fun iso₂ (cong EM₁-ℤ/2→RP∞' (Iso.fun iso₁ x)) ≡ x
+    compute false = refl
+    compute true = refl

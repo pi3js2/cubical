@@ -67,6 +67,9 @@ module _ (I : RP∞' ℓ) (A : fst I → Pointed ℓ) where
   UnordSmash : Type ℓ
   UnordSmash = Pushout fst UnordΣ→UnordΠ
 
+  UnordSmash∙ : Pointed ℓ
+  UnordSmash∙ = UnordSmash , inr (snd ∘ A)
+
 -- characterisation of nestled UnordΠ and UnordΣ
 module UnordΠUnordΣ-charac-lemmas {ℓ : Level} (I J : RP∞' ℓ)
   (A : fst I → fst J → Type ℓ) where

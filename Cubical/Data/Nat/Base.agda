@@ -12,6 +12,7 @@ open import Cubical.Data.Bool.Base
 open import Cubical.Data.Sum.Base hiding (elim)
 open import Cubical.Data.Empty.Base hiding (elim)
 open import Cubical.Data.Unit.Base
+open import Cubical.Data.Sigma.Base
 
 predℕ : ℕ → ℕ
 predℕ zero = zero
@@ -77,3 +78,8 @@ isZero (suc n) = false
 _^_ : ℕ → ℕ → ℕ
 m ^ 0 = 1
 m ^ (suc n) = m · m ^ n
+
+-- Iterated product
+_ˣ_ : ∀ {ℓ} (A : ℕ → Type ℓ) (n : ℕ) → Type ℓ
+A ˣ zero = A zero
+A ˣ suc n = (A ˣ n) × A (suc n)

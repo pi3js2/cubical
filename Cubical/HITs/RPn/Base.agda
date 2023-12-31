@@ -656,6 +656,9 @@ RP∞'≃RP∞ ℓ =
     help = EquivJ (λ X _ → is2Type ℓ X) (is2TypeBool _)
   snd (≃Bool→isRP∞ ℓ X eq) = invEq eq true
 
+isGroupoidRP∞' : ∀ {ℓ} → isGroupoid (RP∞' ℓ)
+isGroupoidRP∞' = isOfHLevelRetractFromIso 3 (equivToIso (RP∞'≃RP∞ _)) isGroupoidRP∞
+
 isContrSiglRP∞' : (ℓ : Level) → isContr (Σ[ I ∈ RP∞' ℓ ] fst I)
 fst (isContrSiglRP∞' ℓ) = RP∞'∙ ℓ , true
 snd (isContrSiglRP∞' ℓ) (I , i) = ΣPathP ((lem I i)
@@ -750,6 +753,109 @@ module _  {ℓ ℓ'} {B : (I : RP∞' ℓ) → Type ℓ'}
   RP∞'pt→Propβ :
       RP∞'pt→Prop (RP∞'∙ ℓ) ≡ c
   RP∞'pt→Propβ j = help' j c
+
+RP∞'→SetRec : ∀ {ℓ} {A : Type ℓ} (s : isSet A) (X : RP∞' ℓ)
+         → (f : fst X → A)
+         → ((x : _) → f x ≡ f (RP∞'-fields.notRP∞' X x))
+         → A
+RP∞'→SetRec s = uncurry λ X
+  → uncurry λ 2tx
+  → elim→Set (λ _ → isSetΠ2 λ _ _ → s)
+               (λ x f coh → f x)
+               λ x → RP∞'-fields.elimRP∞' (X , 2tx , ∣ x ∣₁) x
+                 (λ i f coh → f x)
+                 λ i f coh → coh x i
+
+RP∞'→SetRecβ :
+  ∀ {ℓ} {A : Type ℓ} (s : isSet A) (X : _)
+     (f : fst X → A)
+     (h : (x : fst X) → f x ≡ f (RP∞'-fields.notRP∞' X x))
+     (x : fst X)
+     → RP∞'→SetRec s X f h ≡ f x
+RP∞'→SetRecβ {A = A} s = uncurry λ X → uncurry
+  λ 2x → PropTrunc.elim (λ _ → isPropΠ3 λ _ _ _ → s _ _)
+    λ x f h → RP∞'-fields.elimRP∞' (X , 2x , ∣ x ∣₁) x
+      (λ i → transportRefl (transportRefl (f (transportRefl x i)) i) i)
+      ((λ i → transportRefl (transportRefl (f (transportRefl x i)) i) i) ∙ h x)
+
+abstract
+  notNotRP∞' : ∀ {ℓ} (X : RP∞' ℓ) (x : fst X)
+    → RP∞'-fields.notRP∞' X (RP∞'-fields.notRP∞' X x) ≡ x
+  notNotRP∞' = JRP∞' refl
+
+RP∞'→GroupoidRec : ∀ {ℓ} {A : Type ℓ} (s : isGroupoid A) (X : RP∞' ℓ)
+  → (f : fst X → A)
+  → (f-coh : (x : _) → f x ≡ f (RP∞'-fields.notRP∞' X x))
+  → (p : (x : fst X)
+    → PathP (λ i → f (notNotRP∞' X x (~ i)) ≡ f (RP∞'-fields.notRP∞' X x))
+             (f-coh x)
+             (sym (f-coh (RP∞'-fields.notRP∞' X x))))
+  → A
+RP∞'→GroupoidRec {ℓ = ℓ} {A = A} grA = uncurry λ X
+  → uncurry λ 2tx
+  → elim→Gpd _ (λ _ → isGroupoidΠ3 λ _ _ _ → grA)
+      (F1 X 2tx)
+      (F2 X 2tx)
+      λ x → F3 (X , 2tx , ∣ x ∣₁) x
+  where
+  F1 : (X : Type) (2tx : is2Type ℓ X) (x : X) (f : X → A)
+       (f-coh : (x' : X) → f x' ≡ f (RP∞'-fields.notRP∞' (X , 2tx , ∣ x ∣₁) x')) →
+      ((x' : X) →
+       PathP (λ i → f (notNotRP∞' (X , 2tx , ∣ x ∣₁) x' (~ i))
+                   ≡ f (RP∞'-fields.notRP∞' (X , 2tx , ∣ x ∣₁) x'))
+             (f-coh x')
+             (sym (f-coh (RP∞'-fields.notRP∞' (X , 2tx , ∣ x ∣₁) x'))))
+      → A
+  F1 X 2tx x f coh p = f x
+
+  F2 : (X : Type) (2tx : is2Type ℓ X) (x y : X) →
+      PathP (λ i →
+            (f : X → A)
+            (f-coh : (x' : X)
+             → f x' ≡ f (RP∞'-fields.notRP∞' (X , 2tx , squash₁ ∣ x ∣₁ ∣ y ∣₁ i) x'))
+        → ((x' : X) →
+          PathP (λ i₁ →
+             f (notNotRP∞' (X , 2tx , squash₁ ∣ x ∣₁ ∣ y ∣₁ i) x' (~ i₁))
+           ≡ f (RP∞'-fields.notRP∞' (X , 2tx , squash₁ ∣ x ∣₁ ∣ y ∣₁ i) x'))
+          (f-coh x')
+          (sym (f-coh (RP∞'-fields.notRP∞' (X , 2tx , squash₁ ∣ x ∣₁ ∣ y ∣₁ i) x')))) → A)
+          (F1 X 2tx x)
+          (F1 X 2tx y)
+  F2 X 2tx x =
+    RP∞'-fields.elimRP∞' (X , 2tx , ∣ x ∣₁) x
+      (λ i f coh p → f x)
+      λ i f coh p → coh x i
+
+  F3 : (X : RP∞' ℓ) (x y z : fst X) →
+      SquareP
+        (λ i j → (f : fst X → A)
+                  (f-coh : (x' : fst X)
+                → f x'
+                 ≡ f (RP∞'-fields.notRP∞' (fst X , fst (snd X) , squash₁ᵗ x y z i j) x'))
+         → ((x' : fst X) →
+          PathP
+          (λ i₁ →
+             f (notNotRP∞' (fst X , fst (snd X) , squash₁ᵗ x y z i j) x' (~ i₁))
+           ≡ f (RP∞'-fields.notRP∞' (fst X , fst (snd X) , squash₁ᵗ x y z i j) x'))
+          (f-coh x')
+          (sym (f-coh (RP∞'-fields.notRP∞' (fst X , fst (snd X) , squash₁ᵗ x y z i j) x')))) → A)
+      (F2 (fst X) (fst (snd X)) x y) (F2 (fst X) (fst (snd X)) x z)
+      (λ i f f-coh p → f x) (F2 (fst X) (fst (snd X)) y z)
+  F3 = JRP∞' (CasesBool true
+        (CasesBool true (λ i j f f-coh _ → f true)
+                        λ i j f f-coh p → f-coh true (i ∧ j))
+        (CasesBool true
+          (λ i j f f-coh p
+            → hcomp (λ k → λ {(i = i0) → p true (~ k) j
+                              ; (i = i1) → f true
+                              ; (j = i0) → f (notNotRP∞' (RP∞'∙ ℓ) true (k ∨ i))
+                              ; (j = i1) → f-coh false i})
+                (hcomp (λ k → λ {(i = i0) → f-coh false (~ j)
+                                ; (i = i1) → f true
+                                ; (j = i0) → f (isSetBool _ _ refl (notNotRP∞' (RP∞'∙ ℓ) true) k i)
+                                ; (j = i1) → f-coh false i})
+                       (f-coh false (i ∨ ~ j))))
+          λ i j f f-coh p → f-coh true j))
 
 -- understanding mapping spaces (I → J) where I, J : RP∞'
 eval⊎≃ : ∀ {ℓ ℓ'} {A : Type ℓ} {B : Type ℓ'} → B ⊎ (A ≃ B) → A → B

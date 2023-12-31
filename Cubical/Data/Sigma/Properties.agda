@@ -281,6 +281,12 @@ leftInv (Σ-cong-iso-snd isom) (x , y') = ΣPathP (refl , leftInv (isom x) y')
 Σ-cong' : (p : A ≡ A') → PathP (λ i → p i → Type ℓ') B B' → Σ A B ≡ Σ A' B'
 Σ-cong' p p' = cong₂ (λ (A : Type _) (B : A → Type _) → Σ A B) p p'
 
+ΣDomainContrIso : ∀ {ℓ ℓ'} {A : Type ℓ} {B : A → Type ℓ'} {C : (a : A) → B a → Type ℓ'}
+  → (c : isContr A)
+  → Iso (Σ[ f ∈ ((a : A) → B a) ] (C (fst c) (f (fst c))))
+         (Σ[ f ∈ B (fst c) ] C (fst c) f)
+ΣDomainContrIso {B = B} {C} c = Σ-cong-iso (DomainContrIso c) λ f → idIso
+
 Σ-cong-equiv-prop :
     (e : A ≃ A')
   → ((x : A ) → isProp (B  x))

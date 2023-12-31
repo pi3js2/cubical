@@ -201,6 +201,22 @@ codomainIso : ∀ {ℓ ℓ' ℓ''} {A : Type ℓ} {B : Type ℓ'} {C : Type ℓ'
            → Iso (A → B) (A → C)
 codomainIso z = codomainIsoDep λ _ → z
 
+DomainContrIso : {B : A → Type ℓ'}
+  → (c : isContr A) → Iso ((x : A) → B x) (B (c .fst))
+Iso.fun (DomainContrIso c) f = f (fst c)
+Iso.inv (DomainContrIso {B = B} c) pt x =
+  subst B (snd c x) pt
+Iso.rightInv (DomainContrIso {B = B} c) pt =
+    (λ j → subst B
+      (isProp→isSet (isContr→isProp c) _ _
+        (snd c (fst c)) refl j) pt)
+  ∙ transportRefl pt
+Iso.leftInv (DomainContrIso {B = B} c) f =
+  funExt λ x → subst (λ x → subst B (snd c x) (f (fst c)) ≡ f x) (snd c x)
+    ((λ j → subst B (isProp→isSet (isContr→isProp c) _ _
+                      (snd c (fst c)) refl j) (f (fst c)))
+    ∙ transportRefl _)
+
 endoIso : Iso A B → Iso (A → A) (B → B)
 endoIso is = compIso (domIso is) (codomainIso is)
 
