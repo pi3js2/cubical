@@ -9,33 +9,18 @@ This file contains
 module Cubical.Cohomology.EilenbergMacLane.Rings.RPinf where
 
 open import Cubical.Cohomology.EilenbergMacLane.Base
-open import Cubical.Cohomology.EilenbergMacLane.Groups.Sn
-open import Cubical.Cohomology.EilenbergMacLane.CupProduct
 open import Cubical.Cohomology.EilenbergMacLane.Gysin
 
 open import Cubical.Homotopy.EilenbergMacLane.CupProduct
-open import Cubical.Homotopy.EilenbergMacLane.CupProductTensor
-  renaming (_⌣ₖ_ to _⌣ₖ⊗_ ; ⌣ₖ-0ₖ to ⌣ₖ-0ₖ⊗ ; 0ₖ-⌣ₖ to 0ₖ-⌣ₖ⊗)
-open import Cubical.Homotopy.Connected
-open import Cubical.Homotopy.EilenbergMacLane.GradedCommTensor
-  hiding (⌣ₖ-comm)
 open import Cubical.Homotopy.EilenbergMacLane.GroupStructure
 open import Cubical.Homotopy.EilenbergMacLane.Base
 open import Cubical.Homotopy.EilenbergMacLane.Properties
 open import Cubical.Homotopy.Loopspace
-open import Cubical.Homotopy.Group.Base
 open import Cubical.Homotopy.EilenbergMacLane.Order2
 
-open import Cubical.Functions.Morphism
-open import Cubical.Functions.Embedding
-open import Cubical.Functions.Surjection
-
 open import Cubical.Foundations.Prelude
-open import Cubical.Foundations.Transport
 open import Cubical.Foundations.HLevels
 open import Cubical.Foundations.Function
-open import Cubical.Foundations.GroupoidLaws
-open import Cubical.Foundations.Path
 open import Cubical.Foundations.Equiv
 open import Cubical.Foundations.Pointed
 open import Cubical.Foundations.Pointed.Homogeneous
@@ -43,69 +28,29 @@ open import Cubical.Foundations.Isomorphism
 open import Cubical.Foundations.Equiv.HalfAdjoint
 open import Cubical.Foundations.Univalence
 
-open import Cubical.HITs.PropositionalTruncation as PT
 open import Cubical.HITs.SetTruncation as ST
-open import Cubical.HITs.Truncation as TR
-open import Cubical.HITs.Sn
-open import Cubical.HITs.Pushout
 open import Cubical.HITs.EilenbergMacLane1
 open import Cubical.HITs.Susp
-open import Cubical.HITs.S1
-open import Cubical.HITs.RPn
-open import Cubical.HITs.RPn.Unordered
-open import Cubical.HITs.RPn.JoinFubini
 
-open import Cubical.Data.Empty as ⊥
 open import Cubical.Relation.Nullary
 
-
+open import Cubical.Data.Empty as ⊥
 open import Cubical.Data.Unit
 open import Cubical.Data.Nat
-open import Cubical.Data.Nat.Order hiding (eq)
 open import Cubical.Data.Sigma
 open import Cubical.Data.Bool hiding (_≤_)
+open import Cubical.Data.Fin.Base
 
-open import Cubical.Algebra.Group.Base
 open import Cubical.Algebra.AbGroup.Base
-open import Cubical.Algebra.Group.MorphismProperties
-open import Cubical.Algebra.Group.Morphisms
 open import Cubical.Algebra.Ring
 open import Cubical.Algebra.CommRing
 open import Cubical.Algebra.CommRing.Instances.IntMod
 open import Cubical.Algebra.Group.Instances.IntMod
 
-open import Cubical.Data.Fin.Arithmetic
-open import Cubical.Data.Fin.Base
-
-
 open RingStr renaming (_+_ to _+r_)
 open PlusBis
 
 open Iso
-
--- move to Bool?
-Bool→Bool→∙Bool : Bool → (Bool , true) →∙ (Bool , true)
-Bool→Bool→∙Bool false = idfun∙ _
-Bool→Bool→∙Bool true = const∙ _ _
-
-Iso-Bool→∙Bool-Bool : Iso ((Bool , true) →∙ (Bool , true)) Bool
-Iso.fun Iso-Bool→∙Bool-Bool f = fst f false
-Iso.inv Iso-Bool→∙Bool-Bool = Bool→Bool→∙Bool
-Iso.rightInv Iso-Bool→∙Bool-Bool false = refl
-Iso.rightInv Iso-Bool→∙Bool-Bool true = refl
-Iso.leftInv Iso-Bool→∙Bool-Bool f = Σ≡Prop (λ _ → isSetBool _ _) (help _ refl)
-  where
-  help : (x : Bool) → fst f false ≡ x
-    → Bool→Bool→∙Bool (fst f false) .fst ≡ f .fst
-  help false p = funExt
-    λ { false → (λ j → Bool→Bool→∙Bool (p j) .fst false) ∙ sym p
-      ; true → (λ j → Bool→Bool→∙Bool (p j) .fst true) ∙ sym (snd f)}
-  help true p = (λ j → Bool→Bool→∙Bool (p j) .fst)
-              ∙ funExt λ { false → sym p ; true → sym (snd f)}
-
--- pres0→hom
-
------------------------------------------------------------
 
 -- move to Cohomology GroupStr or somethign
 EM-ℤ/2ˣ∙ : (n : ℕ) → EM ℤ/2 ˣ n
