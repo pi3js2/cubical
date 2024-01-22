@@ -83,3 +83,7 @@ m ^ (suc n) = m · m ^ n
 _ˣ_ : ∀ {ℓ} (A : ℕ → Type ℓ) (n : ℕ) → Type ℓ
 A ˣ zero = A zero
 A ˣ suc n = (A ˣ n) × A (suc n)
+
+0ˣ : ∀ {ℓ} (A : ℕ → Type ℓ) (0A : (n : ℕ) → A n) → (n : ℕ) → A ˣ n 
+0ˣ A 0A zero = 0A zero
+0ˣ A 0A (suc n) = (0ˣ A 0A n) , (0A (suc n))

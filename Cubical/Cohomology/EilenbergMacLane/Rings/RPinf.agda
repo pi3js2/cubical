@@ -104,82 +104,10 @@ Iso.leftInv Iso-Bool→∙Bool-Bool f = Σ≡Prop (λ _ → isSetBool _ _) (help
               ∙ funExt λ { false → sym p ; true → sym (snd f)}
 
 -- pres0→hom
-pres0→GroupIso : ∀ {ℓ} {G : Group ℓ} (f : fst G ≃ ℤ/2 .fst)
-  → fst f (GroupStr.1g (snd G)) ≡ fzero
-  → IsGroupHom (snd G) (fst f) ((ℤGroup/ 2) .snd)
-pres0→GroupIso {G = G} f fp = isGroupHomInv ((invEquiv f) , main)
-  where
-  one = invEq f fone
-
-  f⁻∙ : invEq f fzero ≡ GroupStr.1g (snd G)
-  f⁻∙ = sym (cong (invEq f) fp) ∙ retEq f _
-
-  f⁻1 : GroupStr._·_ (snd G) (invEq f fone) (invEq f fone)
-      ≡ GroupStr.1g (snd G)
-  f⁻1 = sym (retEq f (GroupStr._·_ (snd G) (invEq f fone) (invEq f fone)))
-    ∙∙ cong (invEq f) (mainlem _ refl ∙ sym fp)
-    ∙∙ retEq f (GroupStr.1g (snd G))
-    where
-    l : ¬ (fst f (GroupStr._·_ (snd G) (invEq f fone) (invEq f fone))
-                ≡ fone)
-    l p = snotz (cong fst q)
-      where
-      q : fone ≡ fzero
-      q = (sym (secEq f fone)
-        ∙ cong (fst f)
-            ((sym (GroupStr.·IdL (snd G) one)
-            ∙ cong (λ x → GroupStr._·_ (snd G) x one) (sym (GroupStr.·InvL (snd G) one)))
-            ∙ sym (GroupStr.·Assoc (snd G) (GroupStr.inv (snd G) one) one one)))
-        ∙ cong (fst f) (cong (GroupStr._·_ (snd G) (GroupStr.inv (snd G) (invEq f fone)))
-                ((sym (retEq f _) ∙ cong (invEq f) p)))
-        ∙ cong (fst f) (GroupStr.·InvL (snd G) _)
-        ∙ fp
-
-
-    mainlem : (x : _)
-      → fst f (GroupStr._·_ (snd G) (invEq f fone) (invEq f fone)) ≡ x
-      → f .fst ((snd G GroupStr.· invEq f fone) (invEq f fone)) ≡ fzero
-    mainlem = ℤ/2-elim
-      (λ p → p)
-      λ p → ⊥.rec (l p)
-
-
-  main : IsGroupHom ((ℤGroup/ 2) .snd) (invEq f) (snd G)
-  main =
-    makeIsGroupHom
-      (ℤ/2-elim
-        (ℤ/2-elim (f⁻∙ ∙ sym (GroupStr.·IdR (snd G) (GroupStr.1g (snd G)))
-                       ∙ cong (λ x → snd G .GroupStr._·_ x x) (sym f⁻∙))
-                  (sym (GroupStr.·IdL (snd G) one)
-                  ∙ cong (λ x → snd G .GroupStr._·_ x one) (sym f⁻∙)))
-        (ℤ/2-elim (sym (GroupStr.·IdR (snd G) one)
-                  ∙ cong (snd G .GroupStr._·_ (invEq f fone)) (sym f⁻∙))
-                  (f⁻∙ ∙ sym f⁻1)))
 
 -----------------------------------------------------------
 
 -- move to Cohomology GroupStr or somethign
-EM→-charac : ∀ {ℓ ℓ'} {A : Pointed ℓ} {G : AbGroup ℓ'} (n : ℕ)
-  → Iso (fst A → EM G n) ((A →∙ EM∙ G n) × EM G n)
-Iso.fun (EM→-charac {A = A} n) f =
-  ((λ x → f x -ₖ f (pt A)) , rCancelₖ n (f (pt A))) , f (pt A)
-Iso.inv (EM→-charac n) (f , a) x = fst f x +ₖ a
-Iso.rightInv (EM→-charac {A = A} n) ((f , p) , a) =
-  ΣPathP (→∙Homogeneous≡ (isHomogeneousEM _)
-    (funExt (λ x → (λ i → (f x +ₖ a) -ₖ (cong (_+ₖ a) p ∙ lUnitₖ n a) i)
-                  ∙ sym (assocₖ n (f x) a (-ₖ a))
-                  ∙ cong (f x +ₖ_) (rCancelₖ n a)
-                  ∙ rUnitₖ n (f x)))
-  , cong (_+ₖ a) p ∙ lUnitₖ n a)
-Iso.leftInv (EM→-charac {A = A} n) f =
-  funExt λ x → sym (assocₖ n (f x) (-ₖ f (pt A)) (f (pt A)))
-    ∙∙ cong (f x +ₖ_) (lCancelₖ n (f (pt A)))
-    ∙∙ rUnitₖ n (f x)
-
-0ˣ : ∀ {ℓ} (A : ℕ → Type ℓ) (0A : (n : ℕ) → A n) → (n : ℕ) → A ˣ n 
-0ˣ A 0A zero = 0A zero
-0ˣ A 0A (suc n) = (0ˣ A 0A n) , (0A (suc n))
-
 EM-ℤ/2ˣ∙ : (n : ℕ) → EM ℤ/2 ˣ n
 EM-ℤ/2ˣ∙ = 0ˣ (EM ℤ/2) 0ₖ
 
@@ -329,7 +257,6 @@ snd (⌣RP∞Equiv n) = ⌣RP∞IsEq n
 fst (⌣RP∞'Equiv n) = ⌣RP∞' n
 snd (⌣RP∞'Equiv n) = ⌣RP∞'IsEq n
 
-
 +'-suc₁ : (n : ℕ) → 1 +' n ≡ suc n
 +'-suc₁ zero = refl
 +'-suc₁ (suc n) = refl
@@ -404,7 +331,7 @@ RP→EM-ℤ/2-CharacIso∙ (suc n) =
 
 HⁿRP∞≅ℤ/2 : (n : ℕ) → AbGroupIso (coHomGr n ℤ/2 (EM ℤ/2 1)) ℤ/2
 fst (HⁿRP∞≅ℤ/2 n) = cohomRP∞Iso n
-snd (HⁿRP∞≅ℤ/2 n) = pres0→GroupIso (isoToEquiv (cohomRP∞Iso n)) (cohomRP∞Iso∙ n)
+snd (HⁿRP∞≅ℤ/2 n) = pres0→GroupIsoℤ/2 (isoToEquiv (cohomRP∞Iso n)) (cohomRP∞Iso∙ n)
   where
   ∥EM-ℤ/2ˣ∥₀-Iso∙ : (n : ℕ) → Iso.fun (∥EM-ℤ/2ˣ∥₀-Iso n) ∣ EM-ℤ/2ˣ∙ n ∣₂ ≡ fzero
   ∥EM-ℤ/2ˣ∥₀-Iso∙ zero = refl
